@@ -157,11 +157,20 @@ class GameController {
         if (this.activeHint.to === idx) tubeEl.classList.add('tube-hint-dest');
       }
 
+      // Labio superior de vidrio
+      const lip = document.createElement('div');
+      lip.className = 'tube-lip';
+      tubeEl.appendChild(lip);
+
       // Tapón de corcho de victoria
       const cork = document.createElement('div');
       cork.className = 'cork-plug';
       cork.id = `cork-${idx}`;
       tubeEl.appendChild(cork);
+
+      // Cuerpo de vidrio que contiene y recorta todos los líquidos
+      const glassEl = document.createElement('div');
+      glassEl.className = 'tube-glass';
 
       // Overlay de candado si está bloqueado
       if (tube.isLocked) {
@@ -181,10 +190,10 @@ class GameController {
             <span class="text-[10px] text-white font-black">${keyShape}</span>
           </div>
         `;
-        tubeEl.appendChild(lockOverlay);
+        glassEl.appendChild(lockOverlay);
       }
 
-      // Renderizar segmentos de líquido
+      // Renderizar segmentos de líquido dentro de glassEl
       const unitHeightPercent = 100 / tube.capacity;
       tube.liquids.forEach((liq, lIdx) => {
         const isTop = (lIdx === tube.liquids.length - 1);
@@ -216,8 +225,10 @@ class GameController {
             </span>
           `;
         }
-        tubeEl.appendChild(segment);
+        glassEl.appendChild(segment);
       });
+
+      tubeEl.appendChild(glassEl);
 
       // Indicadores especiales (Tubo estrecho 1x1, Gigante)
       if (tube.isNarrow) {
