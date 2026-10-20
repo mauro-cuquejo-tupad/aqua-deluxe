@@ -86,7 +86,26 @@ class LevelGenerator {
     // 4. Mezclar deterministamente según la semilla del nivel
     this.shuffleDeterministically(tubes, level);
 
-    // 5. Cálculo de movimientos óptimos estimados para estrellas
+    // 5. Aplicar estados de misterio: La superficie SIEMPRE está descubierta, las capas inferiores quedan ocultas
+    if (hasMystery) {
+      tubes.forEach(tube => {
+        tube.liquids.forEach((liq, idx) => {
+          if (idx < tube.liquids.length - 1) {
+            liq.isMystery = true;
+          } else {
+            liq.isMystery = false;
+          }
+        });
+      });
+    } else {
+      tubes.forEach(tube => {
+        tube.liquids.forEach(liq => {
+          liq.isMystery = false;
+        });
+      });
+    }
+
+    // 6. Cálculo de movimientos óptimos estimados para estrellas
     const optimalMoves = colorCount * 3 + Math.floor(level / 4) + (hasMystery ? 2 : 0) + (hasLock ? 2 : 0);
 
     return {

@@ -342,6 +342,7 @@ class RouletteEngine {
   evaluateResult(sliceIndex) {
     const landedColor = this.sliceColors[sliceIndex];
     const isWinner = this.selectedColors.includes(landedColor.id);
+    const modalBox = document.querySelector('#modal-roulette .modal-content');
 
     const winningSlice = document.getElementById(`slice-${sliceIndex}`);
     if (winningSlice) winningSlice.classList.add('winner-slice');
@@ -351,10 +352,11 @@ class RouletteEngine {
       if (window.audio) {
         window.audio.playComboTone(7);
         window.audio.playWinFanfare();
+        window.audio.playCrowdCheer();
       }
 
       if (typeof confetti === 'function') {
-        confetti({ particleCount: 70, spread: 60, origin: { y: 0.6 } });
+        confetti({ particleCount: 80, spread: 70, origin: { y: 0.6 } });
       }
 
       if (this.btnSpin) {
@@ -367,11 +369,18 @@ class RouletteEngine {
         window.game.multiplyCoins(mult);
       }
     } else {
-      if (window.audio) window.audio.playFailSound();
+      // Iluminación rojiza y decepción de la multitud
+      if (modalBox) {
+        modalBox.classList.add('roulette-lose-glow');
+      }
+
+      if (window.audio) {
+        window.audio.playDisappointedCrowd();
+      }
 
       if (this.btnSpin) {
         this.btnSpin.textContent = `Cayó en ${landedColor.name}. Conservas tus monedas.`;
-        this.btnSpin.classList.add('bg-slate-700');
+        this.btnSpin.classList.add('bg-rose-700');
       }
     }
 
@@ -379,10 +388,11 @@ class RouletteEngine {
       const modal = document.getElementById('modal-roulette');
       if (modal) modal.classList.add('hidden');
 
+      if (modalBox) modalBox.classList.remove('roulette-lose-glow');
       if (winningSlice) winningSlice.classList.remove('winner-slice');
       if (this.btnSpin) {
         this.btnSpin.disabled = false;
-        this.btnSpin.classList.remove('bg-emerald-500', 'bg-slate-700');
+        this.btnSpin.classList.remove('bg-emerald-500', 'bg-rose-700', 'bg-slate-700');
         this.btnSpin.textContent = 'MANTÉN PRESIONADO PARA REGULAR FUERZA';
       }
 

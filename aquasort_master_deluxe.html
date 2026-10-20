@@ -53,11 +53,16 @@
         <!-- Opciones generadas por JS -->
       </select>
 
-      <!-- Contador de Monedas -->
-      <div class="flex items-center gap-1.5 bg-amber-500/10 border border-amber-500/30 px-2.5 sm:px-3 py-1.5 rounded-xl shadow-inner text-amber-300 font-black text-xs sm:text-sm">
-        <i data-lucide="coins" class="w-4 h-4 text-amber-400"></i>
+      <!-- Botón Pantalla de Inicio -->
+      <button id="btn-open-home" class="p-2 bg-slate-800/90 hover:bg-slate-700 active:scale-95 border border-slate-700 rounded-xl text-sky-300 transition-all shadow-sm" title="Pantalla de Inicio / Menú Principal">
+        <i data-lucide="home" class="w-5 h-5"></i>
+      </button>
+
+      <!-- Contador de Monedas / Acceso a Tienda -->
+      <button id="btn-open-shop" class="flex items-center gap-1.5 bg-amber-500/10 hover:bg-amber-500/25 border border-amber-500/30 px-2.5 sm:px-3 py-1.5 rounded-xl shadow-inner text-amber-300 font-black text-xs sm:text-sm transition-all" title="Abrir Tienda de Mejoras">
+        <i data-lucide="shopping-bag" class="w-4 h-4 text-amber-400"></i>
         <span id="lbl-coins">0</span>
-      </div>
+      </button>
 
       <!-- Botón Tabla de Clasificaciones -->
       <button id="btn-open-leaderboard" class="p-2 bg-slate-800/90 hover:bg-slate-700 active:scale-95 border border-slate-700 rounded-xl text-amber-300 transition-all shadow-sm" title="Tabla de Clasificaciones (Tiempos y Movimientos)">
@@ -459,10 +464,129 @@
     </div>
   </div>
 
+  <!-- ==========================================================================
+       MODAL 6: PANTALLA DE INICIO (HOME SCREEN)
+       ========================================================================== -->
+  <div id="modal-home" class="fixed inset-0 bg-slate-950/90 backdrop-blur-md z-50 flex items-center justify-center p-3 sm:p-5 modal-overlay">
+    <div class="bg-slate-900 border border-slate-700/80 rounded-3xl max-w-lg w-full p-6 sm:p-7 shadow-2xl text-center relative overflow-hidden modal-content">
+      <!-- Decoración de fondo brillante -->
+      <div class="w-32 h-32 bg-sky-500/15 rounded-full blur-3xl absolute -top-12 -left-12 pointer-events-none"></div>
+      <div class="w-32 h-32 bg-amber-500/15 rounded-full blur-3xl absolute -bottom-12 -right-12 pointer-events-none"></div>
+
+      <!-- Botón cerrar si ya hay partida en curso -->
+      <button id="btn-close-home" class="absolute top-4 right-4 p-2 text-slate-400 hover:text-white rounded-xl bg-slate-800/80 transition-colors">
+        <i data-lucide="x" class="w-5 h-5"></i>
+      </button>
+
+      <!-- Logo e Identidad -->
+      <div class="w-20 h-20 rounded-3xl bg-gradient-to-tr from-sky-400 via-cyan-500 to-indigo-600 flex items-center justify-center shadow-xl shadow-sky-500/30 mx-auto mb-3 animate-float">
+        <i data-lucide="flask-conical" class="w-10 h-10 text-white"></i>
+      </div>
+
+      <h2 class="brand-font text-2xl sm:text-3xl font-black text-transparent bg-clip-text bg-gradient-to-r from-sky-300 via-cyan-200 to-amber-200 mb-1">
+        AquaSort <span class="text-xs px-2 py-0.5 rounded-full bg-sky-500/20 text-sky-300 border border-sky-400/40 font-mono align-middle">DELUXE</span>
+      </h2>
+      <p class="text-xs text-slate-400 mb-5">Desafío Alquímico de Clasificación de Fluidos • 100 Niveles</p>
+
+      <!-- Resumen del Estado del Jugador -->
+      <div class="grid grid-cols-3 gap-2.5 bg-slate-800/70 border border-slate-700/60 rounded-2xl p-3 mb-5">
+        <div class="text-center">
+          <div class="text-[10px] text-slate-400 uppercase font-bold">Nivel Actual</div>
+          <div id="home-stat-level" class="text-base sm:text-lg font-black text-sky-300">1</div>
+        </div>
+        <div class="text-center border-x border-slate-700/60">
+          <div class="text-[10px] text-slate-400 uppercase font-bold">Monedas</div>
+          <div id="home-stat-coins" class="text-base sm:text-lg font-black text-amber-300">0 🪙</div>
+        </div>
+        <div class="text-center">
+          <div class="text-[10px] text-slate-400 uppercase font-bold">Botella Extra</div>
+          <div id="home-stat-cooldown" class="text-xs sm:text-sm font-black text-emerald-400 mt-1">Lista</div>
+        </div>
+      </div>
+
+      <!-- Menú de Acciones Principales -->
+      <div class="flex flex-col gap-2.5">
+        <button id="btn-home-play" class="btn-interactive w-full py-3.5 bg-gradient-to-r from-sky-500 via-cyan-500 to-indigo-600 hover:from-sky-400 hover:to-indigo-500 text-white font-black text-sm rounded-2xl shadow-lg shadow-sky-500/30 flex items-center justify-center gap-2">
+          <i data-lucide="play" class="w-5 h-5 fill-white"></i>
+          <span id="btn-home-play-text">Jugar / Continuar Nivel</span>
+        </button>
+
+        <div class="grid grid-cols-2 gap-2.5">
+          <button id="btn-home-map" class="btn-interactive py-3 bg-slate-800 hover:bg-slate-700/90 border border-slate-700 text-sky-300 font-bold text-xs rounded-2xl flex items-center justify-center gap-2">
+            <i data-lucide="map" class="w-4 h-4"></i>
+            <span>Mapa de Niveles</span>
+          </button>
+          <button id="btn-home-shop" class="btn-interactive py-3 bg-slate-800 hover:bg-slate-700/90 border border-slate-700 text-amber-300 font-bold text-xs rounded-2xl flex items-center justify-center gap-2">
+            <i data-lucide="shopping-bag" class="w-4 h-4"></i>
+            <span>Tienda de Mejoras</span>
+          </button>
+        </div>
+
+        <div class="grid grid-cols-2 gap-2.5">
+          <button id="btn-home-leaderboard" class="btn-interactive py-2.5 bg-slate-800/80 hover:bg-slate-700 border border-slate-700/80 text-slate-300 font-semibold text-xs rounded-2xl flex items-center justify-center gap-2">
+            <i data-lucide="trophy" class="w-4 h-4 text-amber-400"></i>
+            <span>Clasificaciones</span>
+          </button>
+          <button id="btn-home-settings" class="btn-interactive py-2.5 bg-slate-800/80 hover:bg-slate-700 border border-slate-700/80 text-slate-300 font-semibold text-xs rounded-2xl flex items-center justify-center gap-2">
+            <i data-lucide="sliders-horizontal" class="w-4 h-4 text-sky-400"></i>
+            <span>Opciones</span>
+          </button>
+        </div>
+
+        <!-- Guardado / Carga en Archivo .JSON -->
+        <div class="border-t border-slate-800 pt-3 mt-1 flex items-center justify-between gap-2">
+          <button id="btn-export-file" class="btn-interactive flex-1 py-2.5 bg-emerald-500/15 hover:bg-emerald-500/25 border border-emerald-500/40 text-emerald-300 font-bold text-xs rounded-2xl flex items-center justify-center gap-1.5" title="Descargar archivo de partida para guardar progreso en tu PC">
+            <i data-lucide="download" class="w-4 h-4"></i>
+            <span>Guardar en Archivo</span>
+          </button>
+          <button id="btn-import-file" class="btn-interactive flex-1 py-2.5 bg-indigo-500/15 hover:bg-indigo-500/25 border border-indigo-500/40 text-indigo-300 font-bold text-xs rounded-2xl flex items-center justify-center gap-1.5" title="Cargar archivo .json para retomar progreso">
+            <i data-lucide="upload" class="w-4 h-4"></i>
+            <span>Cargar de Archivo</span>
+          </button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ==========================================================================
+       MODAL 7: TIENDA DE MEJORAS (UPGRADES SHOP)
+       ========================================================================== -->
+  <div id="modal-shop" class="fixed inset-0 bg-slate-950/90 backdrop-blur-md z-50 hidden flex items-center justify-center p-3 sm:p-5 modal-overlay">
+    <div class="bg-slate-900 border border-slate-700 rounded-3xl max-w-xl w-full p-5 sm:p-6 shadow-2xl flex flex-col max-h-[88vh] modal-content">
+      <div class="flex items-center justify-between border-b border-slate-800 pb-3 mb-3">
+        <div>
+          <h2 class="text-lg sm:text-xl font-black text-white flex items-center gap-2">
+            <i data-lucide="shopping-bag" class="w-5 h-5 text-amber-400"></i>
+            Tienda del Alquimista
+          </h2>
+          <p class="text-xs text-slate-400">Mejoras permanentes y recargas con tus monedas ganadas.</p>
+        </div>
+        <div class="flex items-center gap-3">
+          <div class="flex items-center gap-1.5 bg-amber-500/15 border border-amber-500/40 px-3 py-1.5 rounded-xl text-amber-300 font-black text-xs sm:text-sm shadow-inner">
+            <i data-lucide="coins" class="w-4 h-4 text-amber-400"></i>
+            <span id="shop-coins-balance">0</span>
+          </div>
+          <button id="btn-close-shop" class="p-2 text-slate-400 hover:text-white rounded-xl bg-slate-800">
+            <i data-lucide="x" class="w-5 h-5"></i>
+          </button>
+        </div>
+      </div>
+
+      <!-- Lista de Artículos de la Tienda -->
+      <div id="shop-items-container" class="flex-1 overflow-y-auto space-y-3 pr-1">
+        <!-- Renderizado dinámico de tarjetas de mejoras por GameController -->
+      </div>
+    </div>
+  </div>
+
+  <!-- Input oculto para importación de partida en archivo JSON -->
+  <input type="file" id="input-save-file" accept=".json" class="hidden">
+
   <!-- Scripts modulares -->
   <script src="js/audio.js"></script>
   <script src="js/palette.js"></script>
   <script src="js/levels.js"></script>
+  <script src="js/state.js"></script>
   <script src="js/leaderboard.js"></script>
   <script src="js/roulette.js"></script>
   <script src="js/game.js"></script>

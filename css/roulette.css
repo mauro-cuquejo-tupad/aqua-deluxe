@@ -130,3 +130,16 @@
   transform: scale(1.05);
   box-shadow: 0 0 20px rgba(255, 255, 255, 0.4), inset 0 0 10px rgba(255, 255, 255, 0.2);
 }
+
+/* Iluminación rojiza de decepción al perder en la ruleta */
+.roulette-lose-glow {
+  border-color: #f43f5e !important;
+  box-shadow: 0 0 50px rgba(244, 63, 94, 0.8), inset 0 0 30px rgba(244, 63, 94, 0.45) !important;
+  animation: loseShake 0.4s ease-in-out;
+}
+
+@keyframes loseShake {
+  0%, 100% { transform: translateY(0); }
+  20%, 60% { transform: translateX(-5px); }
+  40%, 80% { transform: translateX(5px); }
+}

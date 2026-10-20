@@ -473,6 +473,117 @@ class ProceduralAudioEngine {
     osc.start(now);
     osc.stop(now + 0.4);
   }
+
+  // Aplausos y ovación multitudinaria al ganar en la ruleta
+  playCrowdCheer() {
+    if (this.isMuted) return;
+    this.init();
+    const now = this.ctx.currentTime;
+
+    // Generar buffer de ruido para textura de aplausos
+    const bufferSize = Math.floor(this.ctx.sampleRate * 2.2);
+    const noiseBuffer = this.ctx.createBuffer(1, bufferSize, this.ctx.sampleRate);
+    const output = noiseBuffer.getChannelData(0);
+    for (let i = 0; i < bufferSize; i++) {
+      output[i] = Math.random() * 2 - 1;
+    }
+
+    const whiteNoise = this.ctx.createBufferSource();
+    whiteNoise.buffer = noiseBuffer;
+
+    const filter = this.ctx.createBiquadFilter();
+    filter.type = 'bandpass';
+    filter.frequency.setValueAtTime(1600, now);
+    filter.Q.setValueAtTime(1.8, now);
+
+    const gain = this.ctx.createGain();
+    gain.gain.setValueAtTime(0.001, now);
+    gain.gain.linearRampToValueAtTime(0.35, now + 0.3);
+    gain.gain.exponentialRampToValueAtTime(0.001, now + 2.1);
+
+    whiteNoise.connect(filter);
+    filter.connect(gain);
+    gain.connect(this.sfxGain);
+
+    whiteNoise.start(now);
+    whiteNoise.stop(now + 2.2);
+
+    // Silbido y ovación armónica festiva
+    const whistle = this.ctx.createOscillator();
+    const whistleGain = this.ctx.createGain();
+    whistle.type = 'sine';
+    whistle.frequency.setValueAtTime(950, now + 0.2);
+    whistle.frequency.exponentialRampToValueAtTime(1750, now + 0.6);
+    whistle.frequency.exponentialRampToValueAtTime(1200, now + 1.2);
+
+    whistleGain.gain.setValueAtTime(0.001, now + 0.2);
+    whistleGain.gain.linearRampToValueAtTime(0.09, now + 0.5);
+    whistleGain.gain.exponentialRampToValueAtTime(0.0001, now + 1.3);
+
+    whistle.connect(whistleGain);
+    whistleGain.connect(this.sfxGain);
+    whistle.start(now + 0.2);
+    whistle.stop(now + 1.4);
+  }
+
+  // Decepción / "Awwwww" del público al perder en la ruleta
+  playDisappointedCrowd() {
+    if (this.isMuted) return;
+    this.init();
+    const now = this.ctx.currentTime;
+
+    // Ruido con filtro descendente ("Awww...")
+    const bufferSize = Math.floor(this.ctx.sampleRate * 1.8);
+    const noiseBuffer = this.ctx.createBuffer(1, bufferSize, this.ctx.sampleRate);
+    const output = noiseBuffer.getChannelData(0);
+    for (let i = 0; i < bufferSize; i++) {
+      output[i] = Math.random() * 2 - 1;
+    }
+
+    const whiteNoise = this.ctx.createBufferSource();
+    whiteNoise.buffer = noiseBuffer;
+
+    const filter = this.ctx.createBiquadFilter();
+    filter.type = 'bandpass';
+    filter.frequency.setValueAtTime(750, now);
+    filter.frequency.exponentialRampToValueAtTime(220, now + 1.4);
+    filter.Q.setValueAtTime(3.0, now);
+
+    const gain = this.ctx.createGain();
+    gain.gain.setValueAtTime(0.01, now);
+    gain.gain.linearRampToValueAtTime(0.3, now + 0.2);
+    gain.gain.exponentialRampToValueAtTime(0.001, now + 1.5);
+
+    whiteNoise.connect(filter);
+    filter.connect(gain);
+    gain.connect(this.sfxGain);
+
+    whiteNoise.start(now);
+    whiteNoise.stop(now + 1.6);
+
+    // Acorde menor melancólico descendente
+    const sadNotes = [146.83, 174.61, 220.00];
+    sadNotes.forEach(freq => {
+      const osc = this.ctx.createOscillator();
+      const sGain = this.ctx.createGain();
+      osc.type = 'sawtooth';
+      osc.frequency.setValueAtTime(freq, now + 0.1);
+      osc.frequency.exponentialRampToValueAtTime(freq * 0.85, now + 1.2);
+
+      const fFilter = this.ctx.createBiquadFilter();
+      fFilter.type = 'lowpass';
+      fFilter.frequency.setValueAtTime(400, now + 0.1);
+
+      sGain.gain.setValueAtTime(0.08, now + 0.1);
+      sGain.gain.exponentialRampToValueAtTime(0.001, now + 1.4);
+
+      osc.connect(fFilter);
+      fFilter.connect(sGain);
+      sGain.connect(this.sfxGain);
+      osc.start(now + 0.1);
+      osc.stop(now + 1.5);
+    });
+  }
 }
 
 // Instancia global
