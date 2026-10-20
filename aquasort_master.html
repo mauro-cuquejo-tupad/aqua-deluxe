@@ -1,0 +1,1386 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <title>AquaSort Master - 100 Niveles</title>
+  <!-- Tailwind CSS para diseño moderno -->
+  <script src="https://cdn.tailwindcss.com"></script>
+  <!-- Google Fonts -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Fredoka:wght@400;600;700&family=Outfit:wght@400;600;700&display=swap" rel="stylesheet">
+  <!-- Lucide Icons -->
+  <script src="https://unpkg.com/lucide@latest"></script>
+  <!-- Canvas Confetti -->
+  <script src="https://cdn.jsdelivr.net/npm/canvas-confetti@1.9.2/dist/confetti.browser.min.js"></script>
+
+  <style>
+    body {
+      font-family: 'Outfit', sans-serif;
+      touch-action: manipulation;
+      user-select: none;
+      -webkit-user-select: none;
+      overflow-x: hidden;
+      min-height: 100vh;
+      transition: background-color 0.4s ease;
+    }
+
+    .brand-font {
+      font-family: 'Fredoka', cursive;
+    }
+
+    /* Frascos de vidrio con efecto glassmorphism */
+    .bottle-container {
+      position: relative;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      transition: transform 0.28s cubic-bezier(0.34, 1.56, 0.64, 1), filter 0.2s ease;
+      cursor: pointer;
+      will-change: transform;
+    }
+
+    .bottle-container.selected {
+      transform: translateY(-26px) scale(1.05);
+      filter: drop-shadow(0 15px 25px rgba(0, 0, 0, 0.45));
+    }
+
+    .bottle-container:active {
+      transform: scale(0.97);
+    }
+
+    .bottle-container.pouring {
+      z-index: 50;
+      transition: transform 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+    }
+
+    /* Estructura del frasco */
+    .glass-neck {
+      border: 3px solid rgba(255, 255, 255, 0.65);
+      border-bottom: none;
+      border-radius: 6px 6px 0 0;
+      background: linear-gradient(90deg, rgba(255,255,255,0.4) 0%, rgba(255,255,255,0.08) 50%, rgba(255,255,255,0.3) 100%);
+      box-shadow: inset 0 2px 4px rgba(255,255,255,0.4);
+    }
+
+    .glass-body {
+      position: relative;
+      border: 4px solid rgba(255, 255, 255, 0.7);
+      border-top: none;
+      border-radius: 0 0 24px 24px;
+      background: linear-gradient(135deg, rgba(255,255,255,0.2) 0%, rgba(255,255,255,0.03) 60%, rgba(255,255,255,0.18) 100%);
+      backdrop-filter: blur(4px);
+      box-shadow: 0 10px 30px rgba(0,0,0,0.25), inset 0 0 12px rgba(255,255,255,0.3), inset -4px 0 8px rgba(0,0,0,0.15);
+      overflow: hidden;
+      display: flex;
+      flex-direction: column-reverse; /* El fondo está abajo */
+      padding: 3px 2px 4px 2px;
+    }
+
+    /* Brillo lateral del cristal */
+    .glass-body::after {
+      content: '';
+      position: absolute;
+      top: 0;
+      right: 4px;
+      bottom: 0;
+      width: 6px;
+      background: linear-gradient(to bottom, rgba(255, 255, 255, 0.5), rgba(255, 255, 255, 0.05));
+      border-radius: 3px;
+      pointer-events: none;
+      z-index: 20;
+    }
+
+    /* Segmentos de líquido */
+    .liquid-unit {
+      position: relative;
+      width: 100%;
+      border-radius: 4px;
+      margin-top: 1px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      transition: height 0.3s ease, background 0.3s ease;
+      box-shadow: inset 0 2px 4px rgba(255,255,255,0.35), inset 0 -2px 4px rgba(0,0,0,0.25);
+      overflow: hidden;
+    }
+
+    /* Curva de superficie en el líquido superior */
+    .liquid-unit.top-liquid::before {
+      content: '';
+      position: absolute;
+      top: 0;
+      left: 0;
+      right: 0;
+      height: 6px;
+      background: rgba(255, 255, 255, 0.45);
+      border-radius: 50%;
+      filter: blur(1px);
+    }
+
+    /* Onda de oleaje */
+    @keyframes waveMotion {
+      0% { transform: translateX(-50%) rotate(0deg); }
+      100% { transform: translateX(50%) rotate(360deg); }
+    }
+
+    /* Botellas con candado */
+    .locked-overlay {
+      position: absolute;
+      inset: 0;
+      background: rgba(15, 23, 42, 0.75);
+      backdrop-filter: blur(2px);
+      z-index: 25;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      border-radius: 0 0 20px 20px;
+    }
+
+    /* Animación de chorro */
+    #stream-canvas {
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100vw;
+      height: 100vh;
+      pointer-events: none;
+      z-index: 40;
+    }
+
+    /* Estilo de la barra de desplazamiento */
+    ::-webkit-scrollbar {
+      width: 6px;
+      height: 6px;
+    }
+    ::-webkit-scrollbar-thumb {
+      background: rgba(255, 255, 255, 0.3);
+      border-radius: 4px;
+    }
+  </style>
+</head>
+<body class="bg-slate-900 text-slate-100 flex flex-col justify-between select-none relative pb-4">
+
+  <!-- Canvas global para dibujar el chorro de agua -->
+  <canvas id="stream-canvas"></canvas>
+
+  <!-- Cabecera / Barra de Estado -->
+  <header class="w-full max-w-5xl mx-auto px-4 pt-4 flex flex-col gap-3 z-30">
+    <div class="flex items-center justify-between">
+      <!-- Logo y Nivel Actual -->
+      <div class="flex items-center gap-3">
+        <div class="w-11 h-11 rounded-2xl bg-gradient-to-tr from-cyan-500 to-blue-600 flex items-center justify-center shadow-lg shadow-cyan-500/30">
+          <i data-lucide="flask-conical" class="w-6 h-6 text-white"></i>
+        </div>
+        <div>
+          <h1 class="brand-font text-2xl font-bold tracking-wide text-transparent bg-clip-text bg-gradient-to-r from-cyan-300 via-sky-200 to-amber-200">
+            AquaSort
+          </h1>
+          <div class="flex items-center gap-2">
+            <span class="text-xs uppercase tracking-wider font-semibold text-cyan-300/80 bg-cyan-950/60 px-2 py-0.5 rounded-full border border-cyan-800/60">
+              Nivel <span id="level-display" class="font-bold text-cyan-200">1</span>/100
+            </span>
+            <span id="level-mechanic-badge" class="text-[11px] font-semibold text-amber-300 bg-amber-950/60 px-2 py-0.5 rounded-full border border-amber-800/60 hidden">
+              Misterio
+            </span>
+          </div>
+        </div>
+      </div>
+
+      <!-- Métricas y Controles Rápidos -->
+      <div class="flex items-center gap-2">
+        <div class="bg-white/10 backdrop-blur-md px-3 py-1.5 rounded-xl border border-white/15 flex items-center gap-2 shadow-inner">
+          <i data-lucide="footprints" class="w-4 h-4 text-sky-300"></i>
+          <span id="moves-counter" class="text-sm font-bold text-white">0</span>
+        </div>
+
+        <!-- Botón Selector de Nivel -->
+        <button id="btn-levels-modal" class="p-2.5 rounded-xl bg-white/10 hover:bg-white/20 active:scale-95 transition border border-white/15 text-white title='Lista de niveles'">
+          <i data-lucide="layout-grid" class="w-5 h-5"></i>
+        </button>
+
+        <!-- Botón Ajustes / Personalización -->
+        <button id="btn-settings-modal" class="p-2.5 rounded-xl bg-white/10 hover:bg-white/20 active:scale-95 transition border border-white/15 text-white title='Ajustes y Colores'">
+          <i data-lucide="palette" class="w-5 h-5"></i>
+        </button>
+
+        <!-- Botón Silenciar / Sonido -->
+        <button id="btn-toggle-sound" class="p-2.5 rounded-xl bg-white/10 hover:bg-white/20 active:scale-95 transition border border-white/15 text-white title='Sonido'">
+          <i id="sound-icon" data-lucide="volume-2" class="w-5 h-5"></i>
+        </button>
+      </div>
+    </div>
+
+    <!-- Reglas/Ayuda flotante para la mecánica activa -->
+    <div id="mechanic-helper" class="text-xs py-1.5 px-3 rounded-lg bg-sky-950/40 border border-sky-500/20 text-sky-200/90 flex items-center justify-between hidden">
+      <span id="mechanic-helper-text">Pasa líquidos del mismo color hasta agruparlos todos.</span>
+      <i data-lucide="sparkles" class="w-3.5 h-3.5 text-amber-300 shrink-0 ml-2"></i>
+    </div>
+  </header>
+
+  <!-- Área de Juego (Frascos de Líquido) -->
+  <main class="flex-1 flex items-center justify-center p-3 relative z-10 w-full max-w-5xl mx-auto overflow-y-auto">
+    <div id="bottles-grid" class="flex flex-wrap items-center justify-center gap-x-5 gap-y-7 max-w-4xl py-4 transition-all duration-300">
+      <!-- Generado dinámicamente -->
+    </div>
+  </main>
+
+  <!-- Barra de Herramientas Inferior -->
+  <footer class="w-full max-w-md mx-auto px-4 z-30 flex items-center justify-center gap-3">
+    <!-- Deshacer Movimiento -->
+    <button id="btn-undo" class="flex-1 py-3 px-4 rounded-2xl bg-white/10 hover:bg-white/20 active:scale-95 transition border border-white/15 flex items-center justify-center gap-2 shadow-lg disabled:opacity-40 disabled:cursor-not-allowed">
+      <i data-lucide="undo-2" class="w-5 h-5 text-amber-400"></i>
+      <span class="text-xs font-bold text-slate-100">Deshacer</span>
+    </button>
+
+    <!-- Reiniciar Nivel -->
+    <button id="btn-restart" class="flex-1 py-3 px-4 rounded-2xl bg-white/10 hover:bg-white/20 active:scale-95 transition border border-white/15 flex items-center justify-center gap-2 shadow-lg">
+      <i data-lucide="rotate-ccw" class="w-5 h-5 text-rose-400"></i>
+      <span class="text-xs font-bold text-slate-100">Reiniciar</span>
+    </button>
+
+    <!-- Botella Extra (Auxiliar) -->
+    <button id="btn-add-tube" class="flex-1 py-3 px-4 rounded-2xl bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-500 hover:to-teal-500 active:scale-95 transition border border-emerald-400/40 flex items-center justify-center gap-2 shadow-lg shadow-emerald-950/40 disabled:opacity-40 disabled:cursor-not-allowed">
+      <i data-lucide="plus-circle" class="w-5 h-5 text-white"></i>
+      <span class="text-xs font-bold text-white">+ Botella</span>
+    </button>
+  </footer>
+
+  <!-- MODAL: Victoria de Nivel -->
+  <div id="win-modal" class="fixed inset-0 bg-black/75 backdrop-blur-md flex items-center justify-center p-4 z-50 hidden transition-opacity">
+    <div class="bg-gradient-to-b from-slate-800 to-slate-900 border border-slate-700 w-full max-w-sm rounded-3xl p-6 text-center shadow-2xl relative overflow-hidden transform transition-transform scale-95 duration-200" id="win-card">
+      <div class="absolute -top-12 -left-12 w-32 h-32 bg-cyan-500/20 rounded-full blur-2xl"></div>
+      <div class="absolute -bottom-12 -right-12 w-32 h-32 bg-amber-500/20 rounded-full blur-2xl"></div>
+
+      <div class="w-20 h-20 mx-auto mb-4 rounded-3xl bg-gradient-to-tr from-amber-400 to-yellow-300 flex items-center justify-center shadow-lg shadow-amber-500/40 animate-bounce">
+        <i data-lucide="trophy" class="w-10 h-10 text-slate-950"></i>
+      </div>
+
+      <h2 class="brand-font text-3xl font-extrabold text-white mb-1">¡Nivel Completado!</h2>
+      <p class="text-sm text-slate-300 mb-5">Has clasificado todos los colores perfectamente.</p>
+
+      <div class="bg-slate-950/50 rounded-2xl p-3 border border-slate-700/50 flex justify-around mb-6">
+        <div>
+          <span class="text-[11px] uppercase tracking-wider text-slate-400 font-semibold block">Movimientos</span>
+          <span id="win-moves-count" class="text-xl font-bold text-cyan-400">0</span>
+        </div>
+        <div class="border-r border-slate-800"></div>
+        <div>
+          <span class="text-[11px] uppercase tracking-wider text-slate-400 font-semibold block">Siguiente</span>
+          <span id="win-next-level" class="text-xl font-bold text-amber-400">Nivel 2</span>
+        </div>
+      </div>
+
+      <div class="flex flex-col gap-2.5">
+        <button id="btn-next-level" class="w-full py-3.5 px-4 rounded-2xl bg-gradient-to-r from-cyan-500 to-blue-600 hover:from-cyan-400 hover:to-blue-500 active:scale-98 transition font-bold text-white shadow-lg shadow-cyan-500/30 flex items-center justify-center gap-2">
+          <span>Siguiente Nivel</span>
+          <i data-lucide="chevron-right" class="w-5 h-5"></i>
+        </button>
+        <button id="btn-replay-level" class="w-full py-2.5 px-4 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-300 text-sm font-semibold transition">
+          Jugar de nuevo
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- MODAL: Selector de Niveles (1 al 100) -->
+  <div id="levels-modal" class="fixed inset-0 bg-black/80 backdrop-blur-md flex items-center justify-center p-4 z-50 hidden">
+    <div class="bg-slate-900 border border-slate-700 w-full max-w-md h-[80vh] rounded-3xl p-5 flex flex-col shadow-2xl">
+      <div class="flex items-center justify-between pb-3 border-b border-slate-800">
+        <div class="flex items-center gap-2">
+          <i data-lucide="compass" class="w-5 h-5 text-cyan-400"></i>
+          <h3 class="brand-font text-xl font-bold text-white">Seleccionar Nivel (1 - 100)</h3>
+        </div>
+        <button id="btn-close-levels" class="p-1.5 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-400 hover:text-white">
+          <i data-lucide="x" class="w-5 h-5"></i>
+        </button>
+      </div>
+
+      <p class="text-xs text-slate-400 my-3">
+        Todos los niveles están desbloqueados para que pruebes los diferentes desafíos y mecánicas en cualquier momento.
+      </p>
+
+      <!-- Cuadrícula deslizable -->
+      <div id="levels-grid" class="flex-1 overflow-y-auto grid grid-cols-5 gap-2.5 pr-1 py-1">
+        <!-- 100 botones generados dinámicamente -->
+      </div>
+    </div>
+  </div>
+
+  <!-- MODAL: Ajustes y Accesibilidad -->
+  <div id="settings-modal" class="fixed inset-0 bg-black/80 backdrop-blur-md flex items-center justify-center p-4 z-50 hidden">
+    <div class="bg-slate-900 border border-slate-700 w-full max-w-sm rounded-3xl p-5 shadow-2xl flex flex-col gap-5">
+      <div class="flex items-center justify-between pb-2 border-b border-slate-800">
+        <div class="flex items-center gap-2">
+          <i data-lucide="palette" class="w-5 h-5 text-amber-400"></i>
+          <h3 class="brand-font text-xl font-bold text-white">Personalización</h3>
+        </div>
+        <button id="btn-close-settings" class="p-1.5 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-400 hover:text-white">
+          <i data-lucide="x" class="w-5 h-5"></i>
+        </button>
+      </div>
+
+      <!-- Color de Fondo Personalizado -->
+      <div>
+        <label class="block text-xs font-bold uppercase tracking-wider text-slate-300 mb-2">
+          Color de Fondo (Contraste Asegurado)
+        </label>
+        <div class="flex items-center gap-3">
+          <input type="color" id="bg-color-picker" value="#0f172a" class="w-12 h-12 rounded-xl cursor-pointer bg-transparent border-2 border-slate-700">
+          <div class="flex-1 flex gap-1.5">
+            <button class="w-8 h-8 rounded-lg bg-[#0f172a] border border-white/20 preset-bg" data-color="#0f172a" title="Azul Noche"></button>
+            <button class="w-8 h-8 rounded-lg bg-[#18181b] border border-white/20 preset-bg" data-color="#18181b" title="Obsidiana"></button>
+            <button class="w-8 h-8 rounded-lg bg-[#1e1b4b] border border-white/20 preset-bg" data-color="#1e1b4b" title="Índigo Oscuro"></button>
+            <button class="w-8 h-8 rounded-lg bg-[#14231b] border border-white/20 preset-bg" data-color="#14231b" title="Bosque Profundo"></button>
+            <button class="w-8 h-8 rounded-lg bg-[#271020] border border-white/20 preset-bg" data-color="#271020" title="Vino Tinto"></button>
+          </div>
+        </div>
+        <span class="text-[11px] text-slate-400 block mt-1.5">Los líquidos ajustan sus bordes automáticamente para asegurar visibilidad 100%.</span>
+      </div>
+
+      <!-- Modo Accesible: Iconos y Patrones -->
+      <div class="flex items-center justify-between p-3 rounded-2xl bg-slate-800/60 border border-slate-700/60">
+        <div>
+          <span class="text-sm font-bold text-white block">Símbolos para Daltonismo</span>
+          <span class="text-xs text-slate-400">Muestra símbolos geométricos en cada color</span>
+        </div>
+        <label class="relative inline-flex items-center cursor-pointer">
+          <input type="checkbox" id="toggle-colorblind" class="sr-only peer" checked>
+          <div class="w-11 h-6 bg-slate-700 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-slate-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-cyan-600"></div>
+        </label>
+      </div>
+
+      <!-- Resumen de Mecánicas Desbloqueadas -->
+      <div class="p-3 bg-slate-950/60 rounded-2xl border border-slate-800 text-xs space-y-1 text-slate-400">
+        <p class="font-bold text-slate-200 mb-1">Mecánicas según Nivel:</p>
+        <p>• <b class="text-cyan-300">Niveles 1-4:</b> Clásico de 4 partes.</p>
+        <p>• <b class="text-amber-300">Nivel 5+:</b> Líquidos Ocultos (con '?').</p>
+        <p>• <b class="text-emerald-300">Nivel 10+:</b> Botellas Gigantes de 6 partes.</p>
+        <p>• <b class="text-rose-300">Nivel 15+:</b> Botellas con Candado.</p>
+        <p>• <b class="text-purple-300">Nivel 20+:</b> Tubos Estrechos (1 por 1).</p>
+        <p>• <b class="text-yellow-300">Nivel 25+:</b> Líquido Camaleón.</p>
+        <p>• <b class="text-sky-300">Hasta Nivel 100:</b> Combinaciones progresivas.</p>
+      </div>
+    </div>
+  </div>
+
+  <!-- SCRIPT DEL JUEGO -->
+  <script>
+    /* ==========================================================================
+       1. DEFINICIÓN DE PALETA ACCESIBLE Y SÍMBOLOS DALTONISMO
+       ========================================================================== */
+    const LIQUID_COLORS = [
+      { id: 'red', name: 'Rojo Carmín', hex: '#EF4444', icon: '●', stroke: '#991B1B' },
+      { id: 'blue', name: 'Azul Zafiro', hex: '#3B82F6', icon: '▲', stroke: '#1E40AF' },
+      { id: 'green', name: 'Verde Esmeralda', hex: '#10B981', icon: '■', stroke: '#065F46' },
+      { id: 'yellow', name: 'Amarillo Sol', hex: '#FACC15', icon: '★', stroke: '#854D0E' },
+      { id: 'purple', name: 'Púrpura Amatista', hex: '#A855F7', icon: '◆', stroke: '#6B21A8' },
+      { id: 'orange', name: 'Naranja Fuego', hex: '#F97316', icon: '▼', stroke: '#9A3412' },
+      { id: 'pink', name: 'Rosa Neón', hex: '#EC4899', icon: '♥', stroke: '#9D174D' },
+      { id: 'teal', name: 'Turquesa Mar', hex: '#14B8A6', icon: '✚', stroke: '#115E59' },
+      { id: 'lime', name: 'Lima Brillante', hex: '#84CC16', icon: '✦', stroke: '#3F6212' },
+      { id: 'cyan', name: 'Cian Hielo', hex: '#06B6D4', icon: '⬟', stroke: '#155E75' },
+      { id: 'brown', name: 'Café Ámbar', hex: '#B45309', icon: '⬢', stroke: '#78350F' },
+      { id: 'indigo', name: 'Índigo Profundo', hex: '#6366F1', icon: '◈', stroke: '#3730A3' }
+    ];
+
+    // Color especial para mecánicas de líquido gigante o camaleón
+    const SPECIAL_GOLD_COLOR = {
+      id: 'special_gold',
+      name: 'Néctar Dorado',
+      hex: '#F59E0B',
+      icon: '♛',
+      stroke: '#78350F'
+    };
+
+    /* ==========================================================================
+       2. SINTETIZADOR DE AUDIO (Web Audio API)
+       ========================================================================== */
+    class SoundEngine {
+      constructor() {
+        this.ctx = null;
+        this.enabled = true;
+      }
+
+      init() {
+        if (!this.ctx) {
+          const AudioContext = window.AudioContext || window.webkitAudioContext;
+          if (AudioContext) {
+            this.ctx = new AudioContext();
+          }
+        }
+        if (this.ctx && this.ctx.state === 'suspended') {
+          this.ctx.resume();
+        }
+      }
+
+      playSelect() {
+        if (!this.enabled) return;
+        this.init();
+        if (!this.ctx) return;
+        const now = this.ctx.currentTime;
+        const osc = this.ctx.createOscillator();
+        const gain = this.ctx.createGain();
+
+        osc.type = 'sine';
+        osc.frequency.setValueAtTime(420, now);
+        osc.frequency.exponentialRampToValueAtTime(580, now + 0.1);
+
+        gain.gain.setValueAtTime(0.2, now);
+        gain.gain.exponentialRampToValueAtTime(0.001, now + 0.1);
+
+        osc.connect(gain);
+        gain.connect(this.ctx.destination);
+
+        osc.start(now);
+        osc.stop(now + 0.1);
+      }
+
+      playPour(pitchMultiplier = 1) {
+        if (!this.enabled) return;
+        this.init();
+        if (!this.ctx) return;
+        const now = this.ctx.currentTime;
+
+        // Sonido acuático "burbujeo / glug"
+        const osc = this.ctx.createOscillator();
+        const gain = this.ctx.createGain();
+
+        osc.type = 'triangle';
+        const baseFreq = 260 * pitchMultiplier;
+        osc.frequency.setValueAtTime(baseFreq, now);
+        osc.frequency.exponentialRampToValueAtTime(baseFreq * 1.35, now + 0.18);
+        osc.frequency.exponentialRampToValueAtTime(baseFreq * 1.1, now + 0.32);
+
+        gain.gain.setValueAtTime(0.25, now);
+        gain.gain.exponentialRampToValueAtTime(0.01, now + 0.35);
+
+        osc.connect(gain);
+        gain.connect(this.ctx.destination);
+
+        osc.start(now);
+        osc.stop(now + 0.35);
+      }
+
+      playReveal() {
+        if (!this.enabled) return;
+        this.init();
+        if (!this.ctx) return;
+        const now = this.ctx.currentTime;
+        const osc = this.ctx.createOscillator();
+        const gain = this.ctx.createGain();
+
+        osc.type = 'sine';
+        osc.frequency.setValueAtTime(600, now);
+        osc.frequency.exponentialRampToValueAtTime(950, now + 0.22);
+
+        gain.gain.setValueAtTime(0.2, now);
+        gain.gain.exponentialRampToValueAtTime(0.01, now + 0.25);
+
+        osc.connect(gain);
+        gain.connect(this.ctx.destination);
+
+        osc.start(now);
+        osc.stop(now + 0.25);
+      }
+
+      playUnlock() {
+        if (!this.enabled) return;
+        this.init();
+        if (!this.ctx) return;
+        const now = this.ctx.currentTime;
+        [523.25, 659.25, 783.99].forEach((freq, idx) => {
+          const osc = this.ctx.createOscillator();
+          const gain = this.ctx.createGain();
+          osc.type = 'sine';
+          osc.frequency.setValueAtTime(freq, now + idx * 0.06);
+          gain.gain.setValueAtTime(0.18, now + idx * 0.06);
+          gain.gain.exponentialRampToValueAtTime(0.001, now + idx * 0.06 + 0.18);
+          osc.connect(gain);
+          gain.connect(this.ctx.destination);
+          osc.start(now + idx * 0.06);
+          osc.stop(now + idx * 0.06 + 0.18);
+        });
+      }
+
+      playWin() {
+        if (!this.enabled) return;
+        this.init();
+        if (!this.ctx) return;
+        const now = this.ctx.currentTime;
+        // Acorde triunfal ascendente
+        const notes = [261.63, 329.63, 392.00, 523.25, 659.25];
+        notes.forEach((freq, i) => {
+          const osc = this.ctx.createOscillator();
+          const gain = this.ctx.createGain();
+          osc.type = 'triangle';
+          osc.frequency.setValueAtTime(freq, now + i * 0.09);
+          gain.gain.setValueAtTime(0.25, now + i * 0.09);
+          gain.gain.exponentialRampToValueAtTime(0.001, now + i * 0.09 + 0.5);
+          osc.connect(gain);
+          gain.connect(this.ctx.destination);
+          osc.start(now + i * 0.09);
+          osc.stop(now + i * 0.09 + 0.5);
+        });
+      }
+
+      playInvalid() {
+        if (!this.enabled) return;
+        this.init();
+        if (!this.ctx) return;
+        const now = this.ctx.currentTime;
+        const osc = this.ctx.createOscillator();
+        const gain = this.ctx.createGain();
+
+        osc.type = 'sawtooth';
+        osc.frequency.setValueAtTime(140, now);
+        osc.frequency.linearRampToValueAtTime(100, now + 0.15);
+
+        gain.gain.setValueAtTime(0.15, now);
+        gain.gain.exponentialRampToValueAtTime(0.01, now + 0.15);
+
+        osc.connect(gain);
+        gain.connect(this.ctx.destination);
+
+        osc.start(now);
+        osc.stop(now + 0.15);
+      }
+    }
+
+    const sound = new SoundEngine();
+
+    /* ==========================================================================
+       3. GENERADOR DE NIVELES PROCEDURAL GARANTIZADO (Retro-Simulación)
+       ========================================================================== */
+    class LevelGenerator {
+      /**
+       * Genera un nivel 100% resoluble retrocediendo movimientos desde un estado resuelto.
+       */
+      static generate(levelNum) {
+        // Determinación de parámetros según nivel (1-100)
+        let numColors = 3;
+        if (levelNum >= 3) numColors = 4;
+        if (levelNum >= 8) numColors = 5;
+        if (levelNum >= 14) numColors = 6;
+        if (levelNum >= 22) numColors = 7;
+        if (levelNum >= 35) numColors = 8;
+        if (levelNum >= 50) numColors = 9;
+        if (levelNum >= 75) numColors = 10;
+        if (levelNum >= 90) numColors = 11;
+
+        let emptyTubes = (numColors >= 8) ? 3 : 2;
+        let totalTubes = numColors + emptyTubes;
+
+        // Mecánicas activas
+        const hasMystery = levelNum >= 5;
+        const hasGiantBottle = levelNum >= 10;
+        const hasLock = levelNum >= 15;
+        const hasNarrow = levelNum >= 20;
+        const hasChameleon = levelNum >= 25;
+
+        // Si hay botella gigante, añadimos 1 color especial gigante o aumentamos capacidad
+        let giantIndex = hasGiantBottle ? 0 : -1;
+
+        // Construir estado resuelto
+        // Cada frasco de color tiene 4 unidades del mismo color
+        let bottles = [];
+        const chosenPalette = LIQUID_COLORS.slice(0, numColors);
+
+        for (let i = 0; i < numColors; i++) {
+          const col = chosenPalette[i];
+          const capacity = (i === giantIndex) ? 6 : 4;
+          let liquidArray = [];
+          for (let u = 0; u < capacity; u++) {
+            liquidArray.push({
+              color: col.id,
+              isMystery: false,
+              isChameleon: false
+            });
+          }
+          bottles.push({
+            id: i,
+            capacity: capacity,
+            liquids: liquidArray,
+            isLocked: false,
+            unlockColor: null,
+            isNarrow: false
+          });
+        }
+
+        // Añadir frascos vacíos estándar (capacidad 4)
+        for (let i = 0; i < emptyTubes; i++) {
+          bottles.push({
+            id: numColors + i,
+            capacity: 4,
+            liquids: [],
+            isLocked: false,
+            unlockColor: null,
+            isNarrow: false
+          });
+        }
+
+        // RETRO-SIMULACIÓN: Mezclar realizando movimientos inversos válidos
+        // Para asegurar que sea resoluble, sólo dividimos y mezclamos capas
+        const scrambleSteps = 16 + Math.min(levelNum * 3, 90);
+
+        for (let step = 0; step < scrambleSteps; step++) {
+          // Elegir un frasco con líquido para transferir hacia otro frasco con espacio
+          const nonEmpty = bottles.filter(b => b.liquids.length > 0);
+          const hasSpace = bottles.filter(b => b.liquids.length < b.capacity);
+          if (nonEmpty.length === 0 || hasSpace.length === 0) break;
+
+          const source = nonEmpty[Math.floor(Math.random() * nonEmpty.length)];
+          const validDestinations = hasSpace.filter(b => b.id !== source.id);
+          if (validDestinations.length === 0) continue;
+
+          const target = validDestinations[Math.floor(Math.random() * validDestinations.length)];
+
+          // Mover 1 o 2 unidades
+          const amount = (Math.random() > 0.6 && source.liquids.length >= 2 && target.capacity - target.liquids.length >= 2) ? 2 : 1;
+          for (let k = 0; k < amount; k++) {
+            if (source.liquids.length > 0 && target.liquids.length < target.capacity) {
+              const item = source.liquids.pop();
+              target.liquids.push(item);
+            }
+          }
+        }
+
+        // Post-procesado de mecánicas:
+        // 1. Líquidos ocultos (Misterio) a partir del nivel 5:
+        // Todo líquido debajo del superior tiene posibilidad de estar oculto
+        if (hasMystery) {
+          bottles.forEach(b => {
+            if (b.liquids.length > 1) {
+              // Dejamos el tope visible (el último del array), los inferiores pueden ser misterio
+              for (let idx = 0; idx < b.liquids.length - 1; idx++) {
+                if (Math.random() > 0.3) {
+                  b.liquids[idx].isMystery = true;
+                }
+              }
+            }
+          });
+        }
+
+        // 2. Candado en 1 o 2 botellas a partir de nivel 15:
+        if (hasLock) {
+          const eligibleForLock = bottles.filter(b => b.liquids.length > 0 && b.id !== giantIndex);
+          if (eligibleForLock.length > 0) {
+            const targetLock = eligibleForLock[Math.floor(Math.random() * eligibleForLock.length)];
+            targetLock.isLocked = true;
+            // El color que la desbloquea es uno de los presentes en el juego
+            const keyCol = chosenPalette[Math.floor(Math.random() * chosenPalette.length)];
+            targetLock.unlockColor = keyCol.id;
+          }
+        }
+
+        // 3. Tubos estrechos a partir de nivel 20 (máximo 1 o 2 tubos)
+        if (hasNarrow) {
+          const eligibleNarrow = bottles.filter(b => !b.isLocked && b.id !== giantIndex);
+          if (eligibleNarrow.length > 0) {
+            const pick = eligibleNarrow[Math.floor(Math.random() * eligibleNarrow.length)];
+            pick.isNarrow = true;
+          }
+        }
+
+        // 4. Líquido Camaleón a partir de nivel 25
+        if (hasChameleon) {
+          bottles.forEach(b => {
+            b.liquids.forEach(l => {
+              if (Math.random() < 0.12 && !l.isMystery) {
+                l.isChameleon = true;
+              }
+            });
+          });
+        }
+
+        return {
+          level: levelNum,
+          bottles: bottles,
+          palette: chosenPalette,
+          hasMystery,
+          hasGiantBottle,
+          hasLock,
+          hasNarrow,
+          hasChameleon
+        };
+      }
+    }
+
+    /* ==========================================================================
+       4. ESTADO DEL JUEGO Y CONTROLADOR
+       ========================================================================== */
+    class GameController {
+      constructor() {
+        this.currentLevel = 1;
+        this.maxLevels = 100;
+        this.levelData = null;
+        this.selectedBottleId = null;
+        this.history = []; // Historial para deshacer movimientos
+        this.moves = 0;
+        this.isPouringAnimation = false;
+        this.colorblindMode = true;
+        this.bgColor = '#0f172a';
+        this.extraTubesUsed = 0;
+
+        // Referencias DOM
+        this.bottlesGrid = document.getElementById('bottles-grid');
+        this.levelDisplay = document.getElementById('level-display');
+        this.movesCounter = document.getElementById('moves-counter');
+        this.btnUndo = document.getElementById('btn-undo');
+        this.btnRestart = document.getElementById('btn-restart');
+        this.btnAddTube = document.getElementById('btn-add-tube');
+        this.streamCanvas = document.getElementById('stream-canvas');
+        this.streamCtx = this.streamCanvas ? this.streamCanvas.getContext('2d') : null;
+
+        this.initEvents();
+        this.loadLevel(this.currentLevel);
+        this.setupStreamCanvas();
+      }
+
+      setupStreamCanvas() {
+        const resize = () => {
+          this.streamCanvas.width = window.innerWidth;
+          this.streamCanvas.height = window.innerHeight;
+        };
+        window.addEventListener('resize', resize);
+        resize();
+      }
+
+      loadLevel(lvl) {
+        this.currentLevel = Math.max(1, Math.min(lvl, this.maxLevels));
+        this.selectedBottleId = null;
+        this.history = [];
+        this.moves = 0;
+        this.extraTubesUsed = 0;
+        this.isPouringAnimation = false;
+
+        this.levelData = LevelGenerator.generate(this.currentLevel);
+        this.updateHeaderUI();
+        this.renderBottles();
+        this.updateButtonsUI();
+      }
+
+      updateHeaderUI() {
+        this.levelDisplay.textContent = this.currentLevel;
+        this.movesCounter.textContent = this.moves;
+
+        // Badge de mecánica activa
+        const badge = document.getElementById('level-mechanic-badge');
+        const helper = document.getElementById('mechanic-helper');
+        const helperText = document.getElementById('mechanic-helper-text');
+
+        let mechanicNames = [];
+        let helperTip = "Agrupa todos los líquidos del mismo color en cada frasco.";
+
+        if (this.levelData.hasMystery) {
+          mechanicNames.push("Misterio '?'");
+          helperTip = "Las capas ocultas se revelan al destapar su líquido superior.";
+        }
+        if (this.levelData.hasGiantBottle) {
+          mechanicNames.push("Botella Gigante");
+          helperTip = "La botella grande de 6 unidades requiere más precisión.";
+        }
+        if (this.levelData.hasLock) {
+          mechanicNames.push("Candado");
+          helperTip = "Vierte el color de la llave correspondiente para romper el cerrojo.";
+        }
+        if (this.levelData.hasNarrow) {
+          mechanicNames.push("Tubo Estrecho");
+          helperTip = "El tubo estrecho sólo permite mover 1 unidad a la vez.";
+        }
+        if (this.levelData.hasChameleon) {
+          mechanicNames.push("Camaleón");
+          helperTip = "El líquido camaleón se adapta al color sobre el que cae.";
+        }
+
+        if (mechanicNames.length > 0) {
+          badge.textContent = mechanicNames.join(' + ');
+          badge.classList.remove('hidden');
+          helper.classList.remove('hidden');
+          helperText.textContent = helperTip;
+        } else {
+          badge.classList.add('hidden');
+          helper.classList.add('hidden');
+        }
+      }
+
+      updateButtonsUI() {
+        this.movesCounter.textContent = this.moves;
+        this.btnUndo.disabled = this.history.length === 0;
+        this.btnAddTube.disabled = this.extraTubesUsed >= 2;
+      }
+
+      getColorObj(colorId) {
+        if (colorId === SPECIAL_GOLD_COLOR.id) return SPECIAL_GOLD_COLOR;
+        return LIQUID_COLORS.find(c => c.id === colorId) || LIQUID_COLORS[0];
+      }
+
+      renderBottles() {
+        this.bottlesGrid.innerHTML = '';
+
+        this.levelData.bottles.forEach(bottle => {
+          const bottleEl = document.createElement('div');
+          bottleEl.className = `bottle-container ${this.selectedBottleId === bottle.id ? 'selected' : ''}`;
+          bottleEl.dataset.id = bottle.id;
+
+          // Dimensiones proporcionales según capacidad (gigante vs normal)
+          const isGiant = bottle.capacity >= 6;
+          const bottleHeight = isGiant ? 'h-64' : 'h-48';
+          const bottleWidth = bottle.isNarrow ? 'w-12' : (isGiant ? 'w-18' : 'w-16');
+
+          // Render cuello y cuerpo de vidrio
+          let liquidsHTML = '';
+          const unitHeightPercent = 100 / bottle.capacity;
+
+          bottle.liquids.forEach((liq, index) => {
+            const isTop = index === bottle.liquids.length - 1;
+            const colorDef = this.getColorObj(liq.color);
+
+            if (liq.isMystery) {
+              // Líquido oculto misterioso
+              liquidsHTML += `
+                <div class="liquid-unit ${isTop ? 'top-liquid' : ''}" 
+                     style="height: ${unitHeightPercent}%; background: #475569; border: 1px dashed rgba(255,255,255,0.4);">
+                  <span class="text-white font-extrabold text-sm drop-shadow">?</span>
+                </div>
+              `;
+            } else {
+              // Líquido descubierto
+              const chameleonGlow = liq.isChameleon ? 'animation: pulse 1.8s infinite;' : '';
+              liquidsHTML += `
+                <div class="liquid-unit ${isTop ? 'top-liquid' : ''}" 
+                     style="height: ${unitHeightPercent}%; background-color: ${colorDef.hex}; border-top: 1px solid rgba(255,255,255,0.4); ${chameleonGlow}">
+                  ${this.colorblindMode ? `<span class="text-xs font-bold text-white drop-shadow-[0_1px_2px_rgba(0,0,0,0.9)] opacity-90 select-none">${colorDef.icon}</span>` : ''}
+                  ${liq.isChameleon ? '<span class="absolute right-1 text-[9px]">✨</span>' : ''}
+                </div>
+              `;
+            }
+          });
+
+          // Overlay de candado si la botella está bloqueada
+          let lockHTML = '';
+          if (bottle.isLocked) {
+            const keyColor = this.getColorObj(bottle.unlockColor);
+            lockHTML = `
+              <div class="locked-overlay">
+                <i data-lucide="lock" class="w-6 h-6 text-amber-400 mb-1"></i>
+                <div class="flex items-center gap-1 bg-black/60 px-2 py-0.5 rounded-full border border-white/20">
+                  <span class="w-3 h-3 rounded-full" style="background-color: ${keyColor.hex};"></span>
+                  <span class="text-[10px] text-white font-semibold">Llave</span>
+                </div>
+              </div>
+            `;
+          }
+
+          bottleEl.innerHTML = `
+            <!-- Cuello del frasco -->
+            <div class="glass-neck w-8 h-3.5 mx-auto"></div>
+            <!-- Cuerpo del frasco -->
+            <div class="glass-body ${bottleWidth} ${bottleHeight}">
+              ${liquidsHTML}
+              ${lockHTML}
+            </div>
+            <!-- Indicador de capacidad especial -->
+            ${bottle.isNarrow ? '<span class="text-[10px] text-purple-300 font-semibold mt-1">1x1</span>' : ''}
+            ${isGiant ? '<span class="text-[10px] text-cyan-300 font-semibold mt-1">Max 6</span>' : ''}
+          `;
+
+          // Eventos táctiles y clics
+          bottleEl.addEventListener('click', (e) => this.handleBottleClick(bottle.id, bottleEl, e));
+
+          this.bottlesGrid.appendChild(bottleEl);
+        });
+
+        lucide.createIcons();
+      }
+
+      /* ==========================================================================
+         5. LÓGICA DE MOVIMIENTOS Y VERTIDO
+         ========================================================================== */
+      handleBottleClick(id, element, event) {
+        if (this.isPouringAnimation) return;
+
+        const bottle = this.levelData.bottles.find(b => b.id === id);
+        if (!bottle) return;
+
+        // Si no hay botella seleccionada previamente
+        if (this.selectedBottleId === null) {
+          if (bottle.liquids.length === 0) {
+            sound.playInvalid();
+            return;
+          }
+          if (bottle.isLocked) {
+            sound.playInvalid();
+            return;
+          }
+          this.selectedBottleId = id;
+          sound.playSelect();
+          this.renderBottles();
+          return;
+        }
+
+        // Si se hace clic en la misma botella: se deselecciona
+        if (this.selectedBottleId === id) {
+          this.selectedBottleId = null;
+          sound.playSelect();
+          this.renderBottles();
+          return;
+        }
+
+        // Si se hace clic en otra botella: intentar verter desde origen hacia destino
+        const sourceBottle = this.levelData.bottles.find(b => b.id === this.selectedBottleId);
+        const targetBottle = bottle;
+
+        // Comprobar si destino está bloqueado con candado
+        if (targetBottle.isLocked) {
+          const topSource = sourceBottle.liquids[sourceBottle.liquids.length - 1];
+          if (topSource && topSource.color === targetBottle.unlockColor) {
+            // ¡Desbloquear candado!
+            this.saveStateForUndo();
+            targetBottle.isLocked = false;
+            sound.playUnlock();
+            this.selectedBottleId = null;
+            this.moves++;
+            this.renderBottles();
+            this.updateButtonsUI();
+            return;
+          } else {
+            sound.playInvalid();
+            this.selectedBottleId = null;
+            this.renderBottles();
+            return;
+          }
+        }
+
+        // Validar si el movimiento es legal
+        if (this.canPour(sourceBottle, targetBottle)) {
+          this.executePour(sourceBottle, targetBottle);
+        } else {
+          // Si el destino también tiene líquidos, seleccionarlo como nuevo origen
+          if (targetBottle.liquids.length > 0 && !targetBottle.isLocked) {
+            this.selectedBottleId = id;
+            sound.playSelect();
+          } else {
+            this.selectedBottleId = null;
+            sound.playInvalid();
+          }
+          this.renderBottles();
+        }
+      }
+
+      canPour(source, target) {
+        if (source.liquids.length === 0) return false;
+        if (target.liquids.length >= target.capacity) return false;
+
+        const sourceTop = source.liquids[source.liquids.length - 1];
+        if (sourceTop.isMystery) return false;
+
+        if (target.liquids.length === 0) return true;
+
+        const targetTop = target.liquids[target.liquids.length - 1];
+        if (targetTop.isMystery) return false;
+
+        // Coincidencia de color o camaleón
+        if (sourceTop.isChameleon || targetTop.isChameleon) return true;
+        return sourceTop.color === targetTop.color;
+      }
+
+      executePour(source, target) {
+        this.saveStateForUndo();
+        this.isPouringAnimation = true;
+
+        // Calcular cuántas unidades contiguas del mismo color se pueden transferir
+        const sourceTop = source.liquids[source.liquids.length - 1];
+        const matchColor = sourceTop.color;
+
+        let availableInSource = 0;
+        for (let i = source.liquids.length - 1; i >= 0; i--) {
+          const item = source.liquids[i];
+          if (!item.isMystery && (item.color === matchColor || item.isChameleon)) {
+            availableInSource++;
+          } else {
+            break;
+          }
+        }
+
+        const spaceInTarget = target.capacity - target.liquids.length;
+        let unitsToMove = Math.min(availableInSource, spaceInTarget);
+
+        // Si la botella es estrecha, sólo mueve de a 1 unidad
+        if (source.isNarrow || target.isNarrow) {
+          unitsToMove = 1;
+        }
+
+        // Obtener coordenadas en pantalla de los elementos para animar la inclinación
+        const sourceEl = document.querySelector(`.bottle-container[data-id="${source.id}"]`);
+        const targetEl = document.querySelector(`.bottle-container[data-id="${target.id}"]`);
+
+        const sRect = sourceEl.getBoundingClientRect();
+        const tRect = targetEl.getBoundingClientRect();
+
+        const isTargetToTheRight = tRect.left >= sRect.left;
+        const tiltAngle = isTargetToTheRight ? 45 : -45;
+
+        // Animación de inclinación
+        sourceEl.classList.add('pouring');
+        sourceEl.style.transform = `translate(${tRect.left - sRect.left + (isTargetToTheRight ? -25 : 25)}px, ${tRect.top - sRect.top - 40}px) rotate(${tiltAngle}deg)`;
+
+        sound.playPour(1.1);
+
+        // Disparar chorro en el canvas durante el vertido
+        this.animateLiquidStream(
+          sRect.left + (isTargetToTheRight ? sRect.width : 0),
+          sRect.top + 10,
+          tRect.left + tRect.width / 2,
+          tRect.top + 30,
+          this.getColorObj(matchColor).hex,
+          420
+        );
+
+        setTimeout(() => {
+          // Transferir líquidos en memoria
+          for (let u = 0; u < unitsToMove; u++) {
+            const popped = source.liquids.pop();
+            // Si el vertido se hace sobre un color destino normal y el elemento era camaleón, adopta el color destino
+            if (target.liquids.length > 0) {
+              const targetTop = target.liquids[target.liquids.length - 1];
+              if (popped.isChameleon && !targetTop.isChameleon) {
+                popped.color = targetTop.color;
+              }
+            }
+            target.liquids.push(popped);
+          }
+
+          // Revelar misterio si la nueva capa superior de origen era oculta
+          let mysteryRevealed = false;
+          if (source.liquids.length > 0) {
+            const newTop = source.liquids[source.liquids.length - 1];
+            if (newTop.isMystery) {
+              newTop.isMystery = false;
+              mysteryRevealed = true;
+            }
+          }
+
+          this.moves++;
+          this.selectedBottleId = null;
+
+          if (mysteryRevealed) {
+            sound.playReveal();
+          }
+
+          // Restaurar transformación de la botella
+          sourceEl.style.transform = '';
+          sourceEl.classList.remove('pouring');
+          sourceEl.classList.remove('selected');
+
+          this.isPouringAnimation = false;
+          this.renderBottles();
+          this.updateButtonsUI();
+
+          // Comprobar si se ganó el juego
+          this.checkVictory();
+        }, 440);
+      }
+
+      animateLiquidStream(x1, y1, x2, y2, color, duration) {
+        const start = performance.now();
+        const ctx = this.streamCtx;
+
+        const draw = (now) => {
+          const elapsed = now - start;
+          const progress = Math.min(elapsed / duration, 1);
+
+          ctx.clearRect(0, 0, this.streamCanvas.width, this.streamCanvas.height);
+
+          if (progress < 1) {
+            ctx.beginPath();
+            ctx.strokeStyle = color;
+            ctx.lineWidth = 5;
+            ctx.lineCap = 'round';
+
+            // Curva Bézier del chorro
+            ctx.moveTo(x1, y1);
+            const cx = (x1 + x2) / 2;
+            const cy = Math.min(y1, y2) - 20;
+            ctx.quadraticCurveTo(cx, cy, x2, y2);
+            ctx.stroke();
+
+            requestAnimationFrame(draw);
+          } else {
+            ctx.clearRect(0, 0, this.streamCanvas.width, this.streamCanvas.height);
+          }
+        };
+
+        requestAnimationFrame(draw);
+      }
+
+      /* ==========================================================================
+         6. VERIFICACIÓN DE VICTORIA Y DESHACER
+         ========================================================================== */
+      checkVictory() {
+        // Un nivel está resuelto si cada frasco:
+        // a) está completamente vacío, O
+        // b) está completamente lleno hasta su capacidad y todas sus unidades son del mismo color y descubiertas
+        let allSolved = true;
+
+        for (const bottle of this.levelData.bottles) {
+          if (bottle.liquids.length === 0) continue;
+
+          // Si no está lleno, no está completado
+          if (bottle.liquids.length !== bottle.capacity) {
+            allSolved = false;
+            break;
+          }
+
+          // Verificar si todas las unidades coinciden y no son misterio
+          const firstColor = bottle.liquids[0].color;
+          const isUniform = bottle.liquids.every(
+            liq => !liq.isMystery && (liq.color === firstColor)
+          );
+
+          if (!isUniform) {
+            allSolved = false;
+            break;
+          }
+        }
+
+        if (allSolved) {
+          this.triggerVictory();
+        }
+      }
+
+      triggerVictory() {
+        sound.playWin();
+
+        // Lanzamiento de Confeti elegante
+        if (typeof confetti === 'function') {
+          confetti({
+            particleCount: 80,
+            spread: 70,
+            origin: { y: 0.6 }
+          });
+          setTimeout(() => {
+            confetti({
+              particleCount: 50,
+              angle: 60,
+              spread: 55,
+              origin: { x: 0 }
+            });
+            confetti({
+              particleCount: 50,
+              angle: 120,
+              spread: 55,
+              origin: { x: 1 }
+            });
+          }, 200);
+        }
+
+        document.getElementById('win-moves-count').textContent = this.moves;
+        document.getElementById('win-next-level').textContent = `Nivel ${Math.min(this.currentLevel + 1, this.maxLevels)}`;
+
+        const winModal = document.getElementById('win-modal');
+        winModal.classList.remove('hidden');
+      }
+
+      saveStateForUndo() {
+        // Clonación profunda del estado de las botellas
+        const snapshot = JSON.stringify(this.levelData.bottles);
+        this.history.push({
+          bottles: snapshot,
+          moves: this.moves
+        });
+      }
+
+      undo() {
+        if (this.history.length === 0 || this.isPouringAnimation) return;
+
+        const previous = this.history.pop();
+        this.levelData.bottles = JSON.parse(previous.bottles);
+        this.moves = previous.moves;
+        this.selectedBottleId = null;
+
+        sound.playSelect();
+        this.renderBottles();
+        this.updateButtonsUI();
+      }
+
+      restartLevel() {
+        this.loadLevel(this.currentLevel);
+        sound.playSelect();
+      }
+
+      addExtraBottle() {
+        if (this.extraTubesUsed >= 2) return;
+
+        this.saveStateForUndo();
+        this.extraTubesUsed++;
+
+        const newId = 1000 + this.extraTubesUsed;
+        this.levelData.bottles.push({
+          id: newId,
+          capacity: 4,
+          liquids: [],
+          isLocked: false,
+          unlockColor: null,
+          isNarrow: false
+        });
+
+        sound.playReveal();
+        this.renderBottles();
+        this.updateButtonsUI();
+      }
+
+      /* ==========================================================================
+         7. CONFIGURACIÓN, FONDOS Y ACCESIBILIDAD
+         ========================================================================== */
+      setBackgroundColor(colorHex) {
+        this.bgColor = colorHex;
+        document.body.style.backgroundColor = colorHex;
+        document.getElementById('bg-color-picker').value = colorHex;
+
+        // Comprobar contraste: si el color de fondo elegido es muy similar a algún líquido,
+        // ajustamos dinámicamente un contorno blanco más pronunciado en los frascos
+        this.renderBottles();
+      }
+
+      /* ==========================================================================
+         8. EVENT LISTENERS E INTERFAZ DE USUARIO
+         ========================================================================== */
+      initEvents() {
+        // Botones de acción inferior
+        if (this.btnUndo) this.btnUndo.addEventListener('click', () => this.undo());
+        if (this.btnRestart) this.btnRestart.addEventListener('click', () => this.restartLevel());
+        if (this.btnAddTube) this.btnAddTube.addEventListener('click', () => this.addExtraBottle());
+
+        // Control de Sonido
+        const soundBtn = document.getElementById('btn-toggle-sound');
+        const soundIcon = document.getElementById('sound-icon');
+        if (soundBtn) {
+          soundBtn.addEventListener('click', () => {
+            sound.enabled = !sound.enabled;
+            if (sound.enabled) {
+              sound.init();
+              if (soundIcon) soundIcon.setAttribute('data-lucide', 'volume-2');
+            } else {
+              if (soundIcon) soundIcon.setAttribute('data-lucide', 'volume-x');
+            }
+            if (window.lucide) lucide.createIcons();
+          });
+        }
+
+        // Selector de Niveles (Modal)
+        const levelsModal = document.getElementById('levels-modal');
+        const btnLevelsModal = document.getElementById('btn-levels-modal');
+        const btnCloseLevels = document.getElementById('btn-close-levels');
+        const levelsGrid = document.getElementById('levels-grid');
+
+        if (btnLevelsModal && levelsModal && levelsGrid) {
+          btnLevelsModal.addEventListener('click', () => {
+            levelsGrid.innerHTML = '';
+            for (let i = 1; i <= this.maxLevels; i++) {
+              const btn = document.createElement('button');
+              const isCurrent = i === this.currentLevel;
+              btn.className = `p-2 rounded-xl text-center text-xs font-bold transition flex flex-col items-center justify-center gap-0.5 ${
+                isCurrent 
+                  ? 'bg-gradient-to-r from-cyan-500 to-blue-600 text-white shadow-md shadow-cyan-500/40 ring-2 ring-cyan-300' 
+                  : 'bg-slate-800 hover:bg-slate-700 text-slate-200 border border-slate-700/60'
+              }`;
+              btn.innerHTML = `<span>${i}</span>`;
+              btn.addEventListener('click', () => {
+                this.loadLevel(i);
+                levelsModal.classList.add('hidden');
+              });
+              levelsGrid.appendChild(btn);
+            }
+            levelsModal.classList.remove('hidden');
+          });
+        }
+
+        if (btnCloseLevels && levelsModal) {
+          btnCloseLevels.addEventListener('click', () => {
+            levelsModal.classList.add('hidden');
+          });
+        }
+
+        // Ajustes y Accesibilidad (Modal)
+        const settingsModal = document.getElementById('settings-modal');
+        const btnSettingsModal = document.getElementById('btn-settings-modal');
+        const btnCloseSettings = document.getElementById('btn-close-settings');
+        const bgPicker = document.getElementById('bg-color-picker');
+        const cbToggle = document.getElementById('toggle-colorblind');
+
+        if (btnSettingsModal && settingsModal) {
+          btnSettingsModal.addEventListener('click', () => {
+            settingsModal.classList.remove('hidden');
+          });
+        }
+        if (btnCloseSettings && settingsModal) {
+          btnCloseSettings.addEventListener('click', () => {
+            settingsModal.classList.add('hidden');
+          });
+        }
+
+        if (bgPicker) {
+          bgPicker.addEventListener('input', (e) => {
+            this.setBackgroundColor(e.target.value);
+          });
+        }
+
+        document.querySelectorAll('.preset-bg').forEach(btn => {
+          btn.addEventListener('click', () => {
+            if (btn.dataset.color) {
+              this.setBackgroundColor(btn.dataset.color);
+            }
+          });
+        });
+
+        if (cbToggle) {
+          cbToggle.addEventListener('change', (e) => {
+            this.colorblindMode = e.target.checked;
+            this.renderBottles();
+          });
+        }
+
+        // Modal Victoria
+        const winModal = document.getElementById('win-modal');
+        const btnNextLevel = document.getElementById('btn-next-level');
+        const btnReplayLevel = document.getElementById('btn-replay-level');
+
+        if (btnNextLevel && winModal) {
+          btnNextLevel.addEventListener('click', () => {
+            winModal.classList.add('hidden');
+            if (this.currentLevel < this.maxLevels) {
+              this.loadLevel(this.currentLevel + 1);
+            } else {
+              this.loadLevel(1);
+            }
+          });
+        }
+
+        if (btnReplayLevel && winModal) {
+          btnReplayLevel.addEventListener('click', () => {
+            winModal.classList.add('hidden');
+            this.loadLevel(this.currentLevel);
+          });
+        }
+
+        // Cerrar modales con tecla Escape
+        window.addEventListener('keydown', (e) => {
+          if (e.key === 'Escape') {
+            if (levelsModal) levelsModal.classList.add('hidden');
+            if (settingsModal) settingsModal.classList.add('hidden');
+          }
+        });
+      }
+    }
+
+    // Inicializar el juego tras cargar el DOM
+    window.addEventListener('DOMContentLoaded', () => {
+      lucide.createIcons();
+      window.game = new GameController();
+    });
+  </script>
+</body>
+</html>

@@ -1,0 +1,112 @@
+/* ==========================================================================
+   AQUASORT MASTER DELUXE - ACCESSIBILITY & LOW VISION STYLES
+   ========================================================================== */
+
+/* 1. MODO BAJA VISIÓN (LOW VISION MODE) */
+body.low-vision-mode {
+  font-size: 1.15rem;
+}
+
+body.low-vision-mode .test-tube {
+  border-width: 5px !important;
+  border-color: #ffffff !important;
+  box-shadow: 0 0 25px rgba(0, 0, 0, 0.9), 0 0 10px rgba(255, 255, 255, 0.4) !important;
+  margin: 0.5rem !important;
+}
+
+body.low-vision-mode .liquid-segment {
+  font-size: 1.5rem !important;
+  border-top: 3px solid rgba(0, 0, 0, 0.7) !important;
+  border-bottom: 3px solid rgba(255, 255, 255, 0.4) !important;
+}
+
+body.low-vision-mode .shape-icon {
+  font-size: 1.6rem !important;
+  font-weight: 900 !important;
+  filter: drop-shadow(0 0 4px #000) drop-shadow(0 0 6px #000) drop-shadow(0 0 2px #fff) !important;
+}
+
+/* Indicador de nombre de color visible permanentemente en baja visión */
+body.low-vision-mode .color-text-label {
+  display: inline-block !important;
+  font-size: 0.75rem !important;
+  font-weight: 900 !important;
+  background: rgba(0, 0, 0, 0.85);
+  color: #ffffff;
+  padding: 1px 5px;
+  border-radius: 4px;
+  border: 1px solid rgba(255, 255, 255, 0.6);
+  margin-left: 4px;
+}
+
+/* 2. MODO ALTO CONTRASTE (HIGH CONTRAST MODE) */
+body.high-contrast-mode {
+  background-color: #000000 !important;
+  color: #ffffff !important;
+}
+
+body.high-contrast-mode .glass-panel,
+body.high-contrast-mode header,
+body.high-contrast-mode .modal-content {
+  background: #000000 !important;
+  border: 3px solid #ffffff !important;
+  box-shadow: none !important;
+}
+
+body.high-contrast-mode button {
+  border: 2px solid #ffffff !important;
+  background: #111111 !important;
+  color: #ffffff !important;
+}
+
+body.high-contrast-mode button:hover {
+  background: #ffffff !important;
+  color: #000000 !important;
+}
+
+body.high-contrast-mode .test-tube.selected {
+  border-color: #fde047 !important;
+  box-shadow: 0 0 0 6px #fde047 !important;
+}
+
+/* 3. PATRONES Y TEXTURAS TÁCTILES VISUALES PARA DIFERENCIACIÓN SIN COLOR */
+.pattern-stripes {
+  background-image: repeating-linear-gradient(45deg, rgba(255,255,255,0.25) 0, rgba(255,255,255,0.25) 6px, transparent 6px, transparent 12px) !important;
+}
+
+.pattern-dots {
+  background-image: radial-gradient(circle, rgba(255,255,255,0.4) 2.5px, transparent 2.5px) !important;
+  background-size: 10px 10px !important;
+}
+
+.pattern-grid {
+  background-image: linear-gradient(rgba(255,255,255,0.28) 1.5px, transparent 1.5px), linear-gradient(90deg, rgba(255,255,255,0.28) 1.5px, transparent 1.5px) !important;
+  background-size: 10px 10px !important;
+}
+
+.pattern-diagonal-left {
+  background-image: repeating-linear-gradient(-45deg, rgba(255,255,255,0.25) 0, rgba(255,255,255,0.25) 6px, transparent 6px, transparent 12px) !important;
+}
+
+.pattern-horizontal {
+  background-image: repeating-linear-gradient(0deg, rgba(255,255,255,0.3) 0, rgba(255,255,255,0.3) 4px, transparent 4px, transparent 9px) !important;
+}
+
+.pattern-vertical {
+  background-image: repeating-linear-gradient(90deg, rgba(255,255,255,0.3) 0, rgba(255,255,255,0.3) 4px, transparent 4px, transparent 9px) !important;
+}
+
+.pattern-cross {
+  background-image: radial-gradient(circle, rgba(0,0,0,0.45) 3px, transparent 3px), radial-gradient(circle, rgba(255,255,255,0.4) 2px, transparent 2px) !important;
+  background-size: 12px 12px !important;
+}
+
+.pattern-zigzag {
+  background: repeating-linear-gradient(135deg, rgba(255,255,255,0.2) 0, rgba(255,255,255,0.2) 5px, transparent 5px, transparent 10px),
+              repeating-linear-gradient(45deg, rgba(0,0,0,0.2) 0, rgba(0,0,0,0.2) 5px, transparent 5px, transparent 10px) !important;
+}
+
+.pattern-checker {
+  background-image: conic-gradient(rgba(255,255,255,0.25) 90deg, transparent 90deg 180deg, rgba(255,255,255,0.25) 180deg 270deg, transparent 270deg) !important;
+  background-size: 12px 12px !important;
+}
