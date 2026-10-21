@@ -382,7 +382,7 @@ class GameController {
         stoneEl.className = 'tube-stone-base';
         stoneEl.title = 'Frasco Inamovible (Incrustado en la roca: solo recibe líquidos)';
         stoneEl.innerHTML = `
-          <svg viewBox="0 0 90 46" class="w-full h-full drop-shadow-[0_4px_10px_rgba(0,0,0,0.9)]" fill="none" xmlns="http://www.w3.org/2000/svg">
+          <svg viewBox="0 0 66 32" class="w-full h-full drop-shadow-[0_4px_10px_rgba(0,0,0,0.9)]" fill="none" xmlns="http://www.w3.org/2000/svg">
             <defs>
               <linearGradient id="rock-grad-1" x1="0%" y1="0%" x2="100%" y2="100%">
                 <stop offset="0%" stop-color="#475569"/>
@@ -394,16 +394,15 @@ class GameController {
                 <stop offset="100%" stop-color="#334155"/>
               </linearGradient>
             </defs>
-            <path d="M 8 42 L 16 22 L 28 14 L 45 10 L 62 14 L 74 22 L 82 42 Z" fill="url(#rock-grad-1)" stroke="#475569" stroke-width="1.5"/>
-            <path d="M 16 22 L 28 14 L 36 26 L 22 42 Z" fill="#1e293b"/>
-            <path d="M 45 10 L 62 14 L 54 26 L 36 26 Z" fill="url(#rock-grad-2)"/>
-            <path d="M 62 14 L 74 22 L 68 42 L 54 26 Z" fill="#0f172a"/>
-            <path d="M 28 14 L 45 10 L 36 26 Z" fill="#64748b"/>
-            <path d="M 43 16 L 39 25 L 44 34" stroke="#94a3b8" stroke-width="1.2" stroke-linecap="round"/>
-            <path d="M 50 18 L 53 26 L 49 36" stroke="#94a3b8" stroke-width="1.2" stroke-linecap="round"/>
-            <circle cx="31" cy="32" r="1.5" fill="#10b981"/>
-            <circle cx="64" cy="34" r="1.5" fill="#10b981"/>
-            <ellipse cx="45" cy="13" rx="20" ry="4.5" fill="#0b0f19" stroke="#64748b" stroke-width="1.5"/>
+            <path d="M 3 28 L 8 13 L 20 6 L 33 4 L 46 6 L 58 13 L 63 28 Z" fill="url(#rock-grad-1)" stroke="#475569" stroke-width="1.2"/>
+            <path d="M 8 13 L 20 6 L 27 16 L 15 28 Z" fill="#1e293b"/>
+            <path d="M 33 4 L 46 6 L 39 16 L 27 16 Z" fill="url(#rock-grad-2)"/>
+            <path d="M 46 6 L 58 13 L 52 28 L 39 16 Z" fill="#0f172a"/>
+            <path d="M 31 10 L 28 17 L 32 23" stroke="#94a3b8" stroke-width="1" stroke-linecap="round"/>
+            <path d="M 36 11 L 38 18 L 35 24" stroke="#94a3b8" stroke-width="1" stroke-linecap="round"/>
+            <circle cx="21" cy="21" r="1.2" fill="#10b981"/>
+            <circle cx="45" cy="22" r="1.2" fill="#38bdf8"/>
+            <ellipse cx="33" cy="7" rx="25" ry="4.5" fill="#0b0f19" stroke="#64748b" stroke-width="1.2"/>
           </svg>
         `;
         tubeEl.appendChild(stoneEl);
@@ -633,35 +632,47 @@ class GameController {
 
         setTimeout(() => {
           // PASO 4: Iniciar chorro de fluido en Canvas y sonido
-          if (window.audio) window.audio.playPourSound();
-          this.drawPourStream(fRect, tRect, matchColor, isTargetToTheRight, 500);
+          const portionDuration = unitsToMove > 1 ? 320 : 440;
+          const totalPourTime = unitsToMove * portionDuration;
 
-          // PASO 5: Animación simultánea de vaciado en origen y llenado en destino
+          if (window.audio) window.audio.playPourSound();
+          this.drawPourStream(fRect, tRect, matchColor, isTargetToTheRight, totalPourTime + 80);
+
+          // PASO 5: Animación secuencial de vaciado porción por porción con transformaciones de fluido
           const fromGlass = fromEl.querySelector('.tube-glass');
           const toGlass = toEl.querySelector('.tube-glass');
+          const topSegments = fromGlass ? Array.from(fromGlass.querySelectorAll('.liquid-segment')) : [];
 
-          // Vaciado en origen: el segmento superior reduce su altura a 0%
-          if (fromGlass) {
-            const topSegments = fromGlass.querySelectorAll('.liquid-segment');
-            if (topSegments.length > 0) {
-              const segToDrain = topSegments[topSegments.length - 1];
-              segToDrain.style.transition = 'height 0.46s cubic-bezier(0.4, 0, 0.2, 1), opacity 0.4s ease';
-              segToDrain.style.height = '0%';
-              segToDrain.style.opacity = '0.2';
-            }
-          }
+          for (let u = 0; u < unitsToMove; u++) {
+            setTimeout(() => {
+              // 5.a Vaciado fluido porción origen
+              const segIdx = topSegments.length - 1 - u;
+              if (segIdx >= 0 && topSegments[segIdx]) {
+                const segToDrain = topSegments[segIdx];
+                segToDrain.classList.add('liquid-draining');
+                segToDrain.style.transition = `height ${portionDuration * 0.9}ms cubic-bezier(0.4, 0, 0.2, 1), opacity ${portionDuration * 0.8}ms ease`;
+                segToDrain.style.height = '0%';
+                segToDrain.style.opacity = '0.1';
+              }
 
-          // Llenado en destino: crear elemento temporal de subida de nivel
-          if (toGlass) {
-            const incomingSeg = document.createElement('div');
-            incomingSeg.className = 'liquid-segment top-liquid';
-            incomingSeg.style.backgroundColor = matchColor;
-            incomingSeg.style.height = '0%';
-            incomingSeg.style.transition = 'height 0.48s cubic-bezier(0.2, 0.9, 0.3, 1.2)';
-            toGlass.appendChild(incomingSeg);
-            requestAnimationFrame(() => {
-              incomingSeg.style.height = `${(unitsToMove / toTube.capacity) * 100}%`;
-            });
+              // 5.b Llenado porción destino con rebote y oleaje líquido
+              if (toGlass) {
+                const incomingSeg = document.createElement('div');
+                incomingSeg.className = 'liquid-segment top-liquid liquid-bounce';
+                incomingSeg.style.backgroundColor = matchColor;
+                incomingSeg.style.height = '0%';
+                incomingSeg.style.transition = `height ${portionDuration * 0.85}ms cubic-bezier(0.2, 0.9, 0.3, 1.2)`;
+                toGlass.appendChild(incomingSeg);
+                requestAnimationFrame(() => {
+                  incomingSeg.style.height = `${(1 / toTube.capacity) * 100}%`;
+                });
+              }
+
+              // Sonido de trasvase repetido si son múltiples unidades
+              if (u > 0 && window.audio) {
+                window.audio.playPourSound();
+              }
+            }, u * portionDuration);
           }
 
           setTimeout(() => {
@@ -1297,6 +1308,71 @@ class GameController {
           `}
         </div>
       </div>
+
+      <!-- 6. Cartas Alquímicas de Fortuna (Consumibles de Bonificación) -->
+      <div class="mt-4 pt-4 border-t border-slate-700/80">
+        <h3 class="text-xs font-black tracking-wider text-amber-400 uppercase flex items-center gap-2 mb-3">
+          <i data-lucide="sparkles" class="w-4 h-4"></i>
+          Cartas Alquímicas de Fortuna (20 🪙 c/u)
+        </h3>
+        <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+          <!-- Favor de la Diana -->
+          <div class="bg-slate-800/90 border border-indigo-500/30 rounded-2xl p-3 flex items-center justify-between gap-2 shadow-md">
+            <div>
+              <div class="flex items-center gap-1.5 font-bold text-xs text-white">
+                <span>🎯 Favor de la Diana</span>
+                <span class="text-[10px] px-1.5 py-0.2 rounded bg-indigo-500/20 text-indigo-300 font-mono">x${(state.cards && state.cards.dianaFavor) || 0}</span>
+              </div>
+              <p class="text-[11px] text-slate-400 mt-0.5">80% de probabilidad de jugar la Diana de Dardos.</p>
+            </div>
+            <button class="btn-interactive px-3 py-1.5 rounded-xl text-xs font-black bg-gradient-to-r from-indigo-500 to-sky-600 hover:from-indigo-400 hover:to-sky-500 text-white shadow-sm disabled:opacity-40" ${coins < 20 ? 'disabled' : ''} onclick="window.game.buyUpgrade('buy_card_dianaFavor')">
+              20 🪙
+            </button>
+          </div>
+
+          <!-- Giro del Destino -->
+          <div class="bg-slate-800/90 border border-purple-500/30 rounded-2xl p-3 flex items-center justify-between gap-2 shadow-md">
+            <div>
+              <div class="flex items-center gap-1.5 font-bold text-xs text-white">
+                <span>🎡 Giro del Destino</span>
+                <span class="text-[10px] px-1.5 py-0.2 rounded bg-purple-500/20 text-purple-300 font-mono">x${(state.cards && state.cards.rouletteFavor) || 0}</span>
+              </div>
+              <p class="text-[11px] text-slate-400 mt-0.5">80% de probabilidad de jugar la Ruleta Alquímica.</p>
+            </div>
+            <button class="btn-interactive px-3 py-1.5 rounded-xl text-xs font-black bg-gradient-to-r from-purple-500 to-pink-600 hover:from-purple-400 hover:to-pink-500 text-white shadow-sm disabled:opacity-40" ${coins < 20 ? 'disabled' : ''} onclick="window.game.buyUpgrade('buy_card_rouletteFavor')">
+              20 🪙
+            </button>
+          </div>
+
+          <!-- Doble o Nada Alquímico -->
+          <div class="bg-slate-800/90 border border-amber-500/30 rounded-2xl p-3 flex items-center justify-between gap-2 shadow-md">
+            <div>
+              <div class="flex items-center gap-1.5 font-bold text-xs text-white">
+                <span>⚡ Doble o Nada</span>
+                <span class="text-[10px] px-1.5 py-0.2 rounded bg-amber-500/20 text-amber-300 font-mono">x${(state.cards && state.cards.doubleOrNothing) || 0}</span>
+              </div>
+              <p class="text-[11px] text-slate-400 mt-0.5">Ruleta simplificada a 2 colores (50% prob) a x2.0 o perder todo.</p>
+            </div>
+            <button class="btn-interactive px-3 py-1.5 rounded-xl text-xs font-black bg-gradient-to-r from-amber-500 to-orange-600 hover:from-amber-400 hover:to-orange-500 text-slate-950 font-bold shadow-sm disabled:opacity-40" ${coins < 20 ? 'disabled' : ''} onclick="window.game.buyUpgrade('buy_card_doubleOrNothing')">
+              20 🪙
+            </button>
+          </div>
+
+          <!-- Calma Atmosférica -->
+          <div class="bg-slate-800/90 border border-teal-500/30 rounded-2xl p-3 flex items-center justify-between gap-2 shadow-md">
+            <div>
+              <div class="flex items-center gap-1.5 font-bold text-xs text-white">
+                <span>🍃 Calma Atmosférica</span>
+                <span class="text-[10px] px-1.5 py-0.2 rounded bg-teal-500/20 text-teal-300 font-mono">x${(state.cards && state.cards.calmAtmosphere) || 0}</span>
+              </div>
+              <p class="text-[11px] text-slate-400 mt-0.5">Diana: beneficio de Sin Viento, medidor lento o tiro extra de respaldo.</p>
+            </div>
+            <button class="btn-interactive px-3 py-1.5 rounded-xl text-xs font-black bg-gradient-to-r from-teal-500 to-emerald-600 hover:from-teal-400 hover:to-emerald-500 text-white shadow-sm disabled:opacity-40" ${coins < 20 ? 'disabled' : ''} onclick="window.game.buyUpgrade('buy_card_calmAtmosphere')">
+              20 🪙
+            </button>
+          </div>
+        </div>
+      </div>
     `;
     if (window.lucide) lucide.createIcons();
   }
@@ -1316,6 +1392,9 @@ class GameController {
       this.updateCoinsUI();
       this.renderShopItems();
       this.updateAuxiliaryButtonUI();
+      if (window.minigameEngine && typeof window.minigameEngine.updateCardsUI === 'function') {
+        window.minigameEngine.updateCardsUI();
+      }
     } else {
       alert(res.msg || 'No se pudo realizar la compra');
     }
@@ -1424,6 +1503,13 @@ class GameController {
     const btnOpenShop = document.getElementById('btn-open-shop');
     if (btnOpenShop) {
       btnOpenShop.addEventListener('click', () => this.openShopModal());
+    }
+
+    const btnOpenMinigame = document.getElementById('btn-open-minigame');
+    if (btnOpenMinigame) {
+      btnOpenMinigame.addEventListener('click', () => {
+        if (window.minigameEngine) window.minigameEngine.openModal();
+      });
     }
 
     // Botón Widget de Vidas -> Abre la tienda para recarga
@@ -1840,34 +1926,65 @@ class GameController {
         desc: 'Este frasco está enterrado en la piedra como la espada de Excalibur. Solo puede RECIBIR fluidos (normales o camaleón), ¡nunca puede vaciarse! Si te equivocas vertiendo un color indebido, tendrás que reiniciar el nivel.',
         icon: 'mountain',
         svg: `
-          <svg viewBox="0 0 200 160" class="w-full h-full">
-            <!-- Roca base Excalibur -->
-            <path d="M 50 148 L 65 125 L 85 115 L 105 110 L 125 115 L 145 125 L 160 148 Z" fill="#334155" stroke="#475569" stroke-width="2"/>
-            <path d="M 65 125 L 85 115 L 95 130 L 75 148 Z" fill="#1e293b"/>
-            <path d="M 105 110 L 125 115 L 115 130 L 95 130 Z" fill="#64748b"/>
-            <ellipse cx="105" cy="114" rx="22" ry="5" fill="#0f172a" stroke="#64748b" stroke-width="1.5"/>
-            <g class="anim-glued-loop" style="transform-origin: 105px 125px;">
-              <rect x="85" y="30" width="40" height="92" rx="14" fill="rgba(255,255,255,0.08)" stroke="#38bdf8" stroke-width="2.5"/>
-              <rect x="88" y="95" width="34" height="24" rx="8" fill="#3b82f6"/>
-              <path d="M 55 15 Q 85 15 105 40" fill="none" stroke="#3b82f6" stroke-width="4" stroke-dasharray="4,3"/>
-              <circle cx="105" cy="107" r="4" fill="#60a5fa"/>
+          <svg viewBox="0 0 220 160" class="w-full h-full">
+            <!-- Tubo A (Izquierda: normal, se inclina y vierte fluido en B) -->
+            <g class="demo-glued-tubeA">
+              <rect x="35" y="25" width="34" height="105" rx="13" fill="rgba(255,255,255,0.06)" stroke="#38bdf8" stroke-width="2"/>
+              <rect x="38" y="97" width="28" height="28" rx="7" fill="#3b82f6"/>
+              <rect x="38" y="67" width="28" height="28" rx="4" fill="#3b82f6"/>
             </g>
+
+            <!-- Tubo B (Derecha: incrustado en roca, solo recibe) -->
+            <g class="demo-glued-tube-rock" style="transform-origin: 155px 125px;">
+              <rect x="138" y="25" width="34" height="105" rx="13" fill="rgba(255,255,255,0.06)" stroke="#64748b" stroke-width="2"/>
+              <g class="demo-glued-fillB">
+                <rect x="141" y="97" width="28" height="28" rx="7" fill="#3b82f6"/>
+              </g>
+
+              <!-- Roca base Excalibur ajustada a la base del tubo -->
+              <path d="M 120 142 L 128 126 L 140 120 L 155 118 L 170 120 L 182 126 L 190 142 Z" fill="#334155" stroke="#475569" stroke-width="1.5"/>
+              <path d="M 128 126 L 140 120 L 148 132 L 135 142 Z" fill="#1e293b"/>
+              <path d="M 155 118 L 170 120 L 163 132 L 148 132 Z" fill="#64748b"/>
+              <ellipse cx="155" cy="120" rx="18" ry="4" fill="#0f172a" stroke="#475569" stroke-width="1.2"/>
+
+              <!-- Signo de prohibido cuando intenta salir -->
+              <g class="demo-no-sign" style="transform-origin: 155px 50px;">
+                <circle cx="155" cy="50" r="14" fill="#ef4444" stroke="#ffffff" stroke-width="1.5"/>
+                <line x1="145" y1="40" x2="165" y2="60" stroke="#ffffff" stroke-width="3" stroke-linecap="round"/>
+                <text x="155" y="80" fill="#f87171" font-size="10" font-weight="900" text-anchor="middle">INAMOVIBLE</text>
+              </g>
+            </g>
+            <text x="52" y="152" fill="#38bdf8" font-size="9" font-weight="bold" text-anchor="middle">Solo entrada ✓</text>
+            <text x="155" y="152" fill="#ef4444" font-size="9" font-weight="bold" text-anchor="middle">No puede vaciarse 🚫</text>
           </svg>
         `
       },
       mystery: {
         title: "Líquidos Ocultos '?'",
-        desc: 'Los fluidos misteriosos ocultan su color bajo el signo ?. La superficie superior siempre está descubierta. ¡Si varios bloques contiguos ocultos comparten el mismo color, se desbloquean todos juntos!',
+        desc: 'Los fluidos misteriosos ocultan su color bajo el signo ?. La superficie superior siempre está descubierta. ¡Al retirar el líquido que lo tapa, el bloque oculto revela su color y símbolo!',
         icon: 'help-circle',
         svg: `
-          <svg viewBox="0 0 200 160" class="w-full h-full">
-            <rect x="80" y="25" width="40" height="115" rx="14" fill="rgba(255,255,255,0.08)" stroke="#38bdf8" stroke-width="2"/>
-            <rect x="83" y="112" width="34" height="25" rx="8" fill="#1e293b"/>
-            <text x="100" y="129" fill="#94a3b8" font-size="14" font-weight="bold" text-anchor="middle">?</text>
-            <rect x="83" y="86" width="34" height="25" fill="#1e293b"/>
-            <text x="100" y="103" fill="#94a3b8" font-size="14" font-weight="bold" text-anchor="middle">?</text>
-            <rect x="83" y="60" width="34" height="25" fill="#ef4444"/>
-            <circle cx="100" cy="98" r="16" fill="none" stroke="#f59e0b" stroke-width="2" stroke-dasharray="3,3" class="animate-spin" style="transform-origin: 100px 98px;"/>
+          <svg viewBox="0 0 220 160" class="w-full h-full">
+            <!-- Tubo A (Izquierda, se inclina y vierte) -->
+            <g class="demo-anim-mystery-tubeA">
+              <rect x="42" y="25" width="36" height="110" rx="14" fill="rgba(255,255,255,0.06)" stroke="#38bdf8" stroke-width="2"/>
+              <!-- Bloque inferior oculto que se revela -->
+              <rect x="45" y="102" width="30" height="28" rx="8" class="demo-anim-mystery-block"/>
+              <g class="demo-anim-mystery-mark">
+                <text x="60" y="121" fill="#94a3b8" font-size="14" font-weight="900" text-anchor="middle" class="demo-mystery-q">?</text>
+                <text x="60" y="122" fill="#0f172a" font-size="14" font-weight="900" text-anchor="middle" class="demo-mystery-star">★</text>
+              </g>
+              <!-- Bloque azul superior que se vacía hacia Tubo B -->
+              <rect x="45" y="72" width="30" height="28" rx="4" fill="#3b82f6" class="demo-anim-mystery-blue"/>
+            </g>
+            
+            <!-- Tubo B (Derecha, recibe el líquido azul) -->
+            <g>
+              <rect x="142" y="25" width="36" height="110" rx="14" fill="rgba(255,255,255,0.06)" stroke="#38bdf8" stroke-width="2"/>
+              <rect x="145" y="102" width="30" height="28" rx="8" fill="#3b82f6" class="demo-anim-mystery-blue-dest"/>
+            </g>
+            <text x="60" y="152" fill="#94a3b8" font-size="10" font-weight="bold" text-anchor="middle">1. Quitar capa azul</text>
+            <text x="160" y="152" fill="#38bdf8" font-size="10" font-weight="bold" text-anchor="middle">2. ¡Se revela el color!</text>
           </svg>
         `
       },
@@ -1876,27 +1993,59 @@ class GameController {
         desc: 'Un recipiente de gran tamaño capaz de contener hasta 6 unidades de líquido. Te brinda espacio adicional para maniobras complejas de trasvase.',
         icon: 'maximize-2',
         svg: `
-          <svg viewBox="0 0 200 160" class="w-full h-full">
-            <rect x="80" y="15" width="40" height="135" rx="14" fill="rgba(255,255,255,0.08)" stroke="#38bdf8" stroke-width="2.5"/>
-            <rect x="83" y="125" width="34" height="22" rx="8" fill="#10b981"/>
-            <rect x="83" y="102" width="34" height="22" fill="#10b981"/>
-            <rect x="83" y="79" width="34" height="22" fill="#10b981"/>
-            <rect x="83" y="56" width="34" height="22" fill="#10b981"/>
-            <text x="100" y="15" fill="#38bdf8" font-size="9" font-weight="900" text-anchor="middle">CAPACIDAD: 6</text>
+          <svg viewBox="0 0 220 160" class="w-full h-full">
+            <g>
+              <rect x="45" y="40" width="34" height="95" rx="12" fill="rgba(255,255,255,0.06)" stroke="#94a3b8" stroke-width="1.8"/>
+              <text x="62" y="32" fill="#94a3b8" font-size="9" font-weight="bold" text-anchor="middle">Normal: 4</text>
+            </g>
+            <g>
+              <rect x="135" y="15" width="40" height="125" rx="14" fill="rgba(255,255,255,0.06)" stroke="#38bdf8" stroke-width="2.2"/>
+              <rect x="138" y="112" width="34" height="24" rx="8" fill="#10b981"/>
+              <rect x="138" y="86" width="34" height="24" fill="#10b981"/>
+              <rect x="138" y="60" width="34" height="24" fill="#10b981"/>
+              <text x="155" y="12" fill="#38bdf8" font-size="10" font-weight="900" text-anchor="middle">GIGANTE: 6</text>
+            </g>
+            <text x="110" y="152" fill="#38bdf8" font-size="10" font-weight="bold" text-anchor="middle">Capacidad extendida de 6 unidades</text>
           </svg>
         `
       },
       lock: {
         title: 'Candado Alquímico con Llave',
-        desc: 'El frasco está cerrado con un cerrojo mágico. Para abrirlo y acceder a su contenido, vierte un fluido que coincida con el color y símbolo de la llave indicada.',
+        desc: 'El frasco C está protegido por un cerrojo mágico. Si el color de la llave está cubierto por otro líquido en el tubo A, despeja primero ese líquido hacia el tubo B y luego vierte la llave para desbloquear.',
         icon: 'lock',
         svg: `
-          <svg viewBox="0 0 200 160" class="w-full h-full">
-            <rect x="80" y="30" width="40" height="110" rx="14" fill="rgba(255,255,255,0.08)" stroke="#f59e0b" stroke-width="2"/>
-            <rect x="83" y="112" width="34" height="25" rx="8" fill="#ec4899"/>
-            <circle cx="100" cy="70" r="18" fill="#0f172a" stroke="#f59e0b" stroke-width="2"/>
-            <path d="M 94 70 L 94 63 A 6 6 0 0 1 106 63 L 106 70" fill="none" stroke="#f59e0b" stroke-width="2.5"/>
-            <rect x="92" y="70" width="16" height="12" rx="2" fill="#f59e0b"/>
+          <svg viewBox="0 0 220 160" class="w-full h-full">
+            <!-- Tubo A (Izquierda: llave rosa tapada por bloque azul) -->
+            <g>
+              <rect x="20" y="25" width="34" height="108" rx="13" fill="rgba(255,255,255,0.06)" stroke="#38bdf8" stroke-width="1.8"/>
+              <!-- Llave rosa inferior que viaja a C -->
+              <g class="demo-lock-key-c">
+                <rect x="23" y="100" width="28" height="28" rx="7" fill="#ec4899"/>
+                <text x="37" y="119" fill="#ffffff" font-size="13" text-anchor="middle">🔑</text>
+              </g>
+              <!-- Bloque azul que estorba y viaja a B -->
+              <rect x="23" y="70" width="28" height="28" rx="4" fill="#3b82f6" class="demo-lock-block-b"/>
+              <text x="37" y="150" fill="#94a3b8" font-size="9" font-weight="bold" text-anchor="middle">A: Llave tapada</text>
+            </g>
+
+            <!-- Tubo B (Centro: receptor del bloque azul) -->
+            <g>
+              <rect x="93" y="25" width="34" height="108" rx="13" fill="rgba(255,255,255,0.06)" stroke="#38bdf8" stroke-width="1.8"/>
+              <text x="110" y="150" fill="#60a5fa" font-size="9" font-weight="bold" text-anchor="middle">B: Despejar</text>
+            </g>
+
+            <!-- Tubo C (Derecha: frasco con candado) -->
+            <g>
+              <rect x="166" y="25" width="34" height="108" rx="13" fill="rgba(255,255,255,0.06)" stroke="#f59e0b" stroke-width="2"/>
+              <!-- Candado mágico -->
+              <g class="demo-lock-shackle" style="transform-origin: 183px 75px;">
+                <circle cx="183" cy="70" r="16" fill="#0f172a" stroke="#f59e0b" stroke-width="2"/>
+                <path d="M 178 70 L 178 63 A 5 5 0 0 1 188 63 L 188 70" fill="none" stroke="#f59e0b" stroke-width="2.5"/>
+                <rect x="176" y="70" width="14" height="11" rx="2" fill="#f59e0b"/>
+                <text x="183" y="79" fill="#0f172a" font-size="8" font-weight="900" text-anchor="middle">✓</text>
+              </g>
+              <text x="183" y="150" fill="#f59e0b" font-size="9" font-weight="bold" text-anchor="middle">C: ¡Desbloqueo!</text>
+            </g>
           </svg>
         `
       },
@@ -1905,10 +2054,20 @@ class GameController {
         desc: 'Tubo de precisión ultra delgado. Solo puede contener y transferir 1 sola unidad de fluido por movimiento. Es ideal como casilla de paso temporal.',
         icon: 'minimize-2',
         svg: `
-          <svg viewBox="0 0 200 160" class="w-full h-full">
-            <rect x="88" y="45" width="24" height="95" rx="10" fill="rgba(255,255,255,0.08)" stroke="#a855f7" stroke-width="2"/>
-            <rect x="90" y="116" width="20" height="22" rx="6" fill="#8b5cf6"/>
-            <text x="100" y="35" fill="#c084fc" font-size="10" font-weight="900" text-anchor="middle">1 UNIDAD</text>
+          <svg viewBox="0 0 220 160" class="w-full h-full">
+            <g>
+              <rect x="45" y="25" width="36" height="110" rx="14" fill="rgba(255,255,255,0.06)" stroke="#38bdf8" stroke-width="2"/>
+              <rect x="48" y="103" width="30" height="28" rx="8" fill="#8b5cf6"/>
+              <rect x="48" y="73" width="30" height="28" fill="#8b5cf6"/>
+              <rect x="48" y="43" width="30" height="28" fill="#8b5cf6"/>
+            </g>
+            <g>
+              <rect x="140" y="35" width="22" height="100" rx="10" fill="rgba(255,255,255,0.06)" stroke="#a855f7" stroke-width="2"/>
+              <rect x="142" y="108" width="18" height="24" rx="6" fill="#8b5cf6"/>
+              <text x="151" y="26" fill="#c084fc" font-size="10" font-weight="900" text-anchor="middle">1x1</text>
+            </g>
+            <path d="M 85 55 Q 115 35 138 50" fill="none" stroke="#a855f7" stroke-width="3" stroke-dasharray="4,3"/>
+            <text x="110" y="152" fill="#c084fc" font-size="10" font-weight="bold" text-anchor="middle">Solo 1 unidad por movimiento</text>
           </svg>
         `
       },
@@ -1917,10 +2076,18 @@ class GameController {
         desc: 'Un fluido mágico que cambia de color y forma para adaptarse al frasco de destino donde se vierta. ¡Aprovéchalo para conectar capas separadas!',
         icon: 'disc',
         svg: `
-          <svg viewBox="0 0 200 160" class="w-full h-full">
-            <rect x="80" y="30" width="40" height="110" rx="14" fill="rgba(255,255,255,0.08)" stroke="#ec4899" stroke-width="2"/>
-            <rect x="83" y="112" width="34" height="25" rx="8" class="anim-chameleon-loop"/>
-            <text x="100" y="128" fill="#ffffff" font-size="11" font-weight="900" text-anchor="middle">★</text>
+          <svg viewBox="0 0 220 160" class="w-full h-full">
+            <g>
+              <rect x="45" y="25" width="36" height="110" rx="14" fill="rgba(255,255,255,0.06)" stroke="#ec4899" stroke-width="2"/>
+              <rect x="48" y="103" width="30" height="28" rx="8" class="anim-chameleon-loop"/>
+              <text x="63" y="121" fill="#ffffff" font-size="12" font-weight="bold" text-anchor="middle">★</text>
+            </g>
+            <g>
+              <rect x="140" y="25" width="36" height="110" rx="14" fill="rgba(255,255,255,0.06)" stroke="#a855f7" stroke-width="2"/>
+              <rect x="143" y="103" width="30" height="28" rx="8" fill="#a855f7"/>
+            </g>
+            <path d="M 85 60 Q 112 35 138 60" fill="none" stroke="#ec4899" stroke-width="3" stroke-dasharray="4,3"/>
+            <text x="110" y="152" fill="#ec4899" font-size="10" font-weight="bold" text-anchor="middle">Adopta el color del frasco destino</text>
           </svg>
         `
       },
@@ -1929,10 +2096,15 @@ class GameController {
         desc: 'Frasco de cristal templado inestable. Solo resiste un máximo de 3 operaciones de vertido o recepción antes de bloquearse definitivamente.',
         icon: 'shield-alert',
         svg: `
-          <svg viewBox="0 0 200 160" class="w-full h-full">
-            <rect x="80" y="30" width="40" height="110" rx="14" fill="rgba(255,255,255,0.08)" stroke="#fb7185" stroke-width="2" stroke-dasharray="6,2"/>
-            <rect x="83" y="112" width="34" height="25" rx="8" fill="#fb7185"/>
-            <text x="100" y="25" fill="#fb7185" font-size="10" font-weight="900" text-anchor="middle">USOS: 3 / 3 🛡️</text>
+          <svg viewBox="0 0 220 160" class="w-full h-full">
+            <g>
+              <rect x="92" y="25" width="36" height="110" rx="14" fill="rgba(255,255,255,0.06)" stroke="#fb7185" stroke-width="2" stroke-dasharray="6,3"/>
+              <rect x="95" y="103" width="30" height="28" rx="8" fill="#fb7185"/>
+              <path d="M 98 40 L 108 55 L 102 70 L 115 85" fill="none" stroke="rgba(255,255,255,0.6)" stroke-width="1.5"/>
+              <rect x="80" y="12" width="60" height="18" rx="9" fill="#f43f5e"/>
+              <text x="110" y="25" fill="#ffffff" font-size="10" font-weight="900" text-anchor="middle">USOS: 3 / 3 🛡️</text>
+            </g>
+            <text x="110" y="152" fill="#fb7185" font-size="10" font-weight="bold" text-anchor="middle">Máximo 3 movimientos antes de romperse</text>
           </svg>
         `
       },
@@ -1941,10 +2113,11 @@ class GameController {
         desc: 'Combina múltiples mecánicas avanzadas en un solo nivel (candados, tubos pegados, estrechos y líquidos misteriosos). ¡Pon a prueba tu máxima maestría!',
         icon: 'sparkles',
         svg: `
-          <svg viewBox="0 0 200 160" class="w-full h-full">
+          <svg viewBox="0 0 220 160" class="w-full h-full">
             <rect x="40" y="35" width="32" height="105" rx="12" fill="rgba(255,255,255,0.08)" stroke="#f97316" stroke-width="2"/>
             <rect x="84" y="20" width="32" height="120" rx="12" fill="rgba(255,255,255,0.08)" stroke="#38bdf8" stroke-width="2"/>
             <rect x="128" y="35" width="32" height="105" rx="12" fill="rgba(255,255,255,0.08)" stroke="#a855f7" stroke-width="2"/>
+            <text x="100" y="152" fill="#f97316" font-size="10" font-weight="bold" text-anchor="middle">¡Combina múltiples reglas mágicas!</text>
           </svg>
         `
       }

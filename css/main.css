@@ -218,6 +218,21 @@ body {
   transition: transform 0.5s cubic-bezier(0.34, 1.56, 0.64, 1);
 }
 
+/* Cartas Alquímicas de Fortuna */
+.btn-alchemy-card {
+  position: relative;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+.btn-alchemy-card:hover {
+  transform: translateY(-2px);
+}
+.btn-alchemy-card.active-card {
+  border-color: #fbbf24 !important;
+  background: rgba(251, 191, 36, 0.18) !important;
+  box-shadow: 0 0 14px rgba(251, 191, 36, 0.45);
+}
+
 /* ==========================================================================
    PANTALLA DE TUTORIAL Y ANIMACIONES LOOPEADAS
    ========================================================================== */
@@ -235,22 +250,102 @@ body {
   box-shadow: inset 0 0 25px rgba(0, 0, 0, 0.6);
 }
 
-@keyframes demoGluedShake {
-  0%, 70%, 100% { transform: translateY(0); }
-  75%, 85%, 95% { transform: translateX(-4px); }
-  80%, 90% { transform: translateX(4px); }
+/* 1. MISTERIO: Vierte bloque azul de Tubo A a B, y el bloque oculto en A revela estrella amarilla */
+@keyframes mysteryTilt {
+  0%, 15% { transform: translate(0, 0) rotate(0deg); }
+  30%, 65% { transform: translate(45px, -18px) rotate(48deg); }
+  75%, 100% { transform: translate(0, 0) rotate(0deg); }
 }
+@keyframes mysteryBlueTransfer {
+  0%, 25% { transform: scaleY(1); opacity: 1; }
+  45%, 75% { transform: scaleY(0); opacity: 0; }
+  90%, 100% { transform: scaleY(1); opacity: 1; }
+}
+@keyframes mysteryBlueFillB {
+  0%, 35% { transform: scaleY(0); opacity: 0; }
+  50%, 75% { transform: scaleY(1); opacity: 1; }
+  90%, 100% { transform: scaleY(0); opacity: 0; }
+}
+@keyframes mysteryRevealFlash {
+  0%, 45% { fill: #1e293b; stroke: #475569; }
+  55% { fill: #ffffff; stroke: #fbbf24; filter: drop-shadow(0 0 8px #fbbf24); }
+  65%, 88% { fill: #eab308; stroke: #fde047; }
+  96%, 100% { fill: #1e293b; stroke: #475569; }
+}
+@keyframes mysteryQuestionFade {
+  0%, 45% { opacity: 1; }
+  52%, 88% { opacity: 0; }
+  96%, 100% { opacity: 1; }
+}
+@keyframes mysteryStarFade {
+  0%, 45% { opacity: 0; transform: scale(0.3); }
+  55%, 88% { opacity: 1; transform: scale(1); }
+  96%, 100% { opacity: 0; transform: scale(0.3); }
+}
+.demo-anim-mystery-tubeA { animation: mysteryTilt 4.2s infinite ease-in-out; transform-origin: 60px 40px; }
+.demo-anim-mystery-blue { animation: mysteryBlueTransfer 4.2s infinite ease-in-out; transform-origin: bottom center; }
+.demo-anim-mystery-blue-dest { animation: mysteryBlueFillB 4.2s infinite ease-in-out; transform-origin: bottom center; }
+.demo-anim-mystery-block { animation: mysteryRevealFlash 4.2s infinite ease-in-out; }
+.demo-mystery-q { animation: mysteryQuestionFade 4.2s infinite ease-in-out; transform-origin: 60px 121px; }
+.demo-mystery-star { animation: mysteryStarFade 4.2s infinite ease-in-out; transform-origin: 60px 122px; }
+
+/* 2. CANDADO Y LLAVE: 3 tubos: A aparta bloque a B, luego vierte llave rosa en C y desbloquea */
+@keyframes lockMoveBlockToB {
+  0%, 10% { transform: translate(0, 0); }
+  25%, 75% { transform: translate(70px, 32px); }
+  85%, 100% { transform: translate(0, 0); }
+}
+@keyframes lockKeyToC {
+  0%, 35% { transform: translate(0, 0); }
+  50%, 75% { transform: translate(143px, 0px); }
+  85%, 100% { transform: translate(0, 0); }
+}
+@keyframes padlockPop {
+  0%, 55% { transform: scale(1); fill: #f59e0b; }
+  62% { transform: scale(1.3) rotate(-15deg); fill: #10b981; filter: drop-shadow(0 0 8px #10b981); }
+  75% { transform: scale(1.1); fill: #10b981; }
+  85%, 100% { transform: scale(1); fill: #f59e0b; }
+}
+.demo-lock-block-b { animation: lockMoveBlockToB 5s infinite ease-in-out; }
+.demo-lock-key-c { animation: lockKeyToC 5s infinite ease-in-out; }
+.demo-lock-shackle { animation: padlockPop 5s infinite ease-in-out; transform-origin: 183px 75px; }
+
+/* 3. INAMOVIBLE EN LA ROCA: A vierte en B (roca). Luego B intenta salir, se sacude y muestra 🚫 */
+@keyframes gluedPourFromA {
+  0%, 10% { transform: translate(0, 0) rotate(0deg); }
+  25%, 50% { transform: translate(65px, -15px) rotate(45deg); }
+  60%, 100% { transform: translate(0, 0) rotate(0deg); }
+}
+@keyframes gluedReceiveB {
+  0%, 25% { transform: scaleY(0); }
+  45%, 85% { transform: scaleY(1); }
+  95%, 100% { transform: scaleY(0); }
+}
+@keyframes gluedShakeFail {
+  0%, 55% { transform: translate(0, 0); }
+  60%, 76% { transform: translate(-5px, -4px); }
+  64%, 80% { transform: translate(5px, -4px); }
+  85%, 100% { transform: translate(0, 0); }
+}
+@keyframes noSignFade {
+  0%, 55% { opacity: 0; transform: scale(0.5); }
+  62%, 82% { opacity: 1; transform: scale(1.1); }
+  88%, 100% { opacity: 0; transform: scale(0.5); }
+}
+.demo-glued-tubeA { animation: gluedPourFromA 4.4s infinite ease-in-out; transform-origin: 52px 40px; }
+.demo-glued-fillB { animation: gluedReceiveB 4.4s infinite ease-in-out; transform-origin: bottom center; }
+.demo-glued-tube-rock { animation: gluedShakeFail 4.4s infinite ease-in-out; }
+.demo-no-sign { animation: noSignFade 4.4s infinite ease-in-out; transform-origin: 155px 50px; }
+
+/* 4. CAMALEÓN Y DEMÁS MECÁNICAS */
 @keyframes demoChameleonCycle {
-  0% { background-color: #3b82f6; }
-  33% { background-color: #10b981; }
-  66% { background-color: #f59e0b; }
-  100% { background-color: #3b82f6; }
+  0% { fill: #ec4899; }
+  33% { fill: #10b981; }
+  66% { fill: #3b82f6; }
+  100% { fill: #ec4899; }
 }
 .anim-chameleon-loop {
   animation: demoChameleonCycle 3s infinite linear;
-}
-.anim-glued-loop {
-  animation: demoGluedShake 2.4s infinite ease-in-out;
 }
 
 /* ==========================================================================

@@ -75,6 +75,11 @@
         <span id="lbl-coins">0</span>
       </button>
 
+      <!-- Botón Minijuego Bonus (Diana o Ruleta de la Fortuna) -->
+      <button id="btn-open-minigame" class="p-2 bg-gradient-to-r from-rose-500/20 to-amber-500/20 hover:from-rose-500/30 hover:to-amber-500/30 border border-amber-500/30 rounded-xl text-amber-300 active:scale-95 transition-all shadow-sm" title="Minijuego de Fortuna (Diana de Dardos / Ruleta)">
+        <i data-lucide="target" class="w-5 h-5 text-rose-400"></i>
+      </button>
+
       <!-- Botón Taller de Creación de Niveles -->
       <button id="btn-open-editor" class="p-2 bg-purple-600/25 hover:bg-purple-600/40 border border-purple-400/40 rounded-xl text-purple-300 active:scale-95 transition-all shadow-sm" title="Taller de Creación de Niveles (Diseña, Prueba y Publica)">
         <i data-lucide="pen-tool" class="w-5 h-5"></i>
@@ -411,8 +416,12 @@
        ========================================================================== -->
   <div id="modal-roulette" class="fixed inset-0 bg-slate-950/90 backdrop-blur-md z-50 hidden flex items-center justify-center p-3 sm:p-5 modal-overlay">
     <div class="bg-slate-900 border border-slate-700 rounded-3xl max-w-md w-full p-5 sm:p-6 shadow-2xl text-center relative modal-content">
-      <!-- Selector de Modo de Minijuego (Diana vs Ruleta) -->
-      <div class="flex items-center justify-center gap-2 mb-3">
+      <!-- Selector de Modo de Minijuego y Banner de Asignación Aleatoria -->
+      <div id="minigame-assigned-banner" class="mb-2 py-1 px-3 rounded-xl text-[11px] font-black bg-slate-800 text-amber-300 border border-amber-500/30 flex items-center justify-center gap-1.5 shadow-sm">
+        🎲 ¡Minijuego Asignado al Azar: Diana Alquímica!
+      </div>
+
+      <div class="flex items-center justify-center gap-2 mb-2.5">
         <button id="tab-game-diana" class="px-3.5 py-1.5 rounded-xl text-xs font-black bg-gradient-to-r from-sky-500 to-indigo-600 text-white shadow-md transition-all">
           🎯 Diana con Viento
         </button>
@@ -421,15 +430,54 @@
         </button>
       </div>
 
+      <!-- CAJÓN DE CARTAS ALQUÍMICAS DE FORTUNA -->
+      <div id="alchemy-cards-drawer" class="w-full mb-3 p-2.5 rounded-2xl bg-slate-950/80 border border-slate-700/70 text-left">
+        <div class="flex items-center justify-between text-[11px] font-bold text-slate-300 mb-1.5">
+          <span class="flex items-center gap-1.5">
+            <i data-lucide="sparkles" class="w-3.5 h-3.5 text-amber-400"></i>
+            Cartas Alquímicas de Fortuna
+          </span>
+          <span id="active-card-pill" class="text-[10px] text-amber-300 font-semibold px-2 py-0.5 rounded-full bg-amber-500/10 border border-amber-500/30">
+            Toca una para activarla
+          </span>
+        </div>
+        <div class="grid grid-cols-4 gap-1.5">
+          <button id="card-diana-favor" data-card="dianaFavor" class="btn-alchemy-card flex flex-col items-center justify-center p-1.5 rounded-xl bg-slate-800 border border-slate-700 hover:border-sky-400 transition-all text-center">
+            <span class="text-base mb-0.5">🎯</span>
+            <span class="text-[9px] font-black text-sky-300 leading-tight">Favor Diana</span>
+            <span class="text-[8px] text-slate-400 font-bold">(80% Diana)</span>
+            <span class="card-count text-[9px] text-amber-300 font-black mt-0.5">x2</span>
+          </button>
+          <button id="card-roulette-favor" data-card="rouletteFavor" class="btn-alchemy-card flex flex-col items-center justify-center p-1.5 rounded-xl bg-slate-800 border border-slate-700 hover:border-amber-400 transition-all text-center">
+            <span class="text-base mb-0.5">🎡</span>
+            <span class="text-[9px] font-black text-amber-300 leading-tight">Giro Destino</span>
+            <span class="text-[8px] text-slate-400 font-bold">(80% Ruleta)</span>
+            <span class="card-count text-[9px] text-amber-300 font-black mt-0.5">x2</span>
+          </button>
+          <button id="card-double-or-nothing" data-card="doubleOrNothing" class="btn-alchemy-card flex flex-col items-center justify-center p-1.5 rounded-xl bg-slate-800 border border-slate-700 hover:border-rose-400 transition-all text-center">
+            <span class="text-base mb-0.5">⚖️</span>
+            <span class="text-[9px] font-black text-rose-300 leading-tight">Doble o Nada</span>
+            <span class="text-[8px] text-slate-400 font-bold">(Ruleta 50% x2)</span>
+            <span class="card-count text-[9px] text-amber-300 font-black mt-0.5">x2</span>
+          </button>
+          <button id="card-calm-atmosphere" data-card="calmAtmosphere" class="btn-alchemy-card flex flex-col items-center justify-center p-1.5 rounded-xl bg-slate-800 border border-slate-700 hover:border-emerald-400 transition-all text-center">
+            <span class="text-base mb-0.5">🌬️</span>
+            <span class="text-[9px] font-black text-emerald-300 leading-tight">Calma Viento</span>
+            <span class="text-[8px] text-slate-400 font-bold">(Bonus Diana)</span>
+            <span class="card-count text-[9px] text-amber-300 font-black mt-0.5">x2</span>
+          </button>
+        </div>
+      </div>
+
       <h3 id="minigame-title" class="text-xl font-black text-white flex items-center justify-center gap-2 mb-1">
         <i data-lucide="crosshair" class="w-5 h-5 text-sky-400"></i>
         Diana de Dardos Alquímica
       </h3>
-      <p id="lbl-roulette-odds" class="text-xs text-slate-300 font-semibold mb-3">
-        Apunta y calcula el desvío del viento • Multiplicadores hasta x3.0
+      <p id="lbl-roulette-odds" class="text-xs text-slate-300 font-semibold mb-2">
+        Apunta horizontalmente y mantén presionado para regular altura • Multiplicadores hasta x3.0
       </p>
 
-      <!-- VISTA 1: DIANA DE DARDOS CON FÍSICA DE VIENTO -->
+      <!-- VISTA 1: DIANA DE DARDOS (ESTILO MAGIC DARTS CON APUNTADO HORIZONTAL Y FUERZA ASCENDENTE) -->
       <div id="diana-view" class="flex flex-col items-center">
         <!-- Indicador de Viento Dinámico -->
         <div id="wind-hud" class="wind-indicator-pill mb-2">
@@ -438,9 +486,18 @@
           <span id="wind-arrow" class="wind-compass-arrow text-base">↗</span>
         </div>
 
-        <!-- Contenedor Diana con mira interactiva -->
+        <!-- Control de Posición Horizontal (Magic Darts) -->
+        <div class="w-[280px] mb-2 px-2.5 py-1.5 rounded-xl bg-slate-800/80 border border-slate-700 flex flex-col gap-1">
+          <div class="flex items-center justify-between text-[10px] text-slate-300 font-bold">
+            <span>⇦ Posición Horizontal (X) ⇨</span>
+            <span id="diana-x-lbl" class="text-sky-400 font-black">X: 150 (Centro)</span>
+          </div>
+          <input id="diana-x-slider" type="range" min="40" max="260" value="150" class="w-full accent-sky-400 cursor-ew-resize">
+        </div>
+
+        <!-- Contenedor Diana con retícula vertical/horizontal -->
         <div id="diana-target-container" class="diana-wrapper">
-          <div id="diana-crosshair" class="diana-crosshair" style="left: 145px; top: 145px;"></div>
+          <div id="diana-crosshair" class="diana-crosshair hidden" style="left: 150px; top: 150px;"></div>
           <svg id="diana-svg" class="w-full h-full" viewBox="0 0 300 300">
             <!-- Círculos concéntricos de multiplicador -->
             <circle cx="150" cy="150" r="130" fill="#0f172a" stroke="#475569" stroke-width="3"/>
@@ -456,7 +513,22 @@
             <text x="150" y="104" text-anchor="middle" fill="#c084fc" font-size="11" font-weight="black">2.0x</text>
             <text x="150" y="154" text-anchor="middle" fill="#000000" font-size="10" font-weight="900">3x</text>
 
-            <!-- Grupo dinámico para renderizar dardos clavados -->
+            <!-- Guía Vertical de Apuntado X -->
+            <line id="diana-x-guide" x1="150" y1="20" x2="150" y2="280" stroke="#38bdf8" stroke-width="1.5" stroke-dasharray="4,3" opacity="0.8"/>
+            
+            <!-- Retícula Horizontal de Fuerza Ascendente Y -->
+            <line id="diana-y-guide" x1="30" y1="270" x2="270" y2="270" stroke="#f43f5e" stroke-width="2.5" opacity="0.9"/>
+            
+            <!-- Retícula Central Móvil -->
+            <g id="diana-crosshair-svg" transform="translate(150, 270)">
+              <circle cx="0" cy="0" r="8" fill="none" stroke="#38bdf8" stroke-width="2"/>
+              <line x1="-12" y1="0" x2="12" y2="0" stroke="#38bdf8" stroke-width="2"/>
+              <line x1="0" y1="-12" x2="0" y2="12" stroke="#38bdf8" stroke-width="2"/>
+              <circle cx="0" cy="0" r="2.5" fill="#ef4444"/>
+            </g>
+
+            <!-- Grupo dinámico para renderizar marcas 'X' de impacto de dardos -->
+            <g id="diana-impacts-group"></g>
             <g id="diana-darts-group"></g>
           </svg>
         </div>
@@ -498,7 +570,7 @@
         <div class="w-full mb-3">
           <div class="text-[11px] text-slate-300 font-semibold mb-1.5 flex items-center justify-between">
             <span>Elige hasta 2 colores:</span>
-            <span class="text-amber-300 text-[10px]">1 color: x2.0 (-50%) • 2 colores: x1.5 (-100%)</span>
+            <span id="roulette-bet-mode-lbl" class="text-amber-300 text-[10px]">1 color: x2.0 (-50%) • 2 colores: x1.5 (-100%)</span>
           </div>
           <div id="roulette-colors-selector" class="grid grid-cols-3 gap-2">
             <button data-color="red" class="btn-color-pick py-2 rounded-xl font-black text-xs border-2 border-rose-500/50 bg-rose-500/20 text-rose-300">
@@ -520,17 +592,18 @@
         <div class="absolute right-[8%] top-0 bottom-0 w-0.5 bg-rose-400 shadow-[0_0_6px_#f43f5e]" title="Límite máximo"></div>
       </div>
       <div class="flex justify-between text-[10px] text-slate-400 font-bold mb-3 uppercase">
-        <span>Fuerza Mínima</span>
-        <span class="text-rose-400">Sobrecarga (Fallo)</span>
+        <span>Fuerza Mínima (Abajo)</span>
+        <span class="text-rose-400">Aceleración / Límite (Arriba)</span>
       </div>
 
-      <!-- BOTÓN DE ACCIÓN CON PRESIÓN CONTINUA -->
-      <div class="flex flex-col gap-2">
+      <!-- BOTONES DE ACCIÓN: DISPARAR Y COBRAR SEGURO DESTACADO EN ROJO -->
+      <div class="flex flex-col gap-2.5">
         <button id="btn-spin-wheel" class="w-full py-3.5 bg-gradient-to-r from-amber-500 to-orange-500 hover:from-amber-400 hover:to-orange-400 text-slate-950 font-black rounded-2xl shadow-lg shadow-amber-500/30 text-xs sm:text-sm tracking-wide transition-all select-none">
           MANTÉN PRESIONADO PARA REGULAR FUERZA
         </button>
-        <button id="btn-cashout-roulette" class="text-xs text-slate-400 hover:text-slate-200 py-1 underline">
-          Cobrar seguro sin arriesgar y continuar
+        <button id="btn-cashout-roulette" class="w-full py-3 bg-gradient-to-r from-rose-600 to-red-600 hover:from-rose-500 hover:to-red-500 text-white font-black rounded-2xl shadow-lg shadow-rose-600/30 text-xs sm:text-sm tracking-wide transition-all uppercase flex items-center justify-center gap-2">
+          <i data-lucide="shield-check" class="w-4 h-4 text-rose-200"></i>
+          Cobrar Seguro y Continuar (Sin Riesgo)
         </button>
       </div>
     </div>
@@ -819,12 +892,12 @@
   <input type="file" id="input-save-file" accept=".json" class="hidden">
 
   <!-- Scripts modulares -->
-  <script src="js/audio.js"></script>
-  <script src="js/palette.js"></script>
-  <script src="js/levels.js"></script>
-  <script src="js/state.js"></script>
-  <script src="js/leaderboard.js"></script>
-  <script src="js/roulette.js"></script>
-  <script src="js/game.js"></script>
+  <script src="js/audio.js?v=4"></script>
+  <script src="js/palette.js?v=4"></script>
+  <script src="js/levels.js?v=4"></script>
+  <script src="js/state.js?v=4"></script>
+  <script src="js/leaderboard.js?v=4"></script>
+  <script src="js/roulette.js?v=4"></script>
+  <script src="js/game.js?v=4"></script>
 </body>
 </html>

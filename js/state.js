@@ -20,6 +20,12 @@ const DEFAULT_STATE = {
     maxStoredHints: 3,         // 3, 5, 8
     rouletteBoost: false       // Ruleta/Diana sin penalización por pérdida
   },
+  cards: {
+    dianaFavor: 2,       // +80% prob de Diana
+    rouletteFavor: 2,    // +80% prob de Ruleta
+    doubleOrNothing: 2,  // Ruleta: 2 colores, x2.0, todo o nada
+    calmAtmosphere: 2    // Diana: Viento 0, Medidor Lento o Tiro Extra
+  },
   progress: {
     unlockedLevel: 1,
     completedLevels: {},       // { "1": { stars: 3, bestMoves: 8, bestTimeSec: 15, usedHints: false } }
@@ -45,6 +51,7 @@ class StateManager {
           ...parsed,
           player: { ...DEFAULT_STATE.player, ...parsed.player },
           upgrades: { ...DEFAULT_STATE.upgrades, ...parsed.upgrades },
+          cards: { ...DEFAULT_STATE.cards, ...(parsed.cards || {}) },
           progress: {
             ...DEFAULT_STATE.progress,
             ...parsed.progress,
@@ -352,6 +359,19 @@ class StateManager {
       return { success: false, msg: 'Monedas insuficientes' };
     }
 
+    // Compra de Cartas Alquímicas de Fortuna (20 monedas)
+    if (upgradeType.startsWith('buy_card_')) {
+      const cardId = upgradeType.replace('buy_card_', '');
+      const cost = 20;
+      if (this.spendCoins(cost)) {
+        if (!this.state.cards) this.state.cards = { dianaFavor: 0, rouletteFavor: 0, doubleOrNothing: 0, calmAtmosphere: 0 };
+        this.state.cards[cardId] = (this.state.cards[cardId] || 0) + 1;
+        this.saveState();
+        return { success: true, cardId, count: this.state.cards[cardId] };
+      }
+      return { success: false, msg: 'Monedas insuficientes' };
+    }
+
     if (upgradeType === 'buy_life') {
       const cost = 25;
       if (this.state.player.lives >= this.getMaxLives()) {
@@ -379,6 +399,20 @@ class StateManager {
     }
 
     return { success: false, msg: 'Mejora desconocida' };
+  }
+
+  getCards() {
+    return this.state.cards || { dianaFavor: 0, rouletteFavor: 0, doubleOrNothing: 0, calmAtmosphere: 0 };
+  }
+
+  consumeCard(cardId) {
+    if (!this.state.cards) return false;
+    if (this.state.cards[cardId] > 0) {
+      this.state.cards[cardId]--;
+      this.saveState();
+      return true;
+    }
+    return false;
   }
 }
 

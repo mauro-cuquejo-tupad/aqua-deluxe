@@ -1,12 +1,20 @@
 /* ==========================================================================
-   AQUASORT MASTER DELUXE - MINIGAME ENGINE (RULETA ALEATORIA Y DIANA CON VIENTO)
-   - Ruleta con orden aleatorio de sectores, ángulo inicial aleatorio y penalización (50% con 1 color, 100% con 2).
-   - Diana de dardos con cálculo balístico de viento (fuerza, velocidad y desvío vectorial).
+   AQUASORT MASTER DELUXE - MINIGAME ENGINE (RULETA ALEATORIA Y DIANA BALÍSTICA)
+   - Bonus asignado al azar con cartas alquímicas (Favor Diana, Favor Ruleta, Doble o Nada, Calma Atmosférica).
+   - Diana estilo Magic Darts (NES): Posicionamiento horizontal libre y fuerza ascendente vertical con aceleración no lineal.
+   - Marcado de impacto con una 'X' visible en la diana.
+   - Ruleta con sectores barajados y soporte para modo Doble o Nada (50% prob, x2.0, 100% pérdida).
    ========================================================================== */
 
 class MinigameEngine {
   constructor() {
-    this.currentMode = 'roulette'; // 'roulette' | 'diana'
+    this.currentMode = 'diana'; // 'diana' | 'roulette'
+
+    // --- CARTAS ALQUÍMICAS ---
+    this.activeCard = null; // 'dianaFavor' | 'rouletteFavor' | 'doubleOrNothing' | 'calmAtmosphere'
+    this.extraShotAvailable = false;
+    this.verticalSpeedModifier = 1.0;
+    this.calmAtmosphereBenefit = null; // 'noWind' | 'slowMeter' | 'extraShot'
 
     // --- RULETA ---
     this.numSlices = 6;
@@ -24,12 +32,11 @@ class MinigameEngine {
     this.chargeInterval = null;
     this.currentAngle = 0;
 
-    // --- DIANA DE DARDOS CON VIENTO ---
-    this.windSpeed = 3.2; // m/s
+    // --- DIANA DE DARDOS (MAGIC DARTS STYLE) ---
+    this.windSpeed = 2.4; // m/s
     this.windAngle = 45; // grados (0 = este, 90 = sur, 180 = oeste, 270 = norte)
-    this.aimX = 150;
-    this.aimY = 150;
-    this.isAiming = false;
+    this.aimX = 150; // Horizontal (40 a 260)
+    this.aimY = 270; // Vertical ascendente (270 abajo -> 30 arriba)
     this.isDartFlying = false;
 
     // Elementos DOM
@@ -39,6 +46,13 @@ class MinigameEngine {
     this.needleWrapper = null;
     this.powerBar = null;
     this.btnAction = null;
+    this.dianaXSlider = null;
+
+    if (document.readyState === 'loading') {
+      document.addEventListener('DOMContentLoaded', () => this.initDOM());
+    } else {
+      setTimeout(() => this.initDOM(), 0);
+    }
   }
 
   initDOM() {
@@ -48,32 +62,211 @@ class MinigameEngine {
     this.needleWrapper = document.getElementById('roulette-needle');
     this.powerBar = document.getElementById('power-bar');
     this.btnAction = document.getElementById('btn-spin-wheel');
+    this.dianaXSlider = document.getElementById('diana-x-slider');
 
     this.setupModeTabs();
+    this.setupCardsUI();
     this.setupEvents();
     this.setupDianaEvents();
     this.initRound();
   }
 
-  // Inicializa o reinicia la ronda con sectores aleatorios y nuevo viento
+  // Inicializa o reinicia la ronda
   initRound() {
+    this.rollRandomMode();
     this.shuffleSlices();
     this.generateNewWind();
     this.renderWheel();
     this.renderDiana();
+    this.updateCardsUI();
     this.updateRulesText();
   }
 
-  // Mezcla aleatoriamente los 6 sectores para romper memoria muscular
+  // Selección aleatoria del bonus respetando cartas alquímicas
+  rollRandomMode() {
+    let dianaChance = 0.5;
+
+    if (this.activeCard === 'dianaFavor') {
+      dianaChance = 0.8;
+    } else if (this.activeCard === 'rouletteFavor') {
+      dianaChance = 0.2;
+    }
+
+    const roll = Math.random();
+    const chosenMode = (roll < dianaChance) ? 'diana' : 'roulette';
+    this.setMode(chosenMode, true);
+  }
+
+  setMode(mode, fromRandom = false) {
+    this.currentMode = mode;
+    const tabRoulette = document.getElementById('tab-game-roulette') || document.getElementById('tab-minigame-roulette');
+    const tabDiana = document.getElementById('tab-game-diana') || document.getElementById('tab-minigame-diana');
+    const titleEl = document.getElementById('minigame-title');
+    const bannerEl = document.getElementById('minigame-assigned-banner');
+
+    if (mode === 'roulette') {
+      if (tabRoulette) tabRoulette.className = 'px-3.5 py-1.5 rounded-xl text-xs font-black bg-gradient-to-r from-amber-500 to-orange-500 text-slate-950 shadow-md transition-all';
+      if (tabDiana) tabDiana.className = 'px-3.5 py-1.5 rounded-xl text-xs font-bold bg-slate-800 text-slate-300 hover:text-white transition-all';
+
+      if (this.wheelContainer) this.wheelContainer.classList.remove('hidden');
+      if (this.dianaContainer) this.dianaContainer.classList.add('hidden');
+      const colorPickerCont = document.getElementById('roulette-colors-selector') || document.getElementById('roulette-color-picker');
+      if (colorPickerCont && colorPickerCont.parentElement) colorPickerCont.parentElement.classList.remove('hidden');
+      if (titleEl) titleEl.innerHTML = '<i data-lucide="disc" class="w-5 h-5 text-amber-400"></i> Ruleta de la Fortuna';
+      if (bannerEl && fromRandom) {
+        bannerEl.innerHTML = '🎲 ¡Minijuego Asignado al Azar: Ruleta Alquímica!';
+      }
+    } else {
+      if (tabDiana) tabDiana.className = 'px-3.5 py-1.5 rounded-xl text-xs font-black bg-gradient-to-r from-sky-500 to-indigo-600 text-white shadow-md transition-all';
+      if (tabRoulette) tabRoulette.className = 'px-3.5 py-1.5 rounded-xl text-xs font-bold bg-slate-800 text-slate-300 hover:text-white transition-all';
+
+      if (this.wheelContainer) this.wheelContainer.classList.add('hidden');
+      if (this.dianaContainer) this.dianaContainer.classList.remove('hidden');
+      const colorPickerCont = document.getElementById('roulette-colors-selector') || document.getElementById('roulette-color-picker');
+      if (colorPickerCont && colorPickerCont.parentElement) colorPickerCont.parentElement.classList.add('hidden');
+      if (titleEl) titleEl.innerHTML = '<i data-lucide="crosshair" class="w-5 h-5 text-sky-400"></i> Diana de Dardos Alquímica';
+      if (bannerEl && fromRandom) {
+        bannerEl.innerHTML = '🎲 ¡Minijuego Asignado al Azar: Diana de Dardos!';
+      }
+      if (window.audio) window.audio.playWindGust();
+    }
+
+    if (window.lucide) window.lucide.createIcons();
+    this.updateRulesText();
+  }
+
+  // --- GESTIÓN DE CARTAS ALQUÍMICAS ---
+  setupCardsUI() {
+    document.querySelectorAll('.btn-alchemy-card').forEach(btn => {
+      btn.addEventListener('click', (e) => {
+        const cardId = e.currentTarget.getAttribute('data-card');
+        this.toggleCard(cardId);
+      });
+    });
+  }
+
+  toggleCard(cardId) {
+    if (this.isSpinning || this.isCharging || this.isDartFlying) return;
+    if (window.audio) window.audio.init();
+
+    // Si ya estaba activa, la desactivamos
+    if (this.activeCard === cardId) {
+      this.activeCard = null;
+      this.calmAtmosphereBenefit = null;
+      this.extraShotAvailable = false;
+      this.verticalSpeedModifier = 1.0;
+      if (window.audio) window.audio.playSelect();
+      this.initRound();
+      return;
+    }
+
+    // Verificar si el jugador tiene la carta
+    const stateMgr = window.stateManager;
+    if (!stateMgr) return;
+    const cards = stateMgr.getCards();
+    if (!cards[cardId] || cards[cardId] <= 0) {
+      alert('No dispones de esta carta en tu inventario. Puedes adquirirla en la Tienda Alquímica por 20 monedas.');
+      return;
+    }
+
+    // Descontar carta y activarla
+    stateMgr.consumeCard(cardId);
+    this.activeCard = cardId;
+    if (window.audio) window.audio.playUnlock();
+
+    // Aplicar efectos inmediatos según la carta
+    if (cardId === 'dianaFavor') {
+      this.setMode('diana', false);
+    } else if (cardId === 'rouletteFavor') {
+      this.setMode('roulette', false);
+    } else if (cardId === 'doubleOrNothing') {
+      this.setMode('roulette', false);
+      this.shuffleSlices();
+    } else if (cardId === 'calmAtmosphere') {
+      this.setMode('diana', false);
+      // Beneficio aleatorio entre los 3 pedidos por el usuario
+      const benefits = ['noWind', 'slowMeter', 'extraShot'];
+      this.calmAtmosphereBenefit = benefits[Math.floor(Math.random() * benefits.length)];
+      if (this.calmAtmosphereBenefit === 'noWind') {
+        this.windSpeed = 0.0;
+        this.windAngle = 0;
+      } else if (this.calmAtmosphereBenefit === 'slowMeter') {
+        this.verticalSpeedModifier = 0.5; // Medidor el doble de lento
+      } else if (this.calmAtmosphereBenefit === 'extraShot') {
+        this.extraShotAvailable = true; // 1 tiro de respaldo si falla
+      }
+    }
+
+    this.updateCardsUI();
+    this.updateRulesText();
+    this.renderWheel();
+    this.renderDiana();
+  }
+
+  updateCardsUI() {
+    const cards = window.stateManager ? window.stateManager.getCards() : {};
+    const pill = document.getElementById('active-card-pill');
+
+    document.querySelectorAll('.btn-alchemy-card').forEach(btn => {
+      const cardId = btn.getAttribute('data-card');
+      const countEl = btn.querySelector('.card-count');
+      const count = cards[cardId] || 0;
+      if (countEl) countEl.textContent = `x${count}`;
+
+      if (this.activeCard === cardId) {
+        btn.classList.add('active-card');
+      } else {
+        btn.classList.remove('active-card');
+      }
+    });
+
+    if (pill) {
+      if (!this.activeCard) {
+        pill.textContent = 'Toca una carta para activarla';
+        pill.className = 'text-[10px] text-amber-300 font-semibold px-2 py-0.5 rounded-full bg-amber-500/10 border border-amber-500/30';
+      } else if (this.activeCard === 'dianaFavor') {
+        pill.textContent = '✨ Activa: Favor de Diana (80% Diana)';
+        pill.className = 'text-[10px] text-sky-300 font-bold px-2 py-0.5 rounded-full bg-sky-500/20 border border-sky-400';
+      } else if (this.activeCard === 'rouletteFavor') {
+        pill.textContent = '✨ Activa: Giro del Destino (80% Ruleta)';
+        pill.className = 'text-[10px] text-amber-300 font-bold px-2 py-0.5 rounded-full bg-amber-500/20 border border-amber-400';
+      } else if (this.activeCard === 'doubleOrNothing') {
+        pill.textContent = '✨ Activa: Doble o Nada (Ruleta 2 colores x2.0)';
+        pill.className = 'text-[10px] text-rose-300 font-bold px-2 py-0.5 rounded-full bg-rose-500/20 border border-rose-400';
+      } else if (this.activeCard === 'calmAtmosphere') {
+        const desc = this.calmAtmosphereBenefit === 'noWind'
+          ? 'Brisa Inerte (0.0 m/s)'
+          : (this.calmAtmosphereBenefit === 'slowMeter' ? 'Medidor Lento (Máxima Precisión)' : 'Tiro Extra de Respaldo');
+        pill.textContent = `✨ Activa: ${desc}`;
+        pill.className = 'text-[10px] text-emerald-300 font-bold px-2 py-0.5 rounded-full bg-emerald-500/20 border border-emerald-400';
+      }
+    }
+  }
+
+  // Mezcla aleatoriamente los sectores
   shuffleSlices() {
-    const pool = [
-      { id: 'red', name: 'Rojo', hex: '#ef4444' },
-      { id: 'blue', name: 'Azul', hex: '#3b82f6' },
-      { id: 'green', name: 'Verde', hex: '#10b981' },
-      { id: 'red', name: 'Rojo', hex: '#ef4444' },
-      { id: 'blue', name: 'Azul', hex: '#3b82f6' },
-      { id: 'green', name: 'Verde', hex: '#10b981' }
-    ];
+    let pool = [];
+    if (this.activeCard === 'doubleOrNothing') {
+      // Doble o Nada: solo 2 colores (50% de probabilidad cada uno)
+      pool = [
+        { id: 'red', name: 'Rojo', hex: '#ef4444' },
+        { id: 'red', name: 'Rojo', hex: '#ef4444' },
+        { id: 'red', name: 'Rojo', hex: '#ef4444' },
+        { id: 'blue', name: 'Azul', hex: '#3b82f6' },
+        { id: 'blue', name: 'Azul', hex: '#3b82f6' },
+        { id: 'blue', name: 'Azul', hex: '#3b82f6' }
+      ];
+    } else {
+      pool = [
+        { id: 'red', name: 'Rojo', hex: '#ef4444' },
+        { id: 'blue', name: 'Azul', hex: '#3b82f6' },
+        { id: 'green', name: 'Verde', hex: '#10b981' },
+        { id: 'red', name: 'Rojo', hex: '#ef4444' },
+        { id: 'blue', name: 'Azul', hex: '#3b82f6' },
+        { id: 'green', name: 'Verde', hex: '#10b981' }
+      ];
+    }
+
     // Fisher-Yates shuffle
     for (let i = pool.length - 1; i > 0; i--) {
       const j = Math.floor(Math.random() * (i + 1));
@@ -90,64 +283,61 @@ class MinigameEngine {
 
   // Genera viento procedural aleatorio
   generateNewWind() {
-    this.windSpeed = (Math.random() * 4.8 + 1.2).toFixed(1); // 1.2 a 6.0 m/s
-    this.windAngle = Math.floor(Math.random() * 360);
+    if (this.activeCard === 'calmAtmosphere' && this.calmAtmosphereBenefit === 'noWind') {
+      this.windSpeed = 0.0;
+      this.windAngle = 0;
+    } else {
+      // Ocasionalmente puede no haber viento de manera natural
+      const rollCalm = Math.random() < 0.25;
+      this.windSpeed = rollCalm ? 0.0 : parseFloat((Math.random() * 4.2 + 1.2).toFixed(1));
+      this.windAngle = Math.floor(Math.random() * 360);
+    }
 
     const windSpeedLbl = document.getElementById('wind-speed-lbl') || document.getElementById('diana-wind-speed');
     const windArrow = document.getElementById('wind-arrow') || document.getElementById('diana-wind-arrow');
-    if (windSpeedLbl) windSpeedLbl.textContent = `Viento: ${this.windSpeed} m/s`;
-    if (windArrow) windArrow.style.transform = `rotate(${this.windAngle}deg)`;
+    if (windSpeedLbl) {
+      windSpeedLbl.textContent = this.windSpeed === 0.0 ? 'Viento: Calmo (0.0 m/s)' : `Viento: ${this.windSpeed} m/s`;
+    }
+    if (windArrow) {
+      windArrow.style.transform = `rotate(${this.windAngle}deg)`;
+      windArrow.style.opacity = this.windSpeed === 0.0 ? '0.3' : '1';
+    }
   }
 
   setupModeTabs() {
     const tabRoulette = document.getElementById('tab-game-roulette') || document.getElementById('tab-minigame-roulette');
     const tabDiana = document.getElementById('tab-game-diana') || document.getElementById('tab-minigame-diana');
-    const titleEl = document.getElementById('minigame-title');
 
     if (tabRoulette && tabDiana) {
-      tabRoulette.addEventListener('click', () => {
-        this.currentMode = 'roulette';
-        tabRoulette.className = 'px-3.5 py-1.5 rounded-xl text-xs font-black bg-gradient-to-r from-amber-500 to-orange-500 text-slate-950 shadow-md transition-all';
-        tabDiana.className = 'px-3.5 py-1.5 rounded-xl text-xs font-bold bg-slate-800 text-slate-300 hover:text-white transition-all';
-
-        if (this.wheelContainer) this.wheelContainer.classList.remove('hidden');
-        if (this.dianaContainer) this.dianaContainer.classList.add('hidden');
-        const colorPickerCont = document.getElementById('roulette-colors-selector') || document.getElementById('roulette-color-picker');
-        if (colorPickerCont && colorPickerCont.parentElement) colorPickerCont.parentElement.classList.remove('hidden');
-        if (titleEl) titleEl.innerHTML = '<i data-lucide="disc" class="w-5 h-5 text-amber-400"></i> Ruleta de la Fortuna';
-        if (window.lucide) window.lucide.createIcons();
-        this.updateRulesText();
-      });
-
-      tabDiana.addEventListener('click', () => {
-        this.currentMode = 'diana';
-        tabDiana.className = 'px-3.5 py-1.5 rounded-xl text-xs font-black bg-gradient-to-r from-sky-500 to-indigo-600 text-white shadow-md transition-all';
-        tabRoulette.className = 'px-3.5 py-1.5 rounded-xl text-xs font-bold bg-slate-800 text-slate-300 hover:text-white transition-all';
-
-        if (this.wheelContainer) this.wheelContainer.classList.add('hidden');
-        if (this.dianaContainer) this.dianaContainer.classList.remove('hidden');
-        const colorPickerCont = document.getElementById('roulette-colors-selector') || document.getElementById('roulette-color-picker');
-        if (colorPickerCont && colorPickerCont.parentElement) colorPickerCont.parentElement.classList.add('hidden');
-        if (titleEl) titleEl.innerHTML = '<i data-lucide="crosshair" class="w-5 h-5 text-sky-400"></i> Diana de Dardos Alquímica';
-        if (window.lucide) window.lucide.createIcons();
-
-        if (window.audio) window.audio.playWindGust();
-        this.updateRulesText();
-      });
+      tabRoulette.addEventListener('click', () => this.setMode('roulette', false));
+      tabDiana.addEventListener('click', () => this.setMode('diana', false));
     }
   }
 
   updateRulesText() {
     const subLbl = document.getElementById('lbl-roulette-odds');
+    const betModeLbl = document.getElementById('roulette-bet-mode-lbl');
     if (!subLbl) return;
 
     if (this.currentMode === 'roulette') {
-      const isOne = this.selectedColors.length === 1;
-      const mult = isOne ? 'x2.0' : 'x1.5';
-      const penalty = isOne ? 'pierdes el 50%' : 'pierdes el 100% (Todo)';
-      subLbl.innerHTML = `Puedes elegir hasta 2 colores • <strong>${this.selectedColors.length} elegido(s)</strong> (Ganas ${mult} / Si fallas ${penalty})`;
+      if (this.activeCard === 'doubleOrNothing') {
+        subLbl.innerHTML = `⚖️ <strong>Doble o Nada:</strong> 2 colores (50% prob) • Ganas <strong>x2.0</strong> • Si fallas <strong>pierdes el 100%</strong> de tus monedas.`;
+        if (betModeLbl) betModeLbl.innerHTML = 'Doble o Nada: x2.0 (-100% si fallas)';
+      } else {
+        const isOne = this.selectedColors.length === 1;
+        const mult = isOne ? 'x2.0' : 'x1.5';
+        const penalty = isOne ? 'pierdes el 50%' : 'pierdes el 100% (Todo)';
+        subLbl.innerHTML = `Puedes elegir hasta 2 colores • <strong>${this.selectedColors.length} elegido(s)</strong> (Ganas ${mult} / Si fallas ${penalty})`;
+        if (betModeLbl) betModeLbl.innerHTML = '1 color: x2.0 (-50%) • 2 colores: x1.5 (-100%)';
+      }
     } else {
-      subLbl.innerHTML = `🎯 <strong>Diana de Tiro:</strong> Compensa la fuerza y el viento (Centro: <strong>x3.0</strong>, Anillos: <strong>x2.0 / x1.5 / x1.2</strong>)`;
+      let benefitNote = '';
+      if (this.activeCard === 'calmAtmosphere') {
+        if (this.calmAtmosphereBenefit === 'noWind') benefitNote = ' • <span class="text-emerald-400 font-bold">¡Sin Viento Activo!</span>';
+        if (this.calmAtmosphereBenefit === 'slowMeter') benefitNote = ' • <span class="text-emerald-400 font-bold">¡Medidor Lento Activo!</span>';
+        if (this.calmAtmosphereBenefit === 'extraShot') benefitNote = ' • <span class="text-emerald-400 font-bold">¡Tiro Extra Activo!</span>';
+      }
+      subLbl.innerHTML = `🎯 <strong>Diana Magic Darts:</strong> Mueve horizontalmente y mantén presionado para regular altura (Centro: <strong>x3.0</strong>, Anillos: <strong>x2.0 / x1.5 / x1.2</strong>)${benefitNote}`;
     }
   }
 
@@ -183,7 +373,7 @@ class MinigameEngine {
       path.dataset.index = i;
       this.wheelGroup.appendChild(path);
 
-      // Texto
+      // Texto del sector
       const midRad = ((startDeg + endDeg) / 2) * (Math.PI / 180);
       const tx = cx + (radius * 0.65) * Math.cos(midRad);
       const ty = cy + (radius * 0.65) * Math.sin(midRad);
@@ -200,7 +390,7 @@ class MinigameEngine {
       text.textContent = this.sliceColors[i].name.toUpperCase();
       this.wheelGroup.appendChild(text);
 
-      // Clavijas
+      // Clavija dorada
       const peg = document.createElementNS('http://www.w3.org/2000/svg', 'circle');
       peg.setAttribute('cx', x1);
       peg.setAttribute('cy', y1);
@@ -218,37 +408,80 @@ class MinigameEngine {
   renderDiana() {
     const dartsGroup = document.getElementById('diana-darts-group');
     if (dartsGroup) dartsGroup.innerHTML = '';
+    const impactsGroup = document.getElementById('diana-impacts-group');
+    if (impactsGroup) impactsGroup.innerHTML = '';
+
+    // Restablecer posición X e Y
+    this.aimX = 150;
+    this.aimY = 270;
+    if (this.dianaXSlider) this.dianaXSlider.value = 150;
+
+    const xLbl = document.getElementById('diana-x-lbl');
+    if (xLbl) xLbl.textContent = 'X: 150 (Centro)';
+
+    const xGuide = document.getElementById('diana-x-guide');
+    if (xGuide) {
+      xGuide.setAttribute('x1', '150');
+      xGuide.setAttribute('x2', '150');
+    }
+
+    const yGuide = document.getElementById('diana-y-guide');
+    if (yGuide) {
+      yGuide.setAttribute('y1', '270');
+      yGuide.setAttribute('y2', '270');
+    }
+
+    const crossSvg = document.getElementById('diana-crosshair-svg');
+    if (crossSvg) {
+      crossSvg.setAttribute('transform', 'translate(150, 270)');
+    }
   }
 
+  // Configuración de apuntado Magic Darts (Horizontal slider y arrastre)
   setupDianaEvents() {
-    const dianaWrapper = document.getElementById('diana-target-container') || document.getElementById('diana-svg');
-    if (!dianaWrapper) return;
+    const dianaWrapper = document.getElementById('diana-target-container');
+    if (this.dianaXSlider) {
+      this.dianaXSlider.addEventListener('input', (e) => {
+        if (this.isDartFlying || this.isCharging) return;
+        this.aimX = parseInt(e.target.value);
+        this.updateAimXDisplay();
+      });
+    }
 
-    const moveCrosshair = (clientX, clientY) => {
-      if (this.isDartFlying) return;
-      const rect = dianaWrapper.getBoundingClientRect();
-      const scaleX = 300 / rect.width;
-      const scaleY = 300 / rect.height;
-      this.aimX = Math.max(15, Math.min(285, (clientX - rect.left) * scaleX));
-      this.aimY = Math.max(15, Math.min(285, (clientY - rect.top) * scaleY));
+    if (dianaWrapper) {
+      const handleHorizontalMove = (clientX) => {
+        if (this.isDartFlying || this.isCharging) return;
+        const rect = dianaWrapper.getBoundingClientRect();
+        const scaleX = 300 / rect.width;
+        this.aimX = Math.round(Math.max(40, Math.min(260, (clientX - rect.left) * scaleX)));
+        if (this.dianaXSlider) this.dianaXSlider.value = this.aimX;
+        this.updateAimXDisplay();
+      };
 
-      const crossDiv = document.querySelector('div.diana-crosshair');
-      if (crossDiv) {
-        crossDiv.style.left = `${clientX - rect.left}px`;
-        crossDiv.style.top = `${clientY - rect.top}px`;
-      }
-      const crossSvg = document.querySelector('g#diana-crosshair');
-      if (crossSvg) {
-        crossSvg.setAttribute('transform', `translate(${this.aimX}, ${this.aimY})`);
-      }
-    };
+      dianaWrapper.addEventListener('mousemove', (e) => {
+        if (e.buttons === 1) handleHorizontalMove(e.clientX);
+      });
+      dianaWrapper.addEventListener('touchmove', (e) => {
+        if (e.touches.length > 0) handleHorizontalMove(e.touches[0].clientX);
+      }, { passive: true });
+    }
+  }
 
-    dianaWrapper.addEventListener('mousemove', (e) => moveCrosshair(e.clientX, e.clientY));
-    dianaWrapper.addEventListener('touchmove', (e) => {
-      if (e.touches.length > 0) {
-        moveCrosshair(e.touches[0].clientX, e.touches[0].clientY);
-      }
-    }, { passive: true });
+  updateAimXDisplay() {
+    const xLbl = document.getElementById('diana-x-lbl');
+    if (xLbl) {
+      const side = this.aimX === 150 ? 'Centro' : (this.aimX < 150 ? 'Izquierda' : 'Derecha');
+      xLbl.textContent = `X: ${this.aimX} (${side})`;
+    }
+    const xGuide = document.getElementById('diana-x-guide');
+    if (xGuide) {
+      xGuide.setAttribute('x1', this.aimX);
+      xGuide.setAttribute('x2', this.aimX);
+    }
+    const crossSvg = document.getElementById('diana-crosshair-svg');
+    if (crossSvg) {
+      crossSvg.setAttribute('transform', `translate(${this.aimX}, ${this.aimY})`);
+    }
   }
 
   setupEvents() {
@@ -260,14 +493,14 @@ class MinigameEngine {
       });
     });
 
-    // Carga de fuerza
+    // Carga de fuerza / altura
     if (this.btnAction) {
       const startCharge = (e) => {
-        e.preventDefault();
+        if (e.cancelable) e.preventDefault();
         this.startCharging();
       };
       const stopCharge = (e) => {
-        e.preventDefault();
+        if (e.cancelable) e.preventDefault();
         this.releaseCharge();
       };
 
@@ -275,6 +508,21 @@ class MinigameEngine {
       window.addEventListener('mouseup', stopCharge);
       this.btnAction.addEventListener('touchstart', startCharge, { passive: false });
       window.addEventListener('touchend', stopCharge);
+      this.btnAction.addEventListener('pointerdown', startCharge);
+      window.addEventListener('pointerup', stopCharge);
+
+      // Si se produce un click simple sin hold prolongado
+      this.btnAction.addEventListener('click', (e) => {
+        if (!this.isCharging && !this.isSpinning && !this.isDartFlying && this.currentPower === 0) {
+          this.currentPower = 52;
+          if (this.currentMode === 'diana') {
+            this.aimY = 145;
+            this.throwDart(52);
+          } else {
+            this.spinWheel(52);
+          }
+        }
+      });
     }
   }
 
@@ -302,31 +550,62 @@ class MinigameEngine {
     this.updateRulesText();
   }
 
+  // Carga de fuerza con aceleración no lineal estilo Magic Darts (NES)
   startCharging() {
     if (this.isSpinning || this.isCharging || this.isDartFlying) return;
     this.isCharging = true;
     this.currentPower = 0;
+    this.aimY = 270;
 
     if (this.btnAction) {
-      this.btnAction.textContent = this.currentMode === 'roulette' ? '¡CARGANDO FUERZA DE GIRO!...' : '¡TENSANDO DARDO!...';
+      this.btnAction.textContent = this.currentMode === 'roulette'
+        ? '¡CARGANDO FUERZA DE GIRO!...'
+        : '¡SUBIENDO ALTURA! SUELTA EN EL CENTRO';
     }
 
     clearInterval(this.chargeInterval);
+
+    // Bucle de subida con aceleración progresiva (primera mitad lenta, luego acelera)
     this.chargeInterval = setInterval(() => {
-      this.currentPower += 2.2;
+      // Cálculo de incremento: primera mitad más lenta, luego acelera progresivamente
+      const p = this.currentPower;
+      let stepInc = 1.35;
+      if (p >= 48) {
+        // Aceleración no lineal cuadrática
+        const factor = (p - 48) / 52;
+        stepInc = 1.35 + (factor * factor) * 3.6;
+      }
+      this.currentPower += stepInc * this.verticalSpeedModifier;
+
       if (this.powerBar) {
         this.powerBar.style.width = `${Math.min(this.currentPower, 100)}%`;
       }
 
-      // Sobrecarga / Fallo si supera el 95%
-      if (this.currentPower >= 95) {
+      // Si estamos en modo diana, subimos la mira desde Y=270 (abajo) hasta Y=30 (arriba)
+      if (this.currentMode === 'diana') {
+        const norm = Math.min(this.currentPower / 100, 1);
+        this.aimY = Math.round(270 - norm * 240); // 270 -> 30
+
+        const yGuide = document.getElementById('diana-y-guide');
+        if (yGuide) {
+          yGuide.setAttribute('y1', this.aimY);
+          yGuide.setAttribute('y2', this.aimY);
+        }
+        const crossSvg = document.getElementById('diana-crosshair-svg');
+        if (crossSvg) {
+          crossSvg.setAttribute('transform', `translate(${this.aimX}, ${this.aimY})`);
+        }
+      }
+
+      // Sobrecarga / Fallo si supera el 96%
+      if (this.currentPower >= 96) {
         clearInterval(this.chargeInterval);
         this.currentPower = 0;
         this.isCharging = false;
         if (this.powerBar) this.powerBar.style.width = '0%';
         if (window.audio) window.audio.playFailSound();
         if (this.btnAction) {
-          this.btnAction.textContent = '¡SOBRECARGA! TIRO ANULADO';
+          this.btnAction.textContent = '¡SOBRECARGA / FUERA! TIRO PERDIDO';
           this.btnAction.classList.add('bg-rose-600');
           setTimeout(() => {
             if (this.btnAction) {
@@ -336,7 +615,7 @@ class MinigameEngine {
           }, 800);
         }
       }
-    }, 28);
+    }, 24);
   }
 
   releaseCharge() {
@@ -344,7 +623,7 @@ class MinigameEngine {
     clearInterval(this.chargeInterval);
     this.isCharging = false;
 
-    if (this.currentPower > 10) {
+    if (this.currentPower > 8) {
       if (this.currentMode === 'roulette') {
         this.spinWheel(this.currentPower);
       } else {
@@ -438,8 +717,10 @@ class MinigameEngine {
     const winningSlice = document.getElementById(`slice-${sliceIndex}`);
     if (winningSlice) winningSlice.classList.add('winner-slice');
 
+    const isDoubleOrNothing = (this.activeCard === 'doubleOrNothing');
+
     if (isWinner) {
-      const mult = this.selectedColors.length === 1 ? 2.0 : 1.5;
+      const mult = isDoubleOrNothing ? 2.0 : (this.selectedColors.length === 1 ? 2.0 : 1.5);
       if (window.audio) {
         window.audio.playWinFanfare();
         window.audio.playCrowdCheer();
@@ -458,17 +739,22 @@ class MinigameEngine {
 
       const hasBoost = window.stateManager && window.stateManager.state.upgrades.rouletteBoost;
       if (!hasBoost && window.game) {
-        // Regla: 1 color = pierde el 50%; 2 colores = pierde el 100% (todo el premio del nivel)
-        const lossMult = this.selectedColors.length === 1 ? 0.5 : 0;
+        // En Doble o Nada, se pierde el 100%. En ruleta normal: 1 color pierde 50%, 2 colores pierde 100%.
+        const lossMult = isDoubleOrNothing ? 0 : (this.selectedColors.length === 1 ? 0.5 : 0);
         window.game.multiplyCoins(lossMult);
       }
 
       if (this.btnAction) {
-        const msg = hasBoost
-          ? `Cayó en ${landedColor.name}. ¡Seguro activo! Conservas tus monedas.`
-          : (this.selectedColors.length === 1
+        let msg = '';
+        if (hasBoost) {
+          msg = `Cayó en ${landedColor.name}. ¡Seguro activo! Conservas tus monedas.`;
+        } else if (isDoubleOrNothing) {
+          msg = `¡Fallaste en Doble o Nada! Pierdes el 100% de tus monedas.`;
+        } else {
+          msg = this.selectedColors.length === 1
             ? `Cayó en ${landedColor.name}. Pierdes 50% de las monedas.`
-            : `Cayó en ${landedColor.name}. Pierdes 100% de las monedas apostadas.`);
+            : `Cayó en ${landedColor.name}. Pierdes 100% de las monedas.`;
+        }
         this.btnAction.textContent = msg;
         this.btnAction.classList.add('bg-rose-700');
       }
@@ -477,7 +763,7 @@ class MinigameEngine {
     this.finalizeRound(winningSlice, modalBox);
   }
 
-  // --- EJECUCIÓN DE DIANA DE DARDOS CON FÍSICA DE VIENTO ---
+  // --- EJECUCIÓN DE DIANA DE DARDOS (ESTILO MAGIC DARTS) ---
   throwDart(power) {
     if (this.isDartFlying) return;
     this.isDartFlying = true;
@@ -485,38 +771,39 @@ class MinigameEngine {
 
     if (window.audio) window.audio.playDartThrow();
 
-    // Desvío por viento: Delta = Velocidad * Factor + Dispersión por potencia
+    // Desvío por viento balístico
     const windRad = (this.windAngle * Math.PI) / 180;
-    const windPush = parseFloat(this.windSpeed) * 8.5;
-    const powerJitter = ((100 - power) / 100) * 14 * (Math.random() - 0.5);
+    const windPush = parseFloat(this.windSpeed) * 6.5;
 
-    const hitX = this.aimX + Math.cos(windRad) * windPush + powerJitter;
-    const hitY = this.aimY + Math.sin(windRad) * windPush + powerJitter;
+    const hitX = Math.round(Math.max(20, Math.min(280, this.aimX + Math.cos(windRad) * windPush)));
+    const hitY = Math.round(Math.max(20, Math.min(280, this.aimY + Math.sin(windRad) * windPush)));
 
-    const dartsGroup = document.getElementById('diana-darts-group');
+    const impactsGroup = document.getElementById('diana-impacts-group');
 
-    // Animación visual de vuelo del dardo hacia el punto de impacto
+    // Animación de vuelo y marcado de impacto con 'X'
     setTimeout(() => {
       if (window.audio) window.audio.playDartHit();
 
-      if (dartsGroup) {
-        const dartEl = document.createElementNS('http://www.w3.org/2000/svg', 'g');
-        dartEl.setAttribute('transform', `translate(${hitX}, ${hitY})`);
-        dartEl.innerHTML = `
+      // REGLA USUARIO: Visualizar el dardo con una 'X' clara en el punto de impacto
+      if (impactsGroup) {
+        const xMark = document.createElementNS('http://www.w3.org/2000/svg', 'g');
+        xMark.setAttribute('transform', `translate(${hitX}, ${hitY})`);
+        xMark.innerHTML = `
           <!-- Sombra de impacto -->
-          <ellipse cx="2" cy="4" rx="5" ry="2.5" fill="rgba(0,0,0,0.6)"/>
-          <!-- Dardo clavado -->
-          <circle cx="0" cy="0" r="4.5" fill="#eab308" stroke="#ffffff" stroke-width="1.5"/>
-          <line x1="0" y1="0" x2="-14" y2="-18" stroke="#ffffff" stroke-width="2.5"/>
-          <polygon points="-14,-18 -18,-15 -11,-12" fill="#ef4444"/>
-          <polygon points="-14,-18 -15,-22 -12,-15" fill="#3b82f6"/>
+          <ellipse cx="2" cy="4" rx="7" ry="3.5" fill="rgba(0,0,0,0.7)"/>
+          <!-- Cruz 'X' luminosa de impacto de dardo -->
+          <line x1="-8" y1="-8" x2="8" y2="8" stroke="#ffffff" stroke-width="4.5" stroke-linecap="round"/>
+          <line x1="8" y1="-8" x2="-8" y2="8" stroke="#ffffff" stroke-width="4.5" stroke-linecap="round"/>
+          <line x1="-8" y1="-8" x2="8" y2="8" stroke="#ef4444" stroke-width="2.5" stroke-linecap="round"/>
+          <line x1="8" y1="-8" x2="-8" y2="8" stroke="#ef4444" stroke-width="2.5" stroke-linecap="round"/>
+          <circle cx="0" cy="0" r="3" fill="#fde047" stroke="#000000" stroke-width="1"/>
         `;
-        dartsGroup.appendChild(dartEl);
+        impactsGroup.appendChild(xMark);
       }
 
       this.isDartFlying = false;
       this.evaluateDianaResult(hitX, hitY);
-    }, 450);
+    }, 400);
   }
 
   evaluateDianaResult(x, y) {
@@ -543,6 +830,19 @@ class MinigameEngine {
     } else {
       multiplier = 0;
       label = '¡FUERA DE LA DIANA!';
+    }
+
+    // Carta Calma Atmosférica con beneficio de Tiro Extra si no acertó multiplicador alto
+    if (this.extraShotAvailable && multiplier < 2.0) {
+      this.extraShotAvailable = false;
+      if (this.btnAction) {
+        this.btnAction.disabled = false;
+        this.btnAction.classList.remove('bg-emerald-500', 'bg-rose-700');
+        this.btnAction.classList.add('bg-amber-500');
+        this.btnAction.textContent = '¡TIRO EXTRA DE RESPALDO! APUNTA Y DISPARA';
+      }
+      this.updateCardsUI();
+      return;
     }
 
     if (multiplier > 0) {
@@ -587,21 +887,41 @@ class MinigameEngine {
       if (winningSlice) winningSlice.classList.remove('winner-slice');
       if (this.btnAction) {
         this.btnAction.disabled = false;
-        this.btnAction.classList.remove('bg-emerald-500', 'bg-rose-700', 'bg-slate-700');
+        this.btnAction.classList.remove('bg-emerald-500', 'bg-rose-700', 'bg-amber-500');
         this.btnAction.textContent = 'MANTÉN PRESIONADO PARA REGULAR FUERZA';
       }
       if (this.powerBar) this.powerBar.style.width = '0%';
 
-      // Limpiar dardos previos
-      const dartsGroup = document.getElementById('diana-darts-group');
-      if (dartsGroup) dartsGroup.innerHTML = '';
+      // Limpiar impactos y resetear modificadores de ronda
+      const impactsGroup = document.getElementById('diana-impacts-group');
+      if (impactsGroup) impactsGroup.innerHTML = '';
+      this.activeCard = null;
+      this.calmAtmosphereBenefit = null;
+      this.extraShotAvailable = false;
+      this.verticalSpeedModifier = 1.0;
 
       if (window.game) {
         window.game.onRouletteClosed();
       }
     }, 2800);
   }
+
+  openModal(coins = 50) {
+    if (!this.btnAction) this.initDOM();
+    const modal = document.getElementById('modal-roulette');
+    if (modal) modal.classList.remove('hidden');
+    this.initRound();
+    if (window.audio) window.audio.playMusic('roulette');
+    if (window.lucide) lucide.createIcons();
+  }
+
+  closeModal() {
+    const modal = document.getElementById('modal-roulette');
+    if (modal) modal.classList.add('hidden');
+    if (window.audio) window.audio.playMusic('level');
+  }
 }
 
 // Instancia global
 window.rouletteEngine = new MinigameEngine();
+window.minigameEngine = window.rouletteEngine;
