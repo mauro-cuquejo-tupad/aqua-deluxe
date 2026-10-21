@@ -10,6 +10,7 @@ class GameController {
     this.levelData = null;
     this.tubes = [];
     this.selectedTubeIndex = null;
+    this.lastInvalidTargetIdx = null;
     this.moves = 0;
     this.coins = window.stateManager ? window.stateManager.getCoins() : 0;
     this.hintsRemaining = 3;
@@ -20,6 +21,8 @@ class GameController {
     this.isPouringAnimation = false;
     this.seedVariation = 0;
     this.customLevelTesting = null;
+    this.levelChallenges = [];
+    this.victoryAnimationTimers = [];
 
     // Accesibilidad y personalización
     this.isLowVision = false;
@@ -77,6 +80,12 @@ class GameController {
     this.selLevelQuick = document.getElementById('sel-level-quick');
     this.pourCanvas = document.getElementById('pour-canvas');
     if (this.pourCanvas) this.pourCtx = this.pourCanvas.getContext('2d');
+
+    // Desafíos del Nivel (Side Challenges)
+    this.challengesHud = document.getElementById('challenges-hud');
+    this.victoryChallengesCard = document.getElementById('victory-challenges-card');
+    this.victoryChallengesList = document.getElementById('victory-challenges-list');
+    this.lblVicChallengesBonus = document.getElementById('lbl-vic-challenges-bonus');
 
     // Botones del HUD
     this.btnUndo = document.getElementById('btn-undo');
@@ -154,6 +163,7 @@ class GameController {
     this.moves = 0;
     this.moveHistory = [];
     this.selectedTubeIndex = null;
+    this.lastInvalidTargetIdx = null;
     this.extraTubesUsed = 0;
     this.activeHint = null;
     this.hintsUsedInLevel = 0;
@@ -178,6 +188,20 @@ class GameController {
       this.levelData = window.LevelGenerator.generate(this.currentLevel, this.seedVariation);
       this.tubes = this.levelData.tubes;
     }
+
+    // Limpiar temporizadores de animación de desafíos anteriores
+    if (this.victoryAnimationTimers && this.victoryAnimationTimers.length > 0) {
+      this.victoryAnimationTimers.forEach(t => clearTimeout(t));
+    }
+    this.victoryAnimationTimers = [];
+
+    // Cargar y renderizar desafíos secundarios del nivel
+    if (window.ChallengeManager && !customLevelData) {
+      this.levelChallenges = window.ChallengeManager.getChallengesForLevel(this.levelData);
+    } else {
+      this.levelChallenges = [];
+    }
+    this.renderChallengesHUD();
 
     // Iniciar temporizador en vivo
     if (window.leaderboardManager) {
@@ -219,6 +243,7 @@ class GameController {
     if (this.lblMoves) this.lblMoves.textContent = this.moves;
     this.updateStarsPreview();
     this.updateAuxiliaryButtonUI();
+    this.updateChallengesHUD();
   }
 
   updateStarsPreview() {
@@ -437,6 +462,7 @@ class GameController {
 
   showFluorBadge(tubeEl, tube) {
     if (tube.liquids.length === 0 || tube.isLocked) return;
+    if (tubeEl.querySelector('.tube-invalid-badge')) return;
     const topLiq = tube.liquids[tube.liquids.length - 1];
     const badge = document.createElement('div');
     badge.className = 'fluor-indicator';
@@ -464,23 +490,36 @@ class GameController {
     if (this.selectedTubeIndex === null) {
       // Mecánica: Frasco pegado (solo puede recibir líquido, nunca vaciarse)
       if (clickedTube.isGlued) {
-        if (window.audio) window.audio.playGluedError();
-        tubeEl.classList.add('tube-glued-shake');
-        setTimeout(() => tubeEl.classList.remove('tube-glued-shake'), 400);
+        this.triggerInvalidMove(idx, '🪨 Solo recibe (no sale)');
         return;
       }
 
       // Mecánica: Frasco frágil sin operaciones
       if (clickedTube.isFragile && typeof clickedTube.operationsRemaining === 'number' && clickedTube.operationsRemaining <= 0) {
-        if (window.audio) window.audio.playFailSound();
+        this.triggerInvalidMove(idx, '🛡️ Sin usos restantes');
         return;
       }
 
-      if (clickedTube.liquids.length === 0 || clickedTube.isLocked) {
-        if (window.audio) window.audio.playFailSound();
+      // Frasco con candado
+      if (clickedTube.isLocked) {
+        this.triggerInvalidMove(idx, '🔒 Candado cerrado');
         return;
       }
+
+      // Frasco vacío
+      if (clickedTube.liquids.length === 0) {
+        this.triggerInvalidMove(idx, '🚫 Tubo vacío');
+        return;
+      }
+
+      // Frasco ya completado
+      if (this.isTubeComplete(clickedTube)) {
+        this.triggerInvalidMove(idx, '✨ Tubo ya completado');
+        return;
+      }
+
       this.selectedTubeIndex = idx;
+      this.lastInvalidTargetIdx = null;
       if (window.audio) window.audio.playSelect();
       this.renderTubes();
       return;
@@ -489,6 +528,7 @@ class GameController {
     // 2. Si se hace clic en el mismo tubo: deseleccionar
     if (this.selectedTubeIndex === idx) {
       this.selectedTubeIndex = null;
+      this.lastInvalidTargetIdx = null;
       if (window.audio) window.audio.playSelect();
       this.renderTubes();
       return;
@@ -508,14 +548,13 @@ class GameController {
         toTube.isLocked = false;
         if (window.audio) window.audio.playUnlock();
         this.selectedTubeIndex = null;
+        this.lastInvalidTargetIdx = null;
         this.moves++;
         this.renderTubes();
         this.updateButtonsUI();
         return;
       } else {
-        if (window.audio) window.audio.playFailSound();
-        this.selectedTubeIndex = null;
-        this.renderTubes();
+        this.triggerInvalidMove(toIdx, '🔒 Llave incorrecta');
         return;
       }
     }
@@ -546,22 +585,70 @@ class GameController {
     if (this.canPour(fromIdx, toIdx)) {
       this.executePour(fromIdx, toIdx);
     } else {
-      // Si el destino tiene líquido y NO está pegado, seleccionarlo como nuevo origen
-      if (toTube.liquids.length > 0 && !toTube.isLocked && !toTube.isGlued) {
-        this.selectedTubeIndex = toIdx;
-        if (window.audio) window.audio.playSelect();
-      } else {
-        if (toTube.isGlued) {
-          if (window.audio) window.audio.playGluedError();
-          tubeEl.classList.add('tube-glued-shake');
-          setTimeout(() => tubeEl.classList.remove('tube-glued-shake'), 400);
-        } else {
-          if (window.audio) window.audio.playFailSound();
-        }
-        this.selectedTubeIndex = null;
-      }
-      this.renderTubes();
+      // Activar feedback de movimiento inválido (sonido de equivocación + sacudida con borde rojo + badge flotante)
+      const reason = this.getInvalidPourReason(fromIdx, toIdx);
+      this.triggerInvalidMove(toIdx, reason);
     }
+  }
+
+  // Identificar el motivo específico por el cual un vertido es inválido
+  getInvalidPourReason(fromIdx, toIdx) {
+    const fromTube = this.tubes[fromIdx];
+    const toTube = this.tubes[toIdx];
+    if (!fromTube || !toTube) return '🚫 Movimiento inválido';
+
+    if (toTube.isLocked) return '🔒 Llave requerida';
+    if (toTube.liquids.length >= toTube.capacity) return '🚫 ¡Tubo lleno!';
+    if (fromTube.isGlued) return '🪨 ¡Frasco inamovible!';
+    if (toTube.isFragile && typeof toTube.operationsRemaining === 'number' && toTube.operationsRemaining <= 0) {
+      return '🛡️ Tubo frágil agotado';
+    }
+
+    const topFrom = fromTube.liquids[fromTube.liquids.length - 1];
+    if (toTube.liquids.length > 0) {
+      const topTo = toTube.liquids[toTube.liquids.length - 1];
+      if (topFrom && topTo && topFrom.color !== topTo.color && !topFrom.isChameleon && !topTo.isChameleon) {
+        return '🚫 ¡Color incompatible!';
+      }
+    }
+
+    return '🚫 Movimiento inválido';
+  }
+
+  // Feedback visual y sonoro ante movimientos inválidos
+  triggerInvalidMove(tubeIdx, reasonText = '🚫 Movimiento inválido') {
+    if (window.audio) {
+      if (typeof window.audio.playInvalidMoveSound === 'function') {
+        window.audio.playInvalidMoveSound();
+      } else if (typeof window.audio.playFailSound === 'function') {
+        window.audio.playFailSound();
+      }
+    }
+
+    const tubeEl = this.tubesGrid?.querySelector(`[data-index="${tubeIdx}"]`);
+    if (!tubeEl) return;
+
+    this.removeFluorBadge(tubeEl);
+
+    // Reiniciar animación si ya estaba activa
+    tubeEl.classList.remove('tube-invalid-shake');
+    void tubeEl.offsetWidth; // Forzar reflow para re-disparar keyframes
+    tubeEl.classList.add('tube-invalid-shake');
+
+    // Remover badge previo si existe en este tubo
+    const oldBadge = tubeEl.querySelector('.tube-invalid-badge');
+    if (oldBadge) oldBadge.remove();
+
+    // Crear badge flotante con mensaje descriptivo
+    const badge = document.createElement('div');
+    badge.className = 'tube-invalid-badge';
+    badge.textContent = reasonText;
+    tubeEl.appendChild(badge);
+
+    setTimeout(() => {
+      tubeEl.classList.remove('tube-invalid-shake');
+      if (badge.parentNode) badge.remove();
+    }, 1100);
   }
 
   canPour(fromIdx, toIdx) {
@@ -1142,8 +1229,238 @@ class GameController {
       }
     }
 
+    // Evaluación y animación escalonada de desafíos del nivel
+    this.animateVictoryChallenges(elapsedSecs, totalEarned);
+
     if (window.lucide) lucide.createIcons();
     if (this.modalVictory) this.modalVictory.classList.remove('hidden');
+  }
+
+  // --- ANIMACIÓN SECUENCIAL Y EVALUACIÓN DE DESAFÍOS AL GANAR EL NIVEL ---
+  animateVictoryChallenges(elapsedSecs, baseCoinsEarned) {
+    const card = document.getElementById('victory-challenges-card');
+    const list = document.getElementById('victory-challenges-list');
+    const bonusLbl = document.getElementById('lbl-vic-challenges-bonus');
+    const coinsEl = document.getElementById('lbl-vic-total-coins');
+
+    if (!card || !list) return;
+
+    // Limpiar temporizadores previos de animación
+    if (this.victoryAnimationTimers && this.victoryAnimationTimers.length > 0) {
+      this.victoryAnimationTimers.forEach(t => clearTimeout(t));
+    }
+    this.victoryAnimationTimers = [];
+
+    if (!this.levelChallenges || this.levelChallenges.length === 0) {
+      card.classList.add('hidden');
+      return;
+    }
+
+    card.classList.remove('hidden');
+    list.innerHTML = '';
+    if (bonusLbl) bonusLbl.textContent = 'Evaluando...';
+
+    // Evaluar cada desafío del nivel
+    const results = this.levelChallenges.map(c => {
+      const isCompleted = typeof c.check === 'function' ? c.check(this, elapsedSecs) : false;
+      return { challenge: c, completed: isCompleted };
+    });
+
+    const bonusData = window.ChallengeManager
+      ? window.ChallengeManager.calculateBonus(results)
+      : { completedCount: 0, totalCount: results.length, totalCoins: 0, multiplier: 1 };
+
+    // Guardar en la persistencia del jugador si aplica
+    if (window.stateManager && typeof window.stateManager.recordLevelChallenges === 'function' && !this.customLevelTesting) {
+      window.stateManager.recordLevelChallenges(this.currentLevel, bonusData);
+    }
+
+    // Renderizar filas inicialmente ocultas con transparencia y desplazamiento
+    const rows = [];
+    results.forEach((r, idx) => {
+      const c = r.challenge;
+      const row = document.createElement('div');
+      row.className = 'victory-challenge-row';
+      row.id = `vic-chal-row-${idx}`;
+
+      let colorSwatch = '';
+      if (c.colorHex) {
+        colorSwatch = `<span class="challenge-color-dot" style="background-color: ${c.colorHex}; box-shadow: 0 0 6px ${c.colorHex};"></span>`;
+      }
+
+      row.innerHTML = `
+        <div class="flex items-center gap-2 text-xs">
+          <div class="chal-status-icon w-6 h-6 rounded-full bg-slate-800 border border-slate-700 flex items-center justify-center text-slate-400 font-bold text-xs transition-transform">
+            <span>•</span>
+          </div>
+          <div class="flex items-center gap-1.5 text-slate-300 font-medium chal-title-wrap">
+            ${colorSwatch}
+            <span class="chal-title-text">${c.title}</span>
+          </div>
+        </div>
+        <div class="flex items-center gap-2">
+          <span class="chal-reward-badge text-amber-300/80 font-bold text-[11px]">+${c.coins || 3} 🪙</span>
+        </div>
+      `;
+      list.appendChild(row);
+      rows.push({ el: row, res: r, index: idx });
+    });
+
+    // Animación secuencial escalonada de cada desafío
+    rows.forEach((item, i) => {
+      const timer = setTimeout(() => {
+        const row = item.el;
+        const r = item.res;
+        const iconContainer = row.querySelector('.chal-status-icon');
+        const titleText = row.querySelector('.chal-title-text');
+        const rewardBadge = row.querySelector('.chal-reward-badge');
+
+        row.classList.add('is-visible');
+
+        if (r.completed) {
+          // Cumplió: Check verde con rebote alegre + sonido de éxito
+          row.classList.add('is-success');
+          if (iconContainer) {
+            iconContainer.className = 'chal-status-icon w-6 h-6 rounded-full bg-emerald-500/20 border border-emerald-400 text-emerald-300 flex items-center justify-center font-black text-xs shadow-md shadow-emerald-500/25 challenge-check-bounce';
+            iconContainer.innerHTML = '✓';
+          }
+          if (titleText) {
+            titleText.classList.add('text-emerald-300', 'font-bold');
+          }
+          if (rewardBadge) {
+            rewardBadge.className = 'chal-reward-badge text-amber-300 font-black text-xs';
+          }
+          if (window.audio && typeof window.audio.playChallengeSuccess === 'function') {
+            window.audio.playChallengeSuccess(i);
+          }
+        } else {
+          // No cumplió: Cruz roja + texto temblando + sonido de equivocación/fallo
+          row.classList.add('is-failed');
+          if (iconContainer) {
+            iconContainer.className = 'chal-status-icon w-6 h-6 rounded-full bg-rose-500/20 border border-rose-500 text-rose-400 flex items-center justify-center font-black text-xs shadow-md';
+            iconContainer.innerHTML = '✕';
+          }
+          if (titleText) {
+            titleText.classList.add('challenge-text-shake');
+          }
+          if (rewardBadge) {
+            rewardBadge.className = 'chal-reward-badge text-slate-500 line-through text-[11px]';
+          }
+          if (window.audio && typeof window.audio.playChallengeFail === 'function') {
+            window.audio.playChallengeFail();
+          }
+        }
+      }, 350 + i * 550);
+      this.victoryAnimationTimers.push(timer);
+    });
+
+    // Gran final de bonificación tras evaluar todos los desafíos
+    const totalDelay = 350 + rows.length * 550 + 200;
+    const finalTimer = setTimeout(() => {
+      if (bonusData.totalCoins > 0) {
+        if (bonusLbl) {
+          const multTag = bonusData.multiplier > 1.0 ? ` (${bonusData.multiplierLabel})` : '';
+          bonusLbl.innerHTML = `<span class="text-amber-300 font-black animate-pulse">+${bonusData.totalCoins} 🪙 ${multTag}</span>`;
+        }
+        // Otorgar las monedas al jugador
+        this.addCoins(bonusData.totalCoins);
+
+        // Actualizar visualmente las monedas ganadas totales en el modal
+        const finalTotal = baseCoinsEarned + bonusData.totalCoins;
+        if (coinsEl) {
+          coinsEl.innerHTML = `<span class="text-amber-300 font-black text-lg scale-110 transition-transform">${finalTotal} 🪙</span>`;
+        }
+      } else {
+        if (bonusLbl) {
+          bonusLbl.innerHTML = `<span class="text-slate-400 font-semibold text-[11px]">0 🪙 (0/${bonusData.totalCount})</span>`;
+        }
+      }
+    }, totalDelay);
+    this.victoryAnimationTimers.push(finalTimer);
+  }
+
+  // --- RENDER Y ACTUALIZACIÓN EN VIVO DE DESAFÍOS EN EL HUD ---
+  renderChallengesHUD() {
+    if (!this.challengesHud) return;
+
+    if (!this.levelChallenges || this.levelChallenges.length === 0) {
+      this.challengesHud.innerHTML = '';
+      this.challengesHud.classList.add('hidden');
+      return;
+    }
+
+    this.challengesHud.classList.remove('hidden');
+    this.challengesHud.innerHTML = '';
+
+    // Título sutil
+    const label = document.createElement('div');
+    label.className = 'text-[11px] font-black text-amber-300/90 flex items-center gap-1 mr-1';
+    label.innerHTML = `
+      <i data-lucide="target" class="w-3.5 h-3.5 text-amber-400"></i>
+      <span class="hidden sm:inline">Desafíos:</span>
+    `;
+    this.challengesHud.appendChild(label);
+
+    this.levelChallenges.forEach((c, idx) => {
+      const chip = document.createElement('div');
+      chip.className = 'challenge-hud-pill';
+      chip.id = `challenge-pill-${idx}`;
+      chip.title = `${c.title} • Recompensa: +${c.coins || 3} 🪙`;
+
+      let iconHtml = '';
+      if (c.colorHex) {
+        iconHtml = `<span class="challenge-color-dot" style="background-color: ${c.colorHex}; box-shadow: 0 0 6px ${c.colorHex};"></span>`;
+      } else if (c.icon === 'zap') {
+        iconHtml = `<i data-lucide="zap" class="w-3 h-3 text-amber-400"></i>`;
+      } else if (c.icon === 'clock') {
+        iconHtml = `<i data-lucide="clock" class="w-3 h-3 text-emerald-400"></i>`;
+      } else if (c.icon === 'hash') {
+        iconHtml = `<i data-lucide="hash" class="w-3 h-3 text-indigo-400"></i>`;
+      } else if (c.icon === 'shield') {
+        iconHtml = `<i data-lucide="shield" class="w-3 h-3 text-sky-400"></i>`;
+      } else {
+        iconHtml = `<i data-lucide="sparkles" class="w-3 h-3 text-purple-400"></i>`;
+      }
+
+      chip.innerHTML = `
+        <span class="flex items-center gap-1">${iconHtml} <span>${c.shortTitle}</span></span>
+        <span class="challenge-hud-badge" id="chal-prog-${idx}">...</span>
+        <span class="challenge-hud-reward">+${c.coins || 3}🪙</span>
+      `;
+      this.challengesHud.appendChild(chip);
+    });
+
+    if (window.lucide) lucide.createIcons();
+    this.updateChallengesHUD();
+  }
+
+  updateChallengesHUD() {
+    if (!this.levelChallenges || this.levelChallenges.length === 0) return;
+    const elapsedSecs = window.leaderboardManager ? window.leaderboardManager.getElapsedSeconds() : 0;
+
+    this.levelChallenges.forEach((c, idx) => {
+      const chip = document.getElementById(`challenge-pill-${idx}`);
+      const prog = document.getElementById(`chal-prog-${idx}`);
+      if (!chip || !prog) return;
+
+      if (typeof c.getCurrentText === 'function') {
+        prog.textContent = c.getCurrentText(this, elapsedSecs);
+      }
+
+      const isFailed = typeof c.isFailedLive === 'function' && c.isFailedLive(this, elapsedSecs);
+      if (isFailed) {
+        chip.classList.add('is-failed');
+        chip.classList.remove('is-achieved');
+      } else {
+        chip.classList.remove('is-failed');
+      }
+    });
+  }
+
+  onTimerTick(elapsedSecs) {
+    if (this.levelChallenges && this.levelChallenges.length > 0) {
+      this.updateChallengesHUD();
+    }
   }
 
   multiplyCoins(mult) {
@@ -1186,6 +1503,7 @@ class GameController {
     this.renderTubes();
     this.updateMovesUI();
     this.updateButtonsUI();
+    this.updateChallengesHUD();
   }
 
   addAuxiliaryTube() {
@@ -1220,6 +1538,7 @@ class GameController {
     this.renderTubes();
     this.updateButtonsUI();
     this.updateAuxiliaryButtonUI();
+    this.updateChallengesHUD();
   }
 
   giveHint() {
@@ -1238,6 +1557,7 @@ class GameController {
 
           if (window.audio) window.audio.playSelect();
           this.renderTubes();
+          this.updateChallengesHUD();
           return;
         }
       }
@@ -2870,4 +3190,14 @@ window.addEventListener('DOMContentLoaded', () => {
   if (window.lucide) lucide.createIcons();
   if (window.rouletteEngine) window.rouletteEngine.initDOM();
   window.game = new GameController();
+
+  // Atajo de prueba de Victoria (Alt+V) para desarrollador y pruebas
+  window.addEventListener('keydown', (e) => {
+    if (e.altKey && (e.key === 'v' || e.key === 'V')) {
+      if (window.game) {
+        window.game.showVictoryModal(22, 3, 3, null);
+      }
+    }
+  });
 });
+

@@ -320,6 +320,81 @@
   40%, 80% { transform: translateX(5px); }
 }
 
+/* Feedback visual de movimiento inválido (color incorrecto o tubo lleno) */
+.test-tube.tube-invalid-shake {
+  animation: tubeInvalidShake 0.45s cubic-bezier(0.36, 0.07, 0.19, 0.97) both !important;
+}
+
+.test-tube.tube-invalid-shake .tube-glass {
+  border-color: rgba(244, 63, 94, 0.95) !important;
+  box-shadow: 0 0 25px rgba(244, 63, 94, 0.75), inset 0 0 16px rgba(244, 63, 94, 0.45) !important;
+}
+
+.test-tube.tube-invalid-shake .tube-lip {
+  border-color: rgba(244, 63, 94, 0.95) !important;
+  box-shadow: 0 0 18px rgba(244, 63, 94, 0.8) !important;
+}
+
+@keyframes tubeInvalidShake {
+  0%, 100% {
+    transform: translateX(0) scale(1);
+  }
+  15% {
+    transform: translateX(-8px) rotate(-1.5deg) scale(0.98);
+  }
+  30% {
+    transform: translateX(7px) rotate(1.5deg) scale(1.02);
+  }
+  45% {
+    transform: translateX(-5px) rotate(-1deg);
+  }
+  60% {
+    transform: translateX(4px) rotate(0.8deg);
+  }
+  75% {
+    transform: translateX(-2px);
+  }
+}
+
+/* Etiqueta flotante con el motivo del movimiento inválido */
+.tube-invalid-badge {
+  position: absolute;
+  top: -46px;
+  left: 50%;
+  transform: translateX(-50%);
+  background: linear-gradient(135deg, rgba(225, 29, 72, 0.96), rgba(159, 18, 57, 0.98));
+  border: 1px solid rgba(254, 205, 211, 0.85);
+  color: #ffffff;
+  font-size: 11px;
+  font-weight: 800;
+  padding: 4px 11px;
+  border-radius: 9999px;
+  white-space: nowrap;
+  pointer-events: none;
+  z-index: 70;
+  box-shadow: 0 4px 18px rgba(225, 29, 72, 0.75), 0 2px 4px rgba(0, 0, 0, 0.5);
+  animation: invalidBadgeFloat 1.1s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+}
+
+@keyframes invalidBadgeFloat {
+  0% {
+    opacity: 0;
+    transform: translate(-50%, 8px) scale(0.7);
+  }
+  15% {
+    opacity: 1;
+    transform: translate(-50%, -6px) scale(1.08);
+  }
+  75% {
+    opacity: 1;
+    transform: translate(-50%, -12px) scale(1);
+  }
+  100% {
+    opacity: 0;
+    transform: translate(-50%, -24px) scale(0.9);
+  }
+}
+
 /* Animaciones de vertido fluido porción por porción */
 @keyframes liquidWaveBounce {
   0% { transform: scaleY(0.4) skewX(-4deg); filter: brightness(1.2); }

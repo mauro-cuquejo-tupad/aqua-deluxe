@@ -29,6 +29,7 @@ const DEFAULT_STATE = {
   progress: {
     unlockedLevel: 1,
     completedLevels: {},       // { "1": { stars: 3, bestMoves: 8, bestTimeSec: 15, usedHints: false } }
+    completedChallenges: {},   // { "1": { completedCount: 1, totalCount: 1, bonusCoins: 3 } }
     seenTutorials: []          // Lista de tutoriales ya vistos
   },
   customLevels: [],            // Niveles creados por el usuario [{ id, name, author, tubes, verified: true }]
@@ -230,6 +231,29 @@ class StateManager {
       this.state.customLevels = this.state.customLevels.filter(l => l.id !== id);
       this.saveState();
     }
+  }
+
+  // --- REGISTRO DE DESAFÍOS DE NIVEL ---
+  recordLevelChallenges(level, results) {
+    if (!this.state.progress.completedChallenges) {
+      this.state.progress.completedChallenges = {};
+    }
+    const key = String(level);
+    const prev = this.state.progress.completedChallenges[key];
+    // Conservar el mejor resultado de desafíos completados
+    if (!prev || (results.completedCount > prev.completedCount)) {
+      this.state.progress.completedChallenges[key] = {
+        completedCount: results.completedCount,
+        totalCount: results.totalCount,
+        bonusCoins: results.totalCoins,
+        date: new Date().toLocaleDateString()
+      };
+      this.saveState();
+    }
+  }
+
+  getLevelChallenges(level) {
+    return this.state.progress.completedChallenges ? this.state.progress.completedChallenges[String(level)] : null;
   }
 
   // --- EXPORTAR / IMPORTAR ARCHIVO DE PARTIDA (.JSON) ---

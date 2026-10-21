@@ -20,10 +20,10 @@
   <script src="https://cdn.jsdelivr.net/npm/canvas-confetti@1.9.2/dist/confetti.browser.min.js"></script>
 
   <!-- Modular Stylesheets -->
-  <link rel="stylesheet" href="css/main.css?v=9">
-  <link rel="stylesheet" href="css/tubes.css?v=9">
-  <link rel="stylesheet" href="css/roulette.css?v=9">
-  <link rel="stylesheet" href="css/accessibility.css?v=9">
+  <link rel="stylesheet" href="css/main.css?v=12">
+  <link rel="stylesheet" href="css/tubes.css?v=12">
+  <link rel="stylesheet" href="css/roulette.css?v=12">
+  <link rel="stylesheet" href="css/accessibility.css?v=12">
 </head>
 <body class="min-h-screen flex flex-col justify-between select-none relative">
 
@@ -171,6 +171,11 @@
           <i data-lucide="refresh-cw" class="w-4 h-4"></i>
         </button>
       </div>
+    </div>
+
+    <!-- BARRA DE DESAFÍOS DEL NIVEL (SIDE CHALLENGES) -->
+    <div id="challenges-hud" class="w-full flex items-center justify-center gap-2 mb-2.5 flex-wrap">
+      <!-- Inyectado dinámicamente con chips estilizados -->
     </div>
 
     <!-- INDICADOR DE PISTA GUIADA -->
@@ -401,6 +406,20 @@
         <div class="border-t border-slate-700/60 pt-2 flex justify-between items-center text-white font-black text-sm">
           <span>Monedas Ganadas:</span>
           <span id="lbl-vic-total-coins" class="text-amber-300 text-base">0 🪙</span>
+        </div>
+      </div>
+
+      <!-- Desafíos del Nivel (Side Challenges) -->
+      <div id="victory-challenges-card" class="bg-slate-800/80 border border-slate-700/80 rounded-2xl p-3.5 mb-4 text-left">
+        <div class="flex justify-between items-center text-amber-300 font-black text-xs border-b border-slate-700/60 pb-1.5 mb-2.5">
+          <span class="flex items-center gap-1.5">
+            <i data-lucide="target" class="w-4 h-4 text-amber-400"></i>
+            <span>Desafíos del Nivel</span>
+          </span>
+          <span id="lbl-vic-challenges-bonus" class="text-amber-400 font-bold text-[11px]">Evaluando...</span>
+        </div>
+        <div id="victory-challenges-list" class="space-y-2">
+          <!-- Inyectado dinámicamente con animación secuencial y sonido -->
         </div>
       </div>
 
@@ -931,12 +950,13 @@
   <input type="file" id="input-save-file" accept=".json" class="hidden">
 
   <!-- Scripts modulares -->
-  <script src="js/audio.js?v=8"></script>
-  <script src="js/palette.js?v=8"></script>
-  <script src="js/levels.js?v=8"></script>
-  <script src="js/state.js?v=8"></script>
-  <script src="js/leaderboard.js?v=8"></script>
-  <script src="js/roulette.js?v=8"></script>
-  <script src="js/game.js?v=8"></script>
+  <script src="js/audio.js?v=13"></script>
+  <script src="js/palette.js?v=13"></script>
+  <script src="js/levels.js?v=13"></script>
+  <script src="js/challenges.js?v=13"></script>
+  <script src="js/state.js?v=13"></script>
+  <script src="js/leaderboard.js?v=13"></script>
+  <script src="js/roulette.js?v=13"></script>
+  <script src="js/game.js?v=13"></script>
 </body>
 </html>

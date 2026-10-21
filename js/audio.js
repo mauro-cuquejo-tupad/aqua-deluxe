@@ -474,6 +474,118 @@ class ProceduralAudioEngine {
     osc.stop(now + 0.4);
   }
 
+  // Sonido de equivocación / negación (doble tono "uh-uh" con caída armónica y textura de rechazo)
+  playInvalidMoveSound() {
+    if (this.isMuted) return;
+    this.init();
+    const now = this.ctx.currentTime;
+
+    const pulses = [
+      { start: now, freq: 175, endFreq: 140, dur: 0.085, gain: 0.24 },
+      { start: now + 0.10, freq: 125, endFreq: 95, dur: 0.13, gain: 0.28 }
+    ];
+
+    pulses.forEach(p => {
+      const osc = this.ctx.createOscillator();
+      const gain = this.ctx.createGain();
+      const filter = this.ctx.createBiquadFilter();
+
+      filter.type = 'lowpass';
+      filter.frequency.setValueAtTime(700, p.start);
+
+      osc.type = 'triangle';
+      osc.frequency.setValueAtTime(p.freq, p.start);
+      osc.frequency.exponentialRampToValueAtTime(Math.max(20, p.endFreq), p.start + p.dur);
+
+      gain.gain.setValueAtTime(p.gain, p.start);
+      gain.gain.exponentialRampToValueAtTime(0.001, p.start + p.dur);
+
+      osc.connect(filter);
+      filter.connect(gain);
+      gain.connect(this.sfxGain);
+
+      osc.start(p.start);
+      osc.stop(p.start + p.dur + 0.02);
+
+      const subOsc = this.ctx.createOscillator();
+      const subGain = this.ctx.createGain();
+      subOsc.type = 'sawtooth';
+      subOsc.frequency.setValueAtTime(p.freq * 0.75, p.start);
+      subOsc.frequency.exponentialRampToValueAtTime(Math.max(20, p.endFreq * 0.75), p.start + p.dur);
+
+      subGain.gain.setValueAtTime(p.gain * 0.22, p.start);
+      subGain.gain.exponentialRampToValueAtTime(0.001, p.start + p.dur);
+
+      subOsc.connect(filter);
+      subGain.connect(this.sfxGain);
+      subOsc.start(p.start);
+      subOsc.stop(p.start + p.dur + 0.02);
+    });
+  }
+
+  playDeniedSound() {
+    this.playInvalidMoveSound();
+  }
+
+  playPop() {
+    this.playSelect();
+  }
+
+  // Sonido de éxito al cumplir un desafío (campanilla cristalina ascendente y luminosa)
+  playChallengeSuccess(step = 0) {
+    if (this.isMuted) return;
+    this.init();
+    const now = this.ctx.currentTime;
+    const baseFreqs = [587.33, 739.99, 880.00, 1174.66]; // D5, F#5, A5, D6
+    const f1 = baseFreqs[Math.min(step, baseFreqs.length - 1)];
+    const f2 = f1 * 1.5;
+
+    [
+      { f: f1, t: 0.0, d: 0.22, vol: 0.22 },
+      { f: f2, t: 0.09, d: 0.35, vol: 0.26 }
+    ].forEach(n => {
+      const osc = this.ctx.createOscillator();
+      const gain = this.ctx.createGain();
+      osc.type = 'sine';
+      osc.frequency.setValueAtTime(n.f, now + n.t);
+      gain.gain.setValueAtTime(n.vol, now + n.t);
+      gain.gain.exponentialRampToValueAtTime(0.001, now + n.t + n.d);
+      osc.connect(gain);
+      gain.connect(this.sfxGain);
+      osc.start(now + n.t);
+      osc.stop(now + n.t + n.d + 0.02);
+    });
+  }
+
+  // Sonido de fallo al no cumplir un desafío (suave tono de descarte con sutil vibrato)
+  playChallengeFail() {
+    if (this.isMuted) return;
+    this.init();
+    const now = this.ctx.currentTime;
+    const osc = this.ctx.createOscillator();
+    const gain = this.ctx.createGain();
+    const filter = this.ctx.createBiquadFilter();
+
+    filter.type = 'lowpass';
+    filter.frequency.setValueAtTime(600, now);
+
+    osc.type = 'triangle';
+    osc.frequency.setValueAtTime(155, now);
+    osc.frequency.linearRampToValueAtTime(130, now + 0.08);
+    osc.frequency.linearRampToValueAtTime(145, now + 0.16);
+    osc.frequency.exponentialRampToValueAtTime(95, now + 0.32);
+
+    gain.gain.setValueAtTime(0.20, now);
+    gain.gain.exponentialRampToValueAtTime(0.001, now + 0.34);
+
+    osc.connect(filter);
+    filter.connect(gain);
+    gain.connect(this.sfxGain);
+
+    osc.start(now);
+    osc.stop(now + 0.35);
+  }
+
   // Aplausos y ovación multitudinaria al ganar en la ruleta
   playCrowdCheer() {
     if (this.isMuted) return;

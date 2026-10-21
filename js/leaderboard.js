@@ -45,6 +45,9 @@ class LeaderboardManager {
       if (displayEl) {
         displayEl.textContent = this.formatTime(this.elapsedSeconds);
       }
+      if (window.game && typeof window.game.onTimerTick === 'function') {
+        window.game.onTimerTick(this.elapsedSeconds);
+      }
     }, 1000);
   }
 
