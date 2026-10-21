@@ -1,31 +1,56 @@
 /* ==========================================================================
    AQUASORT MASTER DELUXE - LEVEL GENERATOR (100 NIVELES)
-   Generación determinista y progresión de mecánicas
+   Generación determinista, progresión escalonada de mecánicas cada 5 niveles,
+   variación de semillas al reiniciar (seed reroll) y revelación de bloques contiguos.
    ========================================================================== */
 
 class LevelGenerator {
-  static generate(levelNum) {
+  static generate(levelNum, seedVariation = 0) {
     const level = Math.max(1, Math.min(100, levelNum));
 
     // Progresión de cantidad de colores
-    let colorCount = 3 + Math.floor((level - 1) / 10);
+    let colorCount = 3 + Math.floor((level - 1) / 12);
     colorCount = Math.min(colorCount, 8); // Máximo 8 colores simultáneos
     const emptyCount = 2;
     const capacity = 4;
 
-    // Etiquetas y mecánicas activas
+    // Activación progresiva de mecánicas
     const hasMystery = level >= 5;
-    const hasGiant = level >= 10;
-    const hasLock = level >= 15;
-    const hasNarrow = level >= 20;
-    const hasChameleon = level >= 25;
+    const hasGiant = (level >= 10 && level < 15) || (level >= 40 && level % 3 === 0);
+    const hasLock = (level >= 15 && level < 20) || (level >= 45 && level % 4 === 0);
+    const hasNarrow = (level >= 20 && level < 25) || (level >= 50 && level % 5 === 0);
+    const hasGlued = (level >= 25 && level < 30) || (level >= 55 && level % 4 === 1);
+    const hasChameleon = (level >= 30 && level < 35) || (level >= 60 && level % 3 === 1);
+    const hasFragile = (level >= 35 && level < 40) || (level >= 65 && level % 5 === 2);
 
     let mechanicTag = 'Básico';
-    if (hasChameleon) mechanicTag = 'Camaleón + Candado + Misterio';
-    else if (hasNarrow) mechanicTag = 'Tubo Estrecho (1x1)';
-    else if (hasLock) mechanicTag = 'Candado con Llave';
-    else if (hasGiant) mechanicTag = 'Misterio + Tubo Gigante';
-    else if (hasMystery) mechanicTag = "Misterio '?'";
+    let primaryMechanicId = 'basic';
+
+    if (level >= 40) {
+      mechanicTag = 'Desafío Alquímico Híbrido';
+      primaryMechanicId = 'hybrid';
+    } else if (hasFragile) {
+      mechanicTag = 'Cristal Frágil (3 Usos)';
+      primaryMechanicId = 'fragile';
+    } else if (hasChameleon) {
+      mechanicTag = 'Líquido Camaleón';
+      primaryMechanicId = 'chameleon';
+    } else if (hasGlued) {
+      mechanicTag = 'Frasco Pegado (Solo Recibe)';
+      primaryMechanicId = 'glued';
+    } else if (hasNarrow) {
+      mechanicTag = 'Tubo Estrecho (1x1)';
+      primaryMechanicId = 'narrow';
+    } else if (hasLock) {
+      mechanicTag = 'Candado con Llave Oculta';
+      primaryMechanicId = 'lock';
+    } else if (hasGiant) {
+      mechanicTag = 'Frasco Gigante (Max 6)';
+      primaryMechanicId = 'giant';
+    } else if (hasMystery) {
+      mechanicTag = "Líquidos Misterio '?'";
+      primaryMechanicId = 'mystery';
+    }
 
     // Obtener paleta actual (personalizable por el usuario)
     const currentPalette = window.paletteManager ? window.paletteManager.getPalette() : [];
@@ -33,7 +58,7 @@ class LevelGenerator {
 
     let tubes = [];
 
-    // 1. Crear tubos llenos uniformes
+    // 1. Crear frascos llenos uniformes
     for (let i = 0; i < colorCount; i++) {
       const col = activeColors[i];
       const isThisGiant = (hasGiant && i === 0);
@@ -59,36 +84,74 @@ class LevelGenerator {
         liquids: tubeLiquids,
         isLocked: false,
         keyColor: null,
-        isNarrow: (hasNarrow && i === 2)
+        isNarrow: (hasNarrow && i === 2),
+        isGlued: false,
+        isFragile: (hasFragile && i === 0),
+        operationsRemaining: (hasFragile && i === 0 ? 3 : null)
       });
     }
 
-    // 2. Agregar frascos vacíos de trabajo
+    // 2. Agregar frascos vacíos de trabajo o frasco inamovible (en la roca)
     for (let i = 0; i < emptyCount; i++) {
+      const isGluedTube = (hasGlued && i === 0);
+      let initialGluedLiquids = [];
+
+      // REGLA USUARIO: Las botellas inamovibles deben tener como máximo 1/4 de líquido (1 unidad)
+      // y SOLO de líquido normal (nunca misterio). El nivel garantiza que sea 100% resoluble.
+      if (isGluedTube) {
+        const startWithQuarter = (seedVariation % 2 === 0);
+        if (startWithQuarter && tubes.length > 0 && tubes[0].liquids.length > 1) {
+          const sample = tubes[0].liquids.pop();
+          initialGluedLiquids.push({
+            colorIndex: sample.colorIndex,
+            color: sample.color,
+            name: sample.name,
+            shape: sample.shape,
+            pattern: sample.pattern,
+            textHex: sample.textHex,
+            isMystery: false,
+            isChameleon: false
+          });
+        }
+      }
+
       tubes.push({
         id: colorCount + i,
         capacity: capacity,
-        liquids: [],
+        liquids: initialGluedLiquids,
         isLocked: false,
         keyColor: null,
-        isNarrow: false
+        isNarrow: false,
+        isGlued: isGluedTube, // Frasco inamovible: solo puede recibir líquidos
+        isFragile: false,
+        operationsRemaining: null
       });
     }
 
     // 3. Aplicar candado si corresponde
     if (hasLock && tubes.length > 0) {
-      const lastTube = tubes[tubes.length - 1];
-      lastTube.isLocked = true;
-      lastTube.keyColor = activeColors[0].hex;
-      lastTube.keyColorName = activeColors[0].name;
+      const lockTube = tubes[tubes.length - 1];
+      lockTube.isLocked = true;
+      lockTube.keyColor = activeColors[0].hex;
+      lockTube.keyColorName = activeColors[0].name;
     }
 
-    // 4. Mezclar deterministamente según la semilla del nivel
-    this.shuffleDeterministically(tubes, level);
+    // 4. Mezclar deterministamente según la semilla del nivel + variación por reintentos
+    const effectiveSeed = level * 7919 + seedVariation * 1337 + 12345;
+    this.shuffleDeterministically(tubes, effectiveSeed);
 
-    // 5. Aplicar estados de misterio: La superficie SIEMPRE está descubierta, las capas inferiores quedan ocultas
+    // 5. Aplicar estados de misterio: La superficie SIEMPRE está descubierta
+    // REGLA: Si hay bloques consecutivos ocultos del mismo color bajo la superficie, se desbloquean juntos.
+    // Los frascos inamovibles NUNCA tienen líquido misterioso.
     if (hasMystery) {
       tubes.forEach(tube => {
+        if (tube.isGlued) {
+          tube.liquids.forEach(liq => {
+            liq.isMystery = false;
+          });
+          return;
+        }
+
         tube.liquids.forEach((liq, idx) => {
           if (idx < tube.liquids.length - 1) {
             liq.isMystery = true;
@@ -96,6 +159,18 @@ class LevelGenerator {
             liq.isMystery = false;
           }
         });
+
+        // Desbloqueo consecutivo del mismo color bajo el tope
+        if (tube.liquids.length >= 2) {
+          const topColor = tube.liquids[tube.liquids.length - 1].color;
+          for (let k = tube.liquids.length - 2; k >= 0; k--) {
+            if (tube.liquids[k].color === topColor) {
+              tube.liquids[k].isMystery = false;
+            } else {
+              break;
+            }
+          }
+        }
       });
     } else {
       tubes.forEach(tube => {
@@ -106,19 +181,23 @@ class LevelGenerator {
     }
 
     // 6. Cálculo de movimientos óptimos estimados para estrellas
-    const optimalMoves = colorCount * 3 + Math.floor(level / 4) + (hasMystery ? 2 : 0) + (hasLock ? 2 : 0);
+    const optimalMoves = colorCount * 3 + Math.floor(level / 4) + (hasMystery ? 2 : 0) + (hasLock ? 2 : 0) + (hasGlued ? 2 : 0);
 
     return {
       level,
+      seedVariation,
       tubes,
       colorCount,
       mechanicTag,
+      primaryMechanicId,
       optimalMoves,
       hasMystery,
       hasGiant,
       hasLock,
       hasNarrow,
-      hasChameleon
+      hasGlued,
+      hasChameleon,
+      hasFragile
     };
   }
 
@@ -129,7 +208,7 @@ class LevelGenerator {
       return s / 0x7fffffff;
     };
 
-    const steps = 30 + (seed % 15);
+    const steps = 32 + (seed % 17);
     for (let step = 0; step < steps; step++) {
       const fromIdx = Math.floor(rnd() * (tubes.length - 2));
       const toIdx = Math.floor(rnd() * tubes.length);
@@ -138,7 +217,8 @@ class LevelGenerator {
         const fromT = tubes[fromIdx];
         const toT = tubes[toIdx];
 
-        if (fromT.liquids.length > 1 && toT.liquids.length < toT.capacity && !toT.isLocked) {
+        // Ni origen ni destino pueden ser un frasco inamovible (mantiene su 1/4 o vacío puro)
+        if (fromT.liquids.length > 1 && toT.liquids.length < toT.capacity && !toT.isLocked && !fromT.isGlued && !toT.isGlued) {
           const popped = fromT.liquids.pop();
           toT.liquids.push(popped);
         }

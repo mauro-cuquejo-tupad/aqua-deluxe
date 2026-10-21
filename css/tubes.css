@@ -284,3 +284,37 @@
   30% { opacity: 1; transform: translate(-50%, -5px) scale(1.1); }
   100% { opacity: 0; transform: translate(-50%, -30px) scale(1); }
 }
+
+/* Frasco Inamovible - Incrustado en la Roca (Estilo Excalibur) */
+.test-tube.tube-glued {
+  cursor: pointer;
+}
+.tube-stone-base {
+  position: absolute;
+  bottom: -16px;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 80px;
+  height: 40px;
+  pointer-events: none;
+  z-index: 25;
+}
+.test-tube.tube-glued .tube-glass {
+  border-bottom: 3px solid #334155;
+  box-shadow: 0 14px 20px -4px rgba(0, 0, 0, 0.9), inset 0 -6px 12px rgba(51, 65, 85, 0.7);
+}
+.test-tube.tube-glued-shake {
+  animation: gluedShake 0.35s ease-in-out;
+}
+@keyframes gluedShake {
+  0%, 100% { transform: translateY(0); }
+  20%, 60% { transform: translateX(-5px); }
+  40%, 80% { transform: translateX(5px); }
+}
+
+/* Frasco Cristal Frágil (Límite de operaciones) */
+.test-tube.tube-fragile .tube-glass {
+  border-color: #fb7185;
+  box-shadow: 0 0 16px rgba(251, 113, 133, 0.5);
+}
+

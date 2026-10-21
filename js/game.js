@@ -13,14 +13,27 @@ class GameController {
     this.moves = 0;
     this.coins = window.stateManager ? window.stateManager.getCoins() : 0;
     this.hintsRemaining = 3;
+    this.hintsUsedInLevel = 0;
     this.extraTubesUsed = 0;
     this.moveHistory = [];
     this.activeHint = null;
     this.isPouringAnimation = false;
+    this.seedVariation = 0;
+    this.customLevelTesting = null;
 
     // Accesibilidad y personalización
     this.isLowVision = false;
     this.isHighContrast = false;
+
+    // Editor de Niveles
+    this.editorLevel = {
+      name: 'El Crisol del Titán',
+      creator: 'Maestro Alquimista',
+      tubeCount: 5,
+      tubes: [],
+      hasBeenPassed: false
+    };
+    this.activeBrush = { type: 'color', color: '#ef4444', name: 'Rojo', shape: '●' };
 
     // Canvas de chorro de agua
     this.pourCanvas = null;
@@ -30,6 +43,7 @@ class GameController {
     this.cacheDom();
     this.initEvents();
     this.initCanvas();
+    this.initEditorWorkspace();
 
     // Sincronizar nivel desbloqueado guardado si existe
     if (window.stateManager && window.stateManager.state.progress.unlockedLevel) {
@@ -37,6 +51,10 @@ class GameController {
     }
 
     this.loadLevel(this.currentLevel);
+
+    // Iniciar loop de vidas en tiempo real
+    this.livesInterval = setInterval(() => this.updateLivesHUD(), 1000);
+    this.updateLivesHUD();
 
     // Iniciar música relajante de nivel tras la primera interacción
     this.setupAudioUnlock();
@@ -60,6 +78,13 @@ class GameController {
     this.btnHint = document.getElementById('btn-hint');
     this.btnAddTube = document.getElementById('btn-add-tube');
     this.btnRestart = document.getElementById('btn-restart');
+    this.btnOpenEditor = document.getElementById('btn-open-editor');
+
+    // Widget de Vidas
+    this.livesHud = document.getElementById('lives-hud');
+    this.livesHeartsDisplay = document.getElementById('lives-hearts-display');
+    this.livesCountText = document.getElementById('lives-count-text');
+    this.livesTimerText = document.getElementById('lives-timer-text');
 
     // Modales
     this.modalMap = document.getElementById('modal-map');
@@ -69,6 +94,9 @@ class GameController {
     this.modalSettings = document.getElementById('modal-settings');
     this.modalHome = document.getElementById('modal-home');
     this.modalShop = document.getElementById('modal-shop');
+    this.modalRestartConfirm = document.getElementById('modal-restart-confirm');
+    this.modalTutorial = document.getElementById('modal-tutorial');
+    this.modalEditor = document.getElementById('modal-editor');
 
     // Elementos de la Tienda y Pantalla de Inicio
     this.shopItemsContainer = document.getElementById('shop-items-container');
@@ -102,17 +130,19 @@ class GameController {
   }
 
   // --- CARGA Y GENERACIÓN DE NIVELES ---
-  loadLevel(lvl) {
+  loadLevel(lvl, seedVariation = 0, customLevelData = null) {
     this.currentLevel = Math.max(1, Math.min(lvl, this.maxLevels));
     this.moves = 0;
     this.moveHistory = [];
     this.selectedTubeIndex = null;
     this.extraTubesUsed = 0;
     this.activeHint = null;
+    this.hintsUsedInLevel = 0;
     this.isPouringAnimation = false;
+    this.seedVariation = seedVariation;
 
     // Actualizar nivel desbloqueado en el estado persistente
-    if (window.stateManager) {
+    if (window.stateManager && !customLevelData) {
       if (this.currentLevel > (window.stateManager.state.progress.unlockedLevel || 1)) {
         window.stateManager.state.progress.unlockedLevel = this.currentLevel;
         window.stateManager.saveState();
@@ -120,9 +150,15 @@ class GameController {
       this.coins = window.stateManager.getCoins();
     }
 
-    // Generar datos de nivel
-    this.levelData = window.LevelGenerator.generate(this.currentLevel);
-    this.tubes = this.levelData.tubes;
+    if (customLevelData) {
+      this.levelData = customLevelData;
+      this.tubes = JSON.parse(JSON.stringify(customLevelData.tubes));
+      this.customLevelTesting = customLevelData;
+    } else {
+      this.customLevelTesting = null;
+      this.levelData = window.LevelGenerator.generate(this.currentLevel, this.seedVariation);
+      this.tubes = this.levelData.tubes;
+    }
 
     // Iniciar temporizador en vivo
     if (window.leaderboardManager) {
@@ -139,6 +175,17 @@ class GameController {
     this.renderTubes();
     this.updateButtonsUI();
     this.updateAuxiliaryButtonUI();
+    this.updateLivesHUD();
+
+    // Comprobar si hay nueva mecánica que requiera tutorial animado
+    if (!customLevelData && this.levelData.primaryMechanicId && this.levelData.primaryMechanicId !== 'basic') {
+      if (window.stateManager && !window.stateManager.hasSeenTutorial(this.levelData.primaryMechanicId)) {
+        setTimeout(() => {
+          this.showTutorialModal(this.levelData.primaryMechanicId);
+          window.stateManager.markTutorialSeen(this.levelData.primaryMechanicId);
+        }, 400);
+      }
+    }
   }
 
   updateHeaderUI() {
@@ -316,7 +363,7 @@ class GameController {
 
       tubeEl.appendChild(glassEl);
 
-      // Indicadores especiales (Tubo estrecho 1x1, Gigante)
+      // Indicadores especiales (Tubo estrecho 1x1, Gigante, Pegado, Frágil)
       if (tube.isNarrow) {
         const narrowTag = document.createElement('span');
         narrowTag.className = 'absolute -bottom-5 text-[10px] text-purple-300 font-bold tracking-wider';
@@ -328,6 +375,45 @@ class GameController {
         giantTag.className = 'absolute -bottom-5 text-[10px] text-sky-300 font-bold tracking-wider';
         giantTag.textContent = 'Max 6';
         tubeEl.appendChild(giantTag);
+      }
+      if (tube.isGlued) {
+        tubeEl.classList.add('tube-glued');
+        const stoneEl = document.createElement('div');
+        stoneEl.className = 'tube-stone-base';
+        stoneEl.title = 'Frasco Inamovible (Incrustado en la roca: solo recibe líquidos)';
+        stoneEl.innerHTML = `
+          <svg viewBox="0 0 90 46" class="w-full h-full drop-shadow-[0_4px_10px_rgba(0,0,0,0.9)]" fill="none" xmlns="http://www.w3.org/2000/svg">
+            <defs>
+              <linearGradient id="rock-grad-1" x1="0%" y1="0%" x2="100%" y2="100%">
+                <stop offset="0%" stop-color="#475569"/>
+                <stop offset="50%" stop-color="#334155"/>
+                <stop offset="100%" stop-color="#1e293b"/>
+              </linearGradient>
+              <linearGradient id="rock-grad-2" x1="0%" y1="0%" x2="0%" y2="100%">
+                <stop offset="0%" stop-color="#64748b"/>
+                <stop offset="100%" stop-color="#334155"/>
+              </linearGradient>
+            </defs>
+            <path d="M 8 42 L 16 22 L 28 14 L 45 10 L 62 14 L 74 22 L 82 42 Z" fill="url(#rock-grad-1)" stroke="#475569" stroke-width="1.5"/>
+            <path d="M 16 22 L 28 14 L 36 26 L 22 42 Z" fill="#1e293b"/>
+            <path d="M 45 10 L 62 14 L 54 26 L 36 26 Z" fill="url(#rock-grad-2)"/>
+            <path d="M 62 14 L 74 22 L 68 42 L 54 26 Z" fill="#0f172a"/>
+            <path d="M 28 14 L 45 10 L 36 26 Z" fill="#64748b"/>
+            <path d="M 43 16 L 39 25 L 44 34" stroke="#94a3b8" stroke-width="1.2" stroke-linecap="round"/>
+            <path d="M 50 18 L 53 26 L 49 36" stroke="#94a3b8" stroke-width="1.2" stroke-linecap="round"/>
+            <circle cx="31" cy="32" r="1.5" fill="#10b981"/>
+            <circle cx="64" cy="34" r="1.5" fill="#10b981"/>
+            <ellipse cx="45" cy="13" rx="20" ry="4.5" fill="#0b0f19" stroke="#64748b" stroke-width="1.5"/>
+          </svg>
+        `;
+        tubeEl.appendChild(stoneEl);
+      }
+      if (tube.isFragile) {
+        tubeEl.classList.add('tube-fragile');
+        const fragileTag = document.createElement('span');
+        fragileTag.className = 'absolute -bottom-5 text-[10px] text-rose-300 font-bold tracking-wider';
+        fragileTag.textContent = `${tube.operationsRemaining ?? 3} 🛡️`;
+        tubeEl.appendChild(fragileTag);
       }
 
       // Hover para mostrar tooltip del color
@@ -366,9 +452,25 @@ class GameController {
     if (this.isPouringAnimation) return;
     if (window.audio) window.audio.init();
 
+    const clickedTube = this.tubes[idx];
+
     // 1. Si no hay tubo seleccionado
     if (this.selectedTubeIndex === null) {
-      if (this.tubes[idx].liquids.length === 0 || this.tubes[idx].isLocked) {
+      // Mecánica: Frasco pegado (solo puede recibir líquido, nunca vaciarse)
+      if (clickedTube.isGlued) {
+        if (window.audio) window.audio.playGluedError();
+        tubeEl.classList.add('tube-glued-shake');
+        setTimeout(() => tubeEl.classList.remove('tube-glued-shake'), 400);
+        return;
+      }
+
+      // Mecánica: Frasco frágil sin operaciones
+      if (clickedTube.isFragile && typeof clickedTube.operationsRemaining === 'number' && clickedTube.operationsRemaining <= 0) {
+        if (window.audio) window.audio.playFailSound();
+        return;
+      }
+
+      if (clickedTube.liquids.length === 0 || clickedTube.isLocked) {
         if (window.audio) window.audio.playFailSound();
         return;
       }
@@ -416,13 +518,19 @@ class GameController {
     if (this.canPour(fromIdx, toIdx)) {
       this.executePour(fromIdx, toIdx);
     } else {
-      // Si el destino tiene líquido, seleccionarlo como nuevo origen
-      if (toTube.liquids.length > 0 && !toTube.isLocked) {
+      // Si el destino tiene líquido y NO está pegado, seleccionarlo como nuevo origen
+      if (toTube.liquids.length > 0 && !toTube.isLocked && !toTube.isGlued) {
         this.selectedTubeIndex = toIdx;
         if (window.audio) window.audio.playSelect();
       } else {
+        if (toTube.isGlued) {
+          if (window.audio) window.audio.playGluedError();
+          tubeEl.classList.add('tube-glued-shake');
+          setTimeout(() => tubeEl.classList.remove('tube-glued-shake'), 400);
+        } else {
+          if (window.audio) window.audio.playFailSound();
+        }
         this.selectedTubeIndex = null;
-        if (window.audio) window.audio.playFailSound();
       }
       this.renderTubes();
     }
@@ -434,6 +542,13 @@ class GameController {
 
     if (toTube.isLocked || fromTube.liquids.length === 0) return false;
     if (toTube.liquids.length >= toTube.capacity) return false;
+
+    // Un frasco pegado nunca puede verter
+    if (fromTube.isGlued) return false;
+
+    // Cristal frágil sin operaciones restantes
+    if (fromTube.isFragile && typeof fromTube.operationsRemaining === 'number' && fromTube.operationsRemaining <= 0) return false;
+    if (toTube.isFragile && typeof toTube.operationsRemaining === 'number' && toTube.operationsRemaining <= 0) return false;
 
     // Asegurar que la capa superior NUNCA esté bloqueada por misterio
     const topFrom = fromTube.liquids[fromTube.liquids.length - 1];
@@ -584,7 +699,8 @@ class GameController {
                   toTube.liquids.push(item);
                 }
 
-                // Revelar capa misteriosa si la nueva capa superior era oculta
+                // Revelar capas misteriosas si la nueva capa superior era oculta
+                // Regla: si hay bloques ocultos consecutivos del mismo color, se desbloquean todos juntos
                 let mysteryRevealed = false;
                 if (fromTube.liquids.length > 0) {
                   const newTop = fromTube.liquids[fromTube.liquids.length - 1];
@@ -592,9 +708,26 @@ class GameController {
                     newTop.isMystery = false;
                     mysteryRevealed = true;
                   }
+                  const topColor = newTop.color;
+                  for (let k = fromTube.liquids.length - 2; k >= 0; k--) {
+                    if (fromTube.liquids[k].isMystery && fromTube.liquids[k].color === topColor) {
+                      fromTube.liquids[k].isMystery = false;
+                      mysteryRevealed = true;
+                    } else {
+                      break;
+                    }
+                  }
                 }
                 if (mysteryRevealed && window.audio) {
                   window.audio.playReveal();
+                }
+
+                // Desgaste de frascos frágiles por operación
+                if (fromTube.isFragile && typeof fromTube.operationsRemaining === 'number') {
+                  fromTube.operationsRemaining = Math.max(0, fromTube.operationsRemaining - 1);
+                }
+                if (toTube.isFragile && typeof toTube.operationsRemaining === 'number') {
+                  toTube.operationsRemaining = Math.max(0, toTube.operationsRemaining - 1);
                 }
 
                 // Incrementar movimientos reales y actualizar UI
@@ -740,14 +873,25 @@ class GameController {
   }
 
   triggerVictorySequence() {
+    // Si estamos en modo de prueba de nivel personalizado
+    if (this.customLevelTesting) {
+      this.customLevelTesting.hasBeenPassed = true;
+      this.editorLevel.hasBeenPassed = true;
+      if (window.audio) window.audio.playWinFanfare();
+      alert(`¡FELICITACIONES! Has superado con éxito tu nivel '${this.customLevelTesting.name}'. ¡Ya ha sido validado y puedes publicarlo en el Taller!`);
+      this.openEditorModal('design');
+      return;
+    }
+
     const elapsedSecs = window.leaderboardManager ? window.leaderboardManager.stopTimer() : 0;
 
     // Calcular estrellas
     const starCount = this.moves <= this.levelData.optimalMoves ? 3 : (this.moves <= this.levelData.optimalMoves * 1.5 ? 2 : 1);
 
-    // Guardar récord en el gestor de clasificaciones
+    // Guardar récord en el gestor de clasificaciones ÚNICAMENTE si no se usaron pistas
     let recordResult = null;
-    if (window.leaderboardManager) {
+    const usedHints = (this.hintsUsedInLevel > 0);
+    if (!usedHints && window.leaderboardManager) {
       recordResult = window.leaderboardManager.recordLevelCompletion(this.currentLevel, elapsedSecs, this.moves, starCount);
     }
 
@@ -796,12 +940,23 @@ class GameController {
   }
 
   showVictoryModal(elapsedSecs, combo, stars, recordResult) {
-    let baseCoins = 5;
-    if (this.moves <= this.levelData.optimalMoves) baseCoins = 15;
-    else if (this.moves <= this.levelData.optimalMoves * 1.5) baseCoins = 10;
+    // Reajuste de economía alquímica: recompensas sostenibles (2 a 4 monedas base)
+    let baseCoins = 2;
+    if (this.moves <= this.levelData.optimalMoves) baseCoins = 4;
+    else if (this.moves <= this.levelData.optimalMoves * 1.5) baseCoins = 3;
 
-    let totalEarned = baseCoins + (combo > 1 ? combo * 2 : 0);
+    let totalEarned = baseCoins + (combo > 2 ? 1 : 0);
     this.addCoins(totalEarned);
+
+    // Badge de advertencia si se usaron pistas
+    const hintsBadge = document.getElementById('lbl-hints-warning-badge');
+    if (hintsBadge) {
+      if (this.hintsUsedInLevel > 0) {
+        hintsBadge.classList.remove('hidden');
+      } else {
+        hintsBadge.classList.add('hidden');
+      }
+    }
 
     // Resumen en modal
     const movesEl = document.getElementById('lbl-vic-moves');
@@ -920,6 +1075,7 @@ class GameController {
       for (let j = 0; j < this.tubes.length; j++) {
         if (i !== j && this.canPour(i, j)) {
           this.hintsRemaining--;
+          this.hintsUsedInLevel = (this.hintsUsedInLevel || 0) + 1; // Marca el nivel para exclusión del leaderboard
           if (this.lblHintsLeft) this.lblHintsLeft.textContent = this.hintsRemaining;
           this.activeHint = { from: i, to: j };
 
@@ -943,7 +1099,7 @@ class GameController {
     });
   }
 
-  // --- TIENDA DE MEJORAS (UPGRADES SHOP) ---
+  // --- TIENDA DE MEJORAS (UPGRADES SHOP CON ECONOMÍA REBALANCEADA) ---
   openShopModal() {
     this.updateCoinsUI();
     this.renderShopItems();
@@ -954,6 +1110,7 @@ class GameController {
   closeShopModal() {
     if (this.modalShop) this.modalShop.classList.add('hidden');
     this.updateAuxiliaryButtonUI();
+    this.updateLivesHUD();
   }
 
   renderShopItems() {
@@ -961,19 +1118,63 @@ class GameController {
     if (!container || !window.stateManager) return;
     const state = window.stateManager.state;
     const coins = window.stateManager.getCoins();
+    const lives = window.stateManager.getLives();
+    const maxLives = window.stateManager.getMaxLives();
 
     const cdLvl = state.upgrades.cooldownReductionLevel || 1;
     const cdMs = { 1: 100, 2: 75, 3: 50, 4: 25 }[cdLvl] || 25;
     const nextCdMs = { 1: 75, 2: 50, 3: 25 }[cdLvl];
-    const cdCost = { 1: 30, 2: 60, 3: 100 }[cdLvl];
+    const cdCost = { 1: 80, 2: 180, 3: 350 }[cdLvl];
 
     const hintsCap = state.upgrades.maxStoredHints || 3;
     const nextHintsCap = hintsCap === 3 ? 5 : (hintsCap === 5 ? 8 : null);
-    const hintsCapCost = hintsCap === 3 ? 25 : (hintsCap === 5 ? 50 : null);
+    const hintsCapCost = hintsCap === 3 ? 60 : (hintsCap === 5 ? 150 : null);
 
     const remCd = window.stateManager.getCooldownRemaining();
 
     container.innerHTML = `
+      <!-- 0. Vidas Alquímicas: Comprar 1 Vida -->
+      <div class="bg-slate-800/80 border border-slate-700/80 rounded-2xl p-4 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 shadow-md">
+        <div class="flex items-center gap-3">
+          <div class="w-12 h-12 rounded-2xl bg-rose-500/15 border border-rose-400/30 flex items-center justify-center text-rose-400 shadow-inner">
+            <i data-lucide="heart" class="w-6 h-6 fill-rose-500"></i>
+          </div>
+          <div>
+            <h4 class="text-sm font-bold text-white flex items-center gap-2">
+              Comprar 1 Vida (+1 ❤️)
+              <span class="text-[10px] px-2 py-0.5 rounded-full bg-rose-500/20 text-rose-300 font-mono">${lives}/${maxLives} Vidas</span>
+            </h4>
+            <p class="text-xs text-slate-400">Recupera 1 vida instantáneamente para reintentar niveles sin esperar los 10 minutos.</p>
+          </div>
+        </div>
+        <div>
+          <button class="btn-interactive px-4 py-2 rounded-xl text-xs font-black bg-gradient-to-r from-rose-500 to-pink-600 hover:from-rose-400 hover:to-pink-500 text-white shadow-md shadow-rose-500/20 disabled:opacity-40" ${lives >= maxLives || coins < 25 ? 'disabled' : ''} onclick="window.game.buyUpgrade('buy_life')">
+            Comprar (25 🪙)
+          </button>
+        </div>
+      </div>
+
+      <!-- 0.b Vidas Alquímicas: Recarga Completa (3/3) -->
+      <div class="bg-slate-800/80 border border-slate-700/80 rounded-2xl p-4 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 shadow-md">
+        <div class="flex items-center gap-3">
+          <div class="w-12 h-12 rounded-2xl bg-rose-600/15 border border-rose-500/30 flex items-center justify-center text-rose-400 shadow-inner">
+            <i data-lucide="heart-pulse" class="w-6 h-6"></i>
+          </div>
+          <div>
+            <h4 class="text-sm font-bold text-white flex items-center gap-2">
+              Elixir de Vida Total (3/3 ❤️)
+              <span class="text-[10px] px-2 py-0.5 rounded-full bg-rose-500/20 text-rose-300 font-mono">Pack Completo</span>
+            </h4>
+            <p class="text-xs text-slate-400">Restaura todas tus vidas al máximo de inmediato con precio de oferta.</p>
+          </div>
+        </div>
+        <div>
+          <button class="btn-interactive px-4 py-2 rounded-xl text-xs font-black bg-gradient-to-r from-rose-600 to-red-600 hover:from-rose-500 hover:to-red-500 text-white shadow-md shadow-rose-600/20 disabled:opacity-40" ${lives >= maxLives || coins < 60 ? 'disabled' : ''} onclick="window.game.buyUpgrade('recharge_all_lives')">
+            Restaurar Todo (60 🪙)
+          </button>
+        </div>
+      </div>
+
       <!-- 1. Reducción de Enfriamiento de Botella Auxiliar -->
       <div class="bg-slate-800/80 border border-slate-700/80 rounded-2xl p-4 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 shadow-md">
         <div class="flex items-center gap-3">
@@ -1016,8 +1217,8 @@ class GameController {
           </div>
         </div>
         <div>
-          <button class="btn-interactive px-4 py-2 rounded-xl text-xs font-black bg-gradient-to-r from-emerald-500 to-teal-600 hover:from-emerald-400 hover:to-teal-500 text-white shadow-md shadow-emerald-500/20 disabled:opacity-40" ${remCd === 0 || coins < 20 ? 'disabled' : ''} onclick="window.game.buyUpgrade('recharge_bottle')">
-            Recargar (20 🪙)
+          <button class="btn-interactive px-4 py-2 rounded-xl text-xs font-black bg-gradient-to-r from-emerald-500 to-teal-600 hover:from-emerald-400 hover:to-teal-500 text-white shadow-md shadow-emerald-500/20 disabled:opacity-40" ${remCd === 0 || coins < 40 ? 'disabled' : ''} onclick="window.game.buyUpgrade('recharge_bottle')">
+            Recargar (40 🪙)
           </button>
         </div>
       </div>
@@ -1064,13 +1265,13 @@ class GameController {
           </div>
         </div>
         <div>
-          <button class="btn-interactive px-4 py-2 rounded-xl text-xs font-black bg-gradient-to-r from-purple-500 to-pink-600 hover:from-purple-400 hover:to-pink-500 text-white shadow-md shadow-purple-500/20 disabled:opacity-40" ${coins < 15 ? 'disabled' : ''} onclick="window.game.buyUpgrade('buy_hints_pack')">
-            Comprar (15 🪙)
+          <button class="btn-interactive px-4 py-2 rounded-xl text-xs font-black bg-gradient-to-r from-purple-500 to-pink-600 hover:from-purple-400 hover:to-pink-500 text-white shadow-md shadow-purple-500/20 disabled:opacity-40" ${coins < 45 ? 'disabled' : ''} onclick="window.game.buyUpgrade('buy_hints_pack')">
+            Comprar (45 🪙)
           </button>
         </div>
       </div>
 
-      <!-- 5. Seguro Permanente de la Ruleta -->
+      <!-- 5. Seguro Permanente de Minijuego (Ruleta / Diana) -->
       <div class="bg-slate-800/80 border border-slate-700/80 rounded-2xl p-4 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 shadow-md">
         <div class="flex items-center gap-3">
           <div class="w-12 h-12 rounded-2xl bg-rose-500/15 border border-rose-400/30 flex items-center justify-center text-rose-400 shadow-inner">
@@ -1078,16 +1279,16 @@ class GameController {
           </div>
           <div>
             <h4 class="text-sm font-bold text-white flex items-center gap-2">
-              Seguro de Ruleta (Boost)
+              Seguro de Minijuegos (Boost)
               <span class="text-[10px] px-2 py-0.5 rounded-full bg-rose-500/20 text-rose-300 font-mono">Permanente</span>
             </h4>
-            <p class="text-xs text-slate-400">Si fallas en la ruleta de la fortuna, conservas el 100% de tus monedas del nivel en lugar de perder la mitad.</p>
+            <p class="text-xs text-slate-400">Si fallas en la ruleta o en la diana con viento, conservas el 100% de tus monedas ganadas en lugar de perderlas.</p>
           </div>
         </div>
         <div>
           ${!state.upgrades.rouletteBoost ? `
-            <button class="btn-interactive px-4 py-2 rounded-xl text-xs font-black bg-gradient-to-r from-rose-500 to-red-600 hover:from-rose-400 hover:to-red-500 text-white shadow-md shadow-rose-500/20 disabled:opacity-40" ${coins < 40 ? 'disabled' : ''} onclick="window.game.buyUpgrade('roulette_boost')">
-              Activar (40 🪙)
+            <button class="btn-interactive px-4 py-2 rounded-xl text-xs font-black bg-gradient-to-r from-rose-500 to-red-600 hover:from-rose-400 hover:to-red-500 text-white shadow-md shadow-rose-500/20 disabled:opacity-40" ${coins < 120 ? 'disabled' : ''} onclick="window.game.buyUpgrade('roulette_boost')">
+              Activar (120 🪙)
             </button>
           ` : `
             <span class="px-3 py-1.5 rounded-xl bg-emerald-500/20 border border-emerald-500/40 text-emerald-300 font-bold text-xs">
@@ -1107,6 +1308,9 @@ class GameController {
       if (type === 'buy_hints_pack') {
         this.hintsRemaining += 3;
         if (this.lblHintsLeft) this.lblHintsLeft.textContent = this.hintsRemaining;
+      }
+      if (type === 'buy_life' || type === 'recharge_all_lives') {
+        this.updateLivesHUD();
       }
       if (window.audio) window.audio.playWinFanfare();
       this.updateCoinsUI();
@@ -1190,7 +1394,7 @@ class GameController {
   initEvents() {
     // Acciones principales del HUD
     if (this.btnUndo) this.btnUndo.addEventListener('click', () => this.undo());
-    if (this.btnRestart) this.btnRestart.addEventListener('click', () => this.loadLevel(this.currentLevel));
+    if (this.btnRestart) this.btnRestart.addEventListener('click', () => this.openRestartConfirmModal());
     if (this.btnHint) this.btnHint.addEventListener('click', () => this.giveHint());
     if (this.btnAddTube) this.btnAddTube.addEventListener('click', () => this.addAuxiliaryTube());
 
@@ -1220,6 +1424,79 @@ class GameController {
     const btnOpenShop = document.getElementById('btn-open-shop');
     if (btnOpenShop) {
       btnOpenShop.addEventListener('click', () => this.openShopModal());
+    }
+
+    // Botón Widget de Vidas -> Abre la tienda para recarga
+    if (this.livesHud) {
+      this.livesHud.addEventListener('click', () => this.openShopModal());
+    }
+
+    // Botón Taller de Creación en Header
+    if (this.btnOpenEditor) {
+      this.btnOpenEditor.addEventListener('click', () => this.openEditorModal('design'));
+    }
+
+    // Botón Taller de Creación en Home Screen
+    const btnHomeEditor = document.getElementById('btn-home-editor');
+    if (btnHomeEditor) {
+      btnHomeEditor.addEventListener('click', () => {
+        this.closeHomeModal();
+        this.openEditorModal('design');
+      });
+    }
+
+    // Modal Reinicio Confirmación
+    const btnConfirmRestart = document.getElementById('btn-confirm-restart');
+    if (btnConfirmRestart) {
+      btnConfirmRestart.addEventListener('click', () => this.confirmRestartLevel());
+    }
+    const btnCancelRestart = document.getElementById('btn-cancel-restart');
+    if (btnCancelRestart) {
+      btnCancelRestart.addEventListener('click', () => this.closeRestartConfirmModal());
+    }
+
+    // Modal Tutorial
+    const btnCloseTut = document.getElementById('btn-close-tutorial');
+    if (btnCloseTut) {
+      btnCloseTut.addEventListener('click', () => this.closeTutorialModal());
+    }
+
+    // Modal Editor de Niveles botones y pestañas
+    const btnCloseEditor = document.getElementById('btn-close-editor');
+    if (btnCloseEditor) {
+      btnCloseEditor.addEventListener('click', () => this.closeEditorModal());
+    }
+    const tabDesign = document.getElementById('tab-editor-design');
+    if (tabDesign) {
+      tabDesign.addEventListener('click', () => this.switchEditorTab('design'));
+    }
+    const tabSaved = document.getElementById('tab-editor-saved');
+    if (tabSaved) {
+      tabSaved.addEventListener('click', () => this.switchEditorTab('saved'));
+    }
+    const btnTest = document.getElementById('btn-editor-test');
+    if (btnTest) {
+      btnTest.addEventListener('click', () => this.testCustomLevel());
+    }
+    const btnPublish = document.getElementById('btn-editor-publish');
+    if (btnPublish) {
+      btnPublish.addEventListener('click', () => this.publishCustomLevel());
+    }
+    const selTubeCount = document.getElementById('editor-tube-count');
+    if (selTubeCount) {
+      selTubeCount.addEventListener('change', (e) => {
+        const count = parseInt(e.target.value);
+        this.editorLevel.tubeCount = count;
+        while (this.editorLevel.tubes.length < count) {
+          this.editorLevel.tubes.push({ capacity: 4, liquids: [], isLocked: false, keyColor: null, isNarrow: false, isGlued: false, isFragile: false, operationsRemaining: null });
+        }
+        while (this.editorLevel.tubes.length > count) {
+          this.editorLevel.tubes.pop();
+        }
+        this.editorLevel.hasBeenPassed = false;
+        this.updateEditorValidation();
+        this.renderEditorTubes();
+      });
     }
 
     // Modal Inicio (Home) botones internos
@@ -1414,6 +1691,7 @@ class GameController {
       btnVicRoulette.addEventListener('click', () => {
         if (this.modalVictory) this.modalVictory.classList.add('hidden');
         if (this.modalRoulette) this.modalRoulette.classList.remove('hidden');
+        if (window.rouletteEngine) window.rouletteEngine.initRound();
         if (window.audio) window.audio.playMusic('roulette');
       });
     }
@@ -1446,13 +1724,614 @@ class GameController {
     // Cerrar modales con Escape
     window.addEventListener('keydown', (e) => {
       if (e.key === 'Escape') {
-        const modals = [this.modalMap, this.modalLeaderboard, this.modalSettings, this.modalHome, this.modalShop];
+        const modals = [this.modalMap, this.modalLeaderboard, this.modalSettings, this.modalHome, this.modalShop, this.modalRestartConfirm, this.modalTutorial, this.modalEditor];
         modals.forEach(m => m && m.classList.add('hidden'));
         if (window.audio && !this.isModalOpen()) {
           window.audio.playMusic('level');
         }
       }
     });
+  }
+
+  // --- GESTIÓN DEL SISTEMA DE VIDAS Y REGENERACIÓN EN TIEMPO REAL ---
+  updateLivesHUD() {
+    if (!window.stateManager) return;
+    window.stateManager.regenerateLives();
+    const lives = window.stateManager.getLives();
+    const maxLives = window.stateManager.getMaxLives();
+    const timer = window.stateManager.getTimeToNextLife();
+
+    if (this.livesCountText) {
+      this.livesCountText.textContent = `${lives}/${maxLives}`;
+    }
+
+    if (this.livesHeartsDisplay) {
+      this.livesHeartsDisplay.innerHTML = '';
+      for (let i = 0; i < maxLives; i++) {
+        if (i < lives) {
+          this.livesHeartsDisplay.innerHTML += `
+            <i data-lucide="heart" class="w-3.5 h-3.5 fill-rose-500 text-rose-500 heart-icon-full"></i>
+          `;
+        } else {
+          this.livesHeartsDisplay.innerHTML += `
+            <i data-lucide="heart" class="w-3.5 h-3.5 text-slate-600 heart-icon-empty"></i>
+          `;
+        }
+      }
+      if (window.lucide) lucide.createIcons();
+    }
+
+    if (this.livesTimerText) {
+      if (timer && lives < maxLives) {
+        this.livesTimerText.textContent = timer;
+        this.livesTimerText.classList.remove('hidden');
+      } else {
+        this.livesTimerText.classList.add('hidden');
+      }
+    }
+  }
+
+  // --- MODAL DE CONFIRMACIÓN DE REINICIO CON SEED REROLL Y CONSUMO DE VIDA ---
+  openRestartConfirmModal() {
+    if (!window.stateManager) {
+      this.loadLevel(this.currentLevel);
+      return;
+    }
+    this.updateLivesHUD();
+    const lives = window.stateManager.getLives();
+    const maxLives = window.stateManager.getMaxLives();
+    const timer = window.stateManager.getTimeToNextLife();
+
+    const lblLives = document.getElementById('restart-modal-lives');
+    const lblRegen = document.getElementById('restart-modal-regen-timer');
+    const btnConfirm = document.getElementById('btn-confirm-restart');
+
+    if (lblLives) lblLives.textContent = `${lives}/${maxLives} ❤️`;
+    if (lblRegen) lblRegen.textContent = timer ? `+1 ❤️ en ${timer}` : 'Vidas al máximo';
+
+    if (btnConfirm) {
+      if (lives <= 0) {
+        btnConfirm.disabled = true;
+        btnConfirm.textContent = 'Sin Vidas Suficientes (Compra en Tienda)';
+        btnConfirm.classList.add('opacity-40');
+      } else {
+        btnConfirm.disabled = false;
+        btnConfirm.textContent = 'Confirmar y Reiniciar (❤️ -1)';
+        btnConfirm.classList.remove('opacity-40');
+      }
+    }
+
+    if (this.modalRestartConfirm) this.modalRestartConfirm.classList.remove('hidden');
+    if (window.lucide) lucide.createIcons();
+  }
+
+  closeRestartConfirmModal() {
+    if (this.modalRestartConfirm) this.modalRestartConfirm.classList.add('hidden');
+  }
+
+  confirmRestartLevel() {
+    if (!window.stateManager) {
+      this.loadLevel(this.currentLevel);
+      this.closeRestartConfirmModal();
+      return;
+    }
+
+    const consumed = window.stateManager.consumeLife();
+    if (!consumed) {
+      alert('¡No te quedan vidas disponibles! Puedes comprar vidas en la Tienda del Alquimista.');
+      this.closeRestartConfirmModal();
+      this.openShopModal();
+      return;
+    }
+
+    // Variación determinista de semilla alquímica para romper memoria repetitiva
+    this.seedVariation = (this.seedVariation || 0) + 1;
+    this.closeRestartConfirmModal();
+    this.loadLevel(this.currentLevel, this.seedVariation);
+    this.updateLivesHUD();
+    if (window.audio) window.audio.playSelect();
+  }
+
+  // --- MODAL DE TUTORIAL DE NUEVA MECÁNICA CON ANIMACIÓN LOOPEADA ---
+  showTutorialModal(mechanicId) {
+    const tutorials = {
+      glued: {
+        title: 'Frasco Inamovible en la Roca',
+        desc: 'Este frasco está enterrado en la piedra como la espada de Excalibur. Solo puede RECIBIR fluidos (normales o camaleón), ¡nunca puede vaciarse! Si te equivocas vertiendo un color indebido, tendrás que reiniciar el nivel.',
+        icon: 'mountain',
+        svg: `
+          <svg viewBox="0 0 200 160" class="w-full h-full">
+            <!-- Roca base Excalibur -->
+            <path d="M 50 148 L 65 125 L 85 115 L 105 110 L 125 115 L 145 125 L 160 148 Z" fill="#334155" stroke="#475569" stroke-width="2"/>
+            <path d="M 65 125 L 85 115 L 95 130 L 75 148 Z" fill="#1e293b"/>
+            <path d="M 105 110 L 125 115 L 115 130 L 95 130 Z" fill="#64748b"/>
+            <ellipse cx="105" cy="114" rx="22" ry="5" fill="#0f172a" stroke="#64748b" stroke-width="1.5"/>
+            <g class="anim-glued-loop" style="transform-origin: 105px 125px;">
+              <rect x="85" y="30" width="40" height="92" rx="14" fill="rgba(255,255,255,0.08)" stroke="#38bdf8" stroke-width="2.5"/>
+              <rect x="88" y="95" width="34" height="24" rx="8" fill="#3b82f6"/>
+              <path d="M 55 15 Q 85 15 105 40" fill="none" stroke="#3b82f6" stroke-width="4" stroke-dasharray="4,3"/>
+              <circle cx="105" cy="107" r="4" fill="#60a5fa"/>
+            </g>
+          </svg>
+        `
+      },
+      mystery: {
+        title: "Líquidos Ocultos '?'",
+        desc: 'Los fluidos misteriosos ocultan su color bajo el signo ?. La superficie superior siempre está descubierta. ¡Si varios bloques contiguos ocultos comparten el mismo color, se desbloquean todos juntos!',
+        icon: 'help-circle',
+        svg: `
+          <svg viewBox="0 0 200 160" class="w-full h-full">
+            <rect x="80" y="25" width="40" height="115" rx="14" fill="rgba(255,255,255,0.08)" stroke="#38bdf8" stroke-width="2"/>
+            <rect x="83" y="112" width="34" height="25" rx="8" fill="#1e293b"/>
+            <text x="100" y="129" fill="#94a3b8" font-size="14" font-weight="bold" text-anchor="middle">?</text>
+            <rect x="83" y="86" width="34" height="25" fill="#1e293b"/>
+            <text x="100" y="103" fill="#94a3b8" font-size="14" font-weight="bold" text-anchor="middle">?</text>
+            <rect x="83" y="60" width="34" height="25" fill="#ef4444"/>
+            <circle cx="100" cy="98" r="16" fill="none" stroke="#f59e0b" stroke-width="2" stroke-dasharray="3,3" class="animate-spin" style="transform-origin: 100px 98px;"/>
+          </svg>
+        `
+      },
+      giant: {
+        title: 'Frasco Gigante (Capacidad 6)',
+        desc: 'Un recipiente de gran tamaño capaz de contener hasta 6 unidades de líquido. Te brinda espacio adicional para maniobras complejas de trasvase.',
+        icon: 'maximize-2',
+        svg: `
+          <svg viewBox="0 0 200 160" class="w-full h-full">
+            <rect x="80" y="15" width="40" height="135" rx="14" fill="rgba(255,255,255,0.08)" stroke="#38bdf8" stroke-width="2.5"/>
+            <rect x="83" y="125" width="34" height="22" rx="8" fill="#10b981"/>
+            <rect x="83" y="102" width="34" height="22" fill="#10b981"/>
+            <rect x="83" y="79" width="34" height="22" fill="#10b981"/>
+            <rect x="83" y="56" width="34" height="22" fill="#10b981"/>
+            <text x="100" y="15" fill="#38bdf8" font-size="9" font-weight="900" text-anchor="middle">CAPACIDAD: 6</text>
+          </svg>
+        `
+      },
+      lock: {
+        title: 'Candado Alquímico con Llave',
+        desc: 'El frasco está cerrado con un cerrojo mágico. Para abrirlo y acceder a su contenido, vierte un fluido que coincida con el color y símbolo de la llave indicada.',
+        icon: 'lock',
+        svg: `
+          <svg viewBox="0 0 200 160" class="w-full h-full">
+            <rect x="80" y="30" width="40" height="110" rx="14" fill="rgba(255,255,255,0.08)" stroke="#f59e0b" stroke-width="2"/>
+            <rect x="83" y="112" width="34" height="25" rx="8" fill="#ec4899"/>
+            <circle cx="100" cy="70" r="18" fill="#0f172a" stroke="#f59e0b" stroke-width="2"/>
+            <path d="M 94 70 L 94 63 A 6 6 0 0 1 106 63 L 106 70" fill="none" stroke="#f59e0b" stroke-width="2.5"/>
+            <rect x="92" y="70" width="16" height="12" rx="2" fill="#f59e0b"/>
+          </svg>
+        `
+      },
+      narrow: {
+        title: 'Tubo Estrecho (1x1)',
+        desc: 'Tubo de precisión ultra delgado. Solo puede contener y transferir 1 sola unidad de fluido por movimiento. Es ideal como casilla de paso temporal.',
+        icon: 'minimize-2',
+        svg: `
+          <svg viewBox="0 0 200 160" class="w-full h-full">
+            <rect x="88" y="45" width="24" height="95" rx="10" fill="rgba(255,255,255,0.08)" stroke="#a855f7" stroke-width="2"/>
+            <rect x="90" y="116" width="20" height="22" rx="6" fill="#8b5cf6"/>
+            <text x="100" y="35" fill="#c084fc" font-size="10" font-weight="900" text-anchor="middle">1 UNIDAD</text>
+          </svg>
+        `
+      },
+      chameleon: {
+        title: 'Líquido Camaleón Multicolor',
+        desc: 'Un fluido mágico que cambia de color y forma para adaptarse al frasco de destino donde se vierta. ¡Aprovéchalo para conectar capas separadas!',
+        icon: 'disc',
+        svg: `
+          <svg viewBox="0 0 200 160" class="w-full h-full">
+            <rect x="80" y="30" width="40" height="110" rx="14" fill="rgba(255,255,255,0.08)" stroke="#ec4899" stroke-width="2"/>
+            <rect x="83" y="112" width="34" height="25" rx="8" class="anim-chameleon-loop"/>
+            <text x="100" y="128" fill="#ffffff" font-size="11" font-weight="900" text-anchor="middle">★</text>
+          </svg>
+        `
+      },
+      fragile: {
+        title: 'Cristal Frágil (3 Operaciones)',
+        desc: 'Frasco de cristal templado inestable. Solo resiste un máximo de 3 operaciones de vertido o recepción antes de bloquearse definitivamente.',
+        icon: 'shield-alert',
+        svg: `
+          <svg viewBox="0 0 200 160" class="w-full h-full">
+            <rect x="80" y="30" width="40" height="110" rx="14" fill="rgba(255,255,255,0.08)" stroke="#fb7185" stroke-width="2" stroke-dasharray="6,2"/>
+            <rect x="83" y="112" width="34" height="25" rx="8" fill="#fb7185"/>
+            <text x="100" y="25" fill="#fb7185" font-size="10" font-weight="900" text-anchor="middle">USOS: 3 / 3 🛡️</text>
+          </svg>
+        `
+      },
+      hybrid: {
+        title: 'Desafío Alquímico Híbrido',
+        desc: 'Combina múltiples mecánicas avanzadas en un solo nivel (candados, tubos pegados, estrechos y líquidos misteriosos). ¡Pon a prueba tu máxima maestría!',
+        icon: 'sparkles',
+        svg: `
+          <svg viewBox="0 0 200 160" class="w-full h-full">
+            <rect x="40" y="35" width="32" height="105" rx="12" fill="rgba(255,255,255,0.08)" stroke="#f97316" stroke-width="2"/>
+            <rect x="84" y="20" width="32" height="120" rx="12" fill="rgba(255,255,255,0.08)" stroke="#38bdf8" stroke-width="2"/>
+            <rect x="128" y="35" width="32" height="105" rx="12" fill="rgba(255,255,255,0.08)" stroke="#a855f7" stroke-width="2"/>
+          </svg>
+        `
+      }
+    };
+
+    const data = tutorials[mechanicId];
+    if (!data) return;
+
+    const titleEl = document.getElementById('tutorial-title');
+    const descEl = document.getElementById('tutorial-desc');
+    const looperCont = document.getElementById('tutorial-looper-container');
+    const iconBox = document.getElementById('tutorial-icon-box');
+
+    if (titleEl) titleEl.textContent = data.title;
+    if (descEl) descEl.textContent = data.desc;
+    if (looperCont) looperCont.innerHTML = data.svg;
+    if (iconBox) iconBox.innerHTML = `<i data-lucide="${data.icon}" class="w-8 h-8"></i>`;
+
+    if (window.lucide) lucide.createIcons();
+    if (this.modalTutorial) this.modalTutorial.classList.remove('hidden');
+    if (window.audio) window.audio.playReveal();
+  }
+
+  closeTutorialModal() {
+    if (this.modalTutorial) this.modalTutorial.classList.add('hidden');
+  }
+
+  // --- TALLER DE CREACIÓN DE NIVELES (LEVEL EDITOR) ---
+  initEditorWorkspace() {
+    this.editorLevel.tubes = [
+      { capacity: 4, liquids: [{ color: '#ef4444', name: 'Rojo', shape: '●', isMystery: false }, { color: '#3b82f6', name: 'Azul', shape: '▲', isMystery: false }], isLocked: false, keyColor: null, isNarrow: false, isGlued: false, isFragile: false, operationsRemaining: null },
+      { capacity: 4, liquids: [{ color: '#3b82f6', name: 'Azul', shape: '▲', isMystery: false }, { color: '#ef4444', name: 'Rojo', shape: '●', isMystery: false }], isLocked: false, keyColor: null, isNarrow: false, isGlued: false, isFragile: false, operationsRemaining: null },
+      { capacity: 4, liquids: [{ color: '#10b981', name: 'Verde', shape: '■', isMystery: false }], isLocked: false, keyColor: null, isNarrow: false, isGlued: false, isFragile: false, operationsRemaining: null },
+      { capacity: 4, liquids: [], isLocked: false, keyColor: null, isNarrow: false, isGlued: false, isFragile: false, operationsRemaining: null },
+      { capacity: 4, liquids: [], isLocked: false, keyColor: null, isNarrow: false, isGlued: true, isFragile: false, operationsRemaining: null }
+    ];
+  }
+
+  openEditorModal(tab = 'design') {
+    this.switchEditorTab(tab);
+    this.renderEditorBrushes();
+    this.renderEditorTubes();
+    this.updateEditorValidation();
+    if (this.modalEditor) this.modalEditor.classList.remove('hidden');
+    if (window.lucide) lucide.createIcons();
+  }
+
+  closeEditorModal() {
+    if (this.modalEditor) this.modalEditor.classList.add('hidden');
+  }
+
+  switchEditorTab(tab) {
+    const tabDesign = document.getElementById('tab-editor-design');
+    const tabSaved = document.getElementById('tab-editor-saved');
+    const panelDesign = document.getElementById('editor-panel-design');
+    const panelSaved = document.getElementById('editor-panel-saved');
+
+    if (tab === 'design') {
+      if (tabDesign) { tabDesign.classList.add('bg-purple-600', 'text-white'); tabDesign.classList.remove('bg-slate-800', 'text-slate-300'); }
+      if (tabSaved) { tabSaved.classList.remove('bg-purple-600', 'text-white'); tabSaved.classList.add('bg-slate-800', 'text-slate-300'); }
+      if (panelDesign) panelDesign.classList.remove('hidden');
+      if (panelSaved) panelSaved.classList.add('hidden');
+    } else {
+      if (tabSaved) { tabSaved.classList.add('bg-purple-600', 'text-white'); tabSaved.classList.remove('bg-slate-800', 'text-slate-300'); }
+      if (tabDesign) { tabDesign.classList.remove('bg-purple-600', 'text-white'); tabDesign.classList.add('bg-slate-800', 'text-slate-300'); }
+      if (panelSaved) panelSaved.classList.remove('hidden');
+      if (panelDesign) panelDesign.classList.add('hidden');
+      this.renderSavedCustomLevels();
+    }
+  }
+
+  renderEditorBrushes() {
+    const container = document.getElementById('editor-palette-brushes');
+    if (!container) return;
+    container.innerHTML = '';
+
+    const palette = window.paletteManager ? window.paletteManager.getPalette() : [];
+    palette.forEach(col => {
+      const btn = document.createElement('button');
+      btn.className = `editor-slot-btn has-color px-2.5 py-1 flex items-center gap-1 text-white font-bold text-xs ${this.activeBrush.type === 'color' && this.activeBrush.color === col.hex ? 'ring-2 ring-white scale-105' : ''}`;
+      btn.style.backgroundColor = col.hex;
+      btn.innerHTML = `<span>${col.shape}</span><span>${col.name}</span>`;
+      btn.onclick = () => {
+        this.activeBrush = { type: 'color', color: col.hex, name: col.name, shape: col.shape };
+        const lbl = document.getElementById('editor-active-brush-lbl');
+        if (lbl) lbl.textContent = `Pincel: ${col.name}`;
+        this.renderEditorBrushes();
+      };
+      container.appendChild(btn);
+    });
+
+    // Pincel Misterio '?'
+    const btnMystery = document.createElement('button');
+    btnMystery.className = `editor-slot-btn px-2.5 py-1 bg-slate-800 border border-sky-400 text-sky-300 font-extrabold text-xs flex items-center gap-1 ${this.activeBrush.type === 'mystery' ? 'ring-2 ring-sky-300 scale-105' : ''}`;
+    btnMystery.innerHTML = `<span>?</span><span>Misterio</span>`;
+    btnMystery.onclick = () => {
+      this.activeBrush = { type: 'mystery' };
+      const lbl = document.getElementById('editor-active-brush-lbl');
+      if (lbl) lbl.textContent = "Pincel: Misterio '?'";
+      this.renderEditorBrushes();
+    };
+    container.appendChild(btnMystery);
+
+    // Pincel Camaleón
+    const btnChameleon = document.createElement('button');
+    btnChameleon.className = `editor-slot-btn px-2.5 py-1 bg-gradient-to-r from-pink-500 to-indigo-500 text-white font-extrabold text-xs flex items-center gap-1 ${this.activeBrush.type === 'chameleon' ? 'ring-2 ring-white scale-105' : ''}`;
+    btnChameleon.innerHTML = `<span>★</span><span>Camaleón</span>`;
+    btnChameleon.onclick = () => {
+      this.activeBrush = { type: 'chameleon' };
+      const lbl = document.getElementById('editor-active-brush-lbl');
+      if (lbl) lbl.textContent = 'Pincel: Fluido Camaleón';
+      this.renderEditorBrushes();
+    };
+    container.appendChild(btnChameleon);
+
+    // Pincel Vaciar Slot
+    const btnClear = document.createElement('button');
+    btnClear.className = `editor-slot-btn px-2.5 py-1 bg-rose-500/20 border border-rose-500/40 text-rose-300 font-bold text-xs flex items-center gap-1 ${this.activeBrush.type === 'clear' ? 'ring-2 ring-rose-400 scale-105' : ''}`;
+    btnClear.innerHTML = `<span>✕</span><span>Vaciar</span>`;
+    btnClear.onclick = () => {
+      this.activeBrush = { type: 'clear' };
+      const lbl = document.getElementById('editor-active-brush-lbl');
+      if (lbl) lbl.textContent = 'Pincel: Vaciar Capa';
+      this.renderEditorBrushes();
+    };
+    container.appendChild(btnClear);
+  }
+
+  renderEditorTubes() {
+    const workspace = document.getElementById('editor-tubes-workspace');
+    if (!workspace) return;
+    workspace.innerHTML = '';
+
+    this.editorLevel.tubes.forEach((tube, tIdx) => {
+      const card = document.createElement('div');
+      card.className = 'editor-tube-card w-28';
+
+      // Header del tubo: Selector de mecánica
+      const selectType = document.createElement('select');
+      selectType.className = 'w-full bg-slate-900 border border-slate-700 text-[10px] text-sky-200 rounded-lg p-1 outline-none';
+      selectType.innerHTML = `
+        <option value="normal" ${!tube.isGlued && !tube.isLocked && !tube.isNarrow && !tube.isFragile ? 'selected' : ''}>Normal</option>
+        <option value="glued" ${tube.isGlued ? 'selected' : ''}>Inamovible (Roca) 🪨</option>
+        <option value="lock" ${tube.isLocked ? 'selected' : ''}>Candado 🔒</option>
+        <option value="narrow" ${tube.isNarrow ? 'selected' : ''}>Estrecho 1x1</option>
+        <option value="fragile" ${tube.isFragile ? 'selected' : ''}>Frágil 🛡️</option>
+      `;
+      selectType.onchange = (e) => {
+        const val = e.target.value;
+        tube.isGlued = (val === 'glued');
+        tube.isLocked = (val === 'lock');
+        tube.isNarrow = (val === 'narrow');
+        tube.isFragile = (val === 'fragile');
+        if (tube.isNarrow) tube.capacity = 1;
+        if (tube.isFragile) tube.operationsRemaining = 3;
+        this.editorLevel.hasBeenPassed = false;
+        this.updateEditorValidation();
+        this.renderEditorTubes();
+      };
+      card.appendChild(selectType);
+
+      // Selector de capacidad (4 o 6)
+      if (!tube.isNarrow) {
+        const capBtn = document.createElement('button');
+        capBtn.className = 'text-[10px] text-slate-400 hover:text-white font-mono underline';
+        capBtn.textContent = `Capacidad: ${tube.capacity} (Cambiar)`;
+        capBtn.onclick = () => {
+          tube.capacity = tube.capacity === 4 ? 6 : 4;
+          while (tube.liquids.length > tube.capacity) tube.liquids.pop();
+          this.editorLevel.hasBeenPassed = false;
+          this.updateEditorValidation();
+          this.renderEditorTubes();
+        };
+        card.appendChild(capBtn);
+      }
+
+      // Columna de ranuras de líquido
+      const slotsContainer = document.createElement('div');
+      slotsContainer.className = 'flex flex-col-reverse gap-1 items-center p-2 bg-slate-950/70 border border-slate-700 rounded-xl w-full';
+
+      for (let s = 0; s < tube.capacity; s++) {
+        const liq = tube.liquids[s];
+        const slotBtn = document.createElement('button');
+        slotBtn.className = 'editor-slot-btn w-full';
+
+        if (liq) {
+          slotBtn.classList.add('has-color');
+          slotBtn.style.backgroundColor = liq.color;
+          if (liq.isMystery) {
+            slotBtn.innerHTML = "<span class='text-white font-black'>?</span>";
+            slotBtn.style.backgroundColor = '#1e293b';
+          } else if (liq.isChameleon) {
+            slotBtn.classList.add('anim-chameleon-loop');
+            slotBtn.innerHTML = "<span class='text-white font-black'>★</span>";
+          } else {
+            slotBtn.innerHTML = `<span style='color: ${liq.textHex || '#fff'}'>${liq.shape || '●'}</span>`;
+          }
+        } else {
+          slotBtn.innerHTML = "<span class='text-slate-600 text-[10px]'>Vacío</span>";
+        }
+
+        slotBtn.onclick = () => {
+          this.handleEditorSlotClick(tIdx, s);
+        };
+        slotsContainer.appendChild(slotBtn);
+      }
+      card.appendChild(slotsContainer);
+
+      workspace.appendChild(card);
+    });
+  }
+
+  handleEditorSlotClick(tubeIdx, slotIdx) {
+    const tube = this.editorLevel.tubes[tubeIdx];
+    this.editorLevel.hasBeenPassed = false;
+    this.updateEditorValidation();
+
+    if (this.activeBrush.type === 'clear') {
+      if (slotIdx < tube.liquids.length) {
+        tube.liquids.splice(slotIdx, 1);
+      }
+    } else if (this.activeBrush.type === 'mystery') {
+      if (tube.liquids[slotIdx]) {
+        tube.liquids[slotIdx].isMystery = !tube.liquids[slotIdx].isMystery;
+      }
+    } else if (this.activeBrush.type === 'chameleon') {
+      tube.liquids[slotIdx] = {
+        color: '#ec4899',
+        name: 'Camaleón',
+        shape: '★',
+        isChameleon: true,
+        isMystery: false
+      };
+    } else if (this.activeBrush.type === 'color') {
+      tube.liquids[slotIdx] = {
+        color: this.activeBrush.color,
+        name: this.activeBrush.name,
+        shape: this.activeBrush.shape,
+        isMystery: false,
+        isChameleon: false
+      };
+    }
+
+    this.renderEditorTubes();
+  }
+
+  updateEditorValidation() {
+    const badge = document.getElementById('editor-validation-badge');
+    const btnPub = document.getElementById('btn-editor-publish');
+    if (!badge || !btnPub) return;
+
+    if (this.editorLevel.hasBeenPassed) {
+      badge.className = 'px-2.5 py-1 rounded-xl bg-emerald-500/20 text-emerald-300 font-bold border border-emerald-500/40';
+      badge.innerHTML = '✓ ¡NIVEL VALIDADO Y SUPERADO! Listo para publicar.';
+      btnPub.disabled = false;
+    } else {
+      badge.className = 'px-2.5 py-1 rounded-xl bg-amber-500/20 text-amber-300 font-bold border border-amber-500/40';
+      badge.innerHTML = '⚠️ Sin validar (Debes ganar el nivel al menos una vez para publicarlo)';
+      btnPub.disabled = true;
+    }
+  }
+
+  testCustomLevel() {
+    let totalCap = 0;
+    let totalLiquids = 0;
+    this.editorLevel.tubes.forEach(t => {
+      totalCap += t.capacity;
+      totalLiquids += t.liquids.length;
+    });
+
+    if (totalCap - totalLiquids < 1) {
+      alert('Tu nivel debe tener al menos 1 espacio libre o un frasco vacío para poder realizar trasvases.');
+      return;
+    }
+
+    const nameInput = document.getElementById('editor-level-name');
+    const creatorInput = document.getElementById('editor-creator-name');
+    if (nameInput) this.editorLevel.name = nameInput.value.trim() || 'Nivel Personalizado';
+    if (creatorInput) this.editorLevel.creator = creatorInput.value.trim() || 'Alquimista Anónimo';
+
+    this.closeEditorModal();
+
+    const customLevelObj = {
+      level: 999,
+      tubes: JSON.parse(JSON.stringify(this.editorLevel.tubes)),
+      optimalMoves: 14,
+      mechanicTag: `Creación de ${this.editorLevel.creator}`,
+      name: this.editorLevel.name,
+      creator: this.editorLevel.creator,
+      hasBeenPassed: false
+    };
+
+    this.loadLevel(1, 0, customLevelObj);
+  }
+
+  publishCustomLevel() {
+    if (!this.editorLevel.hasBeenPassed) {
+      alert('Debes ganar el nivel al menos una vez en Modo Prueba antes de publicarlo.');
+      return;
+    }
+
+    const levelObj = {
+      id: `custom_${Date.now()}`,
+      name: this.editorLevel.name,
+      creator: this.editorLevel.creator,
+      tubes: JSON.parse(JSON.stringify(this.editorLevel.tubes)),
+      createdAt: new Date().toLocaleDateString(),
+      optimalMoves: 12
+    };
+
+    if (window.stateManager) {
+      window.stateManager.saveCustomLevel(levelObj);
+    }
+
+    if (window.audio) window.audio.playWinFanfare();
+    alert(`¡Éxito! Tu nivel '${levelObj.name}' creado por '${levelObj.creator}' ha sido publicado.`);
+    this.switchEditorTab('saved');
+  }
+
+  renderSavedCustomLevels() {
+    const listCont = document.getElementById('editor-saved-list');
+    const countEl = document.getElementById('editor-saved-count');
+    if (!listCont) return;
+    listCont.innerHTML = '';
+
+    const levels = window.stateManager ? window.stateManager.getCustomLevels() : [];
+    if (countEl) countEl.textContent = levels.length;
+
+    if (levels.length === 0) {
+      listCont.innerHTML = `
+        <div class="text-center py-8 text-slate-400 text-xs">
+          Aún no has publicado ningún nivel. ¡Diseña uno, supéralo y publícalo!
+        </div>
+      `;
+      return;
+    }
+
+    levels.forEach(lvl => {
+      const card = document.createElement('div');
+      card.className = 'bg-slate-800/80 border border-slate-700/80 rounded-2xl p-3.5 flex items-center justify-between gap-3';
+      card.innerHTML = `
+        <div>
+          <h4 class="text-sm font-black text-white flex items-center gap-2">
+            ${lvl.name}
+            <span class="text-[10px] px-2 py-0.5 rounded-full bg-purple-500/20 text-purple-300 font-mono">${lvl.tubes.length} Frascos</span>
+          </h4>
+          <p class="text-xs text-slate-400">Por: <strong class="text-sky-300">${lvl.creator}</strong> • Publicado: ${lvl.createdAt || 'Reciente'}</p>
+        </div>
+        <div class="flex items-center gap-2">
+          <button class="btn-interactive px-3 py-1.5 bg-sky-500 hover:bg-sky-400 text-white font-bold rounded-xl text-xs" onclick="window.game.playPublishedCustomLevel('${lvl.id}')">
+            Jugar
+          </button>
+          <button class="btn-interactive px-2 py-1.5 bg-rose-500/20 hover:bg-rose-500/40 text-rose-300 rounded-xl text-xs" onclick="window.game.deletePublishedCustomLevel('${lvl.id}')">
+            <i data-lucide="trash-2" class="w-4 h-4"></i>
+          </button>
+        </div>
+      `;
+      listCont.appendChild(card);
+    });
+
+    if (window.lucide) lucide.createIcons();
+  }
+
+  playPublishedCustomLevel(id) {
+    const levels = window.stateManager ? window.stateManager.getCustomLevels() : [];
+    const found = levels.find(l => l.id === id);
+    if (!found) return;
+
+    this.closeEditorModal();
+    const customData = {
+      level: 999,
+      tubes: JSON.parse(JSON.stringify(found.tubes)),
+      optimalMoves: found.optimalMoves || 14,
+      mechanicTag: `Comunidad • ${found.creator}`,
+      name: found.name,
+      creator: found.creator
+    };
+    this.loadLevel(1, 0, customData);
+  }
+
+  deletePublishedCustomLevel(id) {
+    if (confirm('¿Deseas eliminar este nivel personalizado?')) {
+      if (window.stateManager) {
+        window.stateManager.deleteCustomLevel(id);
+        this.renderSavedCustomLevels();
+      }
+    }
   }
 
   openMapModal() {
