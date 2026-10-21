@@ -616,12 +616,41 @@ class GameController {
         tubeEl.appendChild(durabilityTag);
       }
 
-      // Hover para mostrar tooltip del color
-      tubeEl.addEventListener('mouseenter', () => this.showFluorBadge(tubeEl, tube));
-      tubeEl.addEventListener('mouseleave', () => this.removeFluorBadge(tubeEl));
+      // Rol y accesibilidad táctil para dispositivos móviles y lectores
+      tubeEl.setAttribute('role', 'button');
+      tubeEl.setAttribute('tabindex', '0');
+      tubeEl.setAttribute('aria-label', `Frasco ${idx + 1}`);
 
-      // Click para selección o vertido
-      tubeEl.addEventListener('click', (e) => this.handleTubeClick(idx, tubeEl, e));
+      // Hover únicamente en dispositivos con puntero fino/ratón físico
+      // (En móviles, el mouseenter sintetizado muta el DOM y cancela el evento táctil de toque)
+      if (typeof window !== 'undefined' && window.matchMedia && window.matchMedia('(hover: hover) and (pointer: fine)').matches) {
+        tubeEl.addEventListener('mouseenter', () => this.showFluorBadge(tubeEl, tube));
+        tubeEl.addEventListener('mouseleave', () => this.removeFluorBadge(tubeEl));
+      }
+
+      // Soporte táctil universal instantáneo (touchstart con 0ms de delay + click sin duplicados)
+      let touchTriggered = false;
+
+      tubeEl.addEventListener('touchstart', (e) => {
+        touchTriggered = true;
+        this.handleTubeClick(idx, tubeEl, e);
+        setTimeout(() => { touchTriggered = false; }, 350);
+      }, { passive: true });
+
+      tubeEl.addEventListener('click', (e) => {
+        if (touchTriggered) {
+          e.preventDefault();
+          return;
+        }
+        this.handleTubeClick(idx, tubeEl, e);
+      });
+
+      tubeEl.addEventListener('keydown', (e) => {
+        if (e.key === 'Enter' || e.key === ' ') {
+          e.preventDefault();
+          this.handleTubeClick(idx, tubeEl, e);
+        }
+      });
 
       this.tubesGrid.appendChild(tubeEl);
     });
