@@ -128,17 +128,110 @@ class LevelGenerator {
       });
     }
 
-    // 3. Aplicar candado si corresponde
-    if (hasLock && tubes.length > 0) {
-      const lockTube = tubes[tubes.length - 1];
-      lockTube.isLocked = true;
-      lockTube.keyColor = activeColors[0].hex;
-      lockTube.keyColorName = activeColors[0].name;
-    }
-
-    // 4. Mezclar deterministamente según la semilla del nivel + variación por reintentos
+    // 3. Mezclar deterministamente según la semilla del nivel + variación por reintentos
     const effectiveSeed = level * 7919 + seedVariation * 1337 + 12345;
     this.shuffleDeterministically(tubes, effectiveSeed);
+
+    // 4. Aplicar candado si corresponde
+    // REGLAS ESTRICTAS DEL USUARIO:
+    // a) El tubo con candado NUNCA debe estar vacío (debe tener entre 2 y 4 unidades de líquido).
+    //    Esto hace que sea 100% obligatorio desbloquearlo para completar el nivel.
+    // b) Minipuzzle de desbloqueo: NUNCA puede abrirse en el primer movimiento.
+    //    La llave debe requerir obligatoriamente entre 2 y 3 movimientos previos para ser alcanzada.
+    //    Por lo tanto: NINGÚN tubo accesible puede tener la llave en la superficie superior al inicio.
+    //    La llave debe estar enterrada debajo de 1 o 2 capas de otros líquidos en otro tubo.
+    if (hasLock && tubes.length > 0) {
+      // 4.1 Seleccionar el tubo a bloquear: debe tener líquidos (al menos 2 unidades) y no ser inamovible ni estrecho
+      const lockCandidates = tubes.filter(t => !t.isGlued && !t.isNarrow && t.liquids.length >= 2 && t.liquids.length <= t.capacity);
+      if (lockCandidates.length > 0) {
+        const lockIndex = Math.abs(effectiveSeed) % lockCandidates.length;
+        const lockTube = lockCandidates[lockIndex];
+        lockTube.isLocked = true;
+
+        // 4.2 Seleccionar el color de la llave
+        const keyColorObj = activeColors[Math.abs(effectiveSeed + 3) % activeColors.length];
+        lockTube.keyColor = keyColorObj.hex;
+        lockTube.keyColorName = keyColorObj.name;
+
+        // 4.3 Garantizar que la llave esté presente en un tubo accesible, pero ENTERRADA (a 1 o 2 capas bajo el tope)
+        const sourceCandidates = tubes.filter(t => !t.isLocked && !t.isGlued && !t.isNarrow && t.liquids.length >= 2);
+        if (sourceCandidates.length > 0) {
+          const keySourceTube = sourceCandidates[Math.abs(effectiveSeed + 7) % sourceCandidates.length];
+          // coverCount = 1 o 2 capas por encima de la llave
+          const coverCount = keySourceTube.liquids.length >= 3 ? 2 : 1;
+          const keyPos = keySourceTube.liquids.length - 1 - coverCount;
+
+          // Colocar la llave en keyPos
+          let foundKey = false;
+          for (let ti = 0; ti < tubes.length; ti++) {
+            if (tubes[ti] === lockTube) continue;
+            for (let li = 0; li < tubes[ti].liquids.length; li++) {
+              if (tubes[ti].liquids[li].color === lockTube.keyColor) {
+                const temp = keySourceTube.liquids[keyPos];
+                keySourceTube.liquids[keyPos] = tubes[ti].liquids[li];
+                tubes[ti].liquids[li] = temp;
+                foundKey = true;
+                break;
+              }
+            }
+            if (foundKey) break;
+          }
+
+          // Si todas las unidades de keyColor estaban en lockTube, intercambiar una unidad hacia keyPos
+          if (!foundKey) {
+            for (let li = 0; li < lockTube.liquids.length; li++) {
+              if (lockTube.liquids[li].color === lockTube.keyColor) {
+                const temp = keySourceTube.liquids[keyPos];
+                keySourceTube.liquids[keyPos] = lockTube.liquids[li];
+                lockTube.liquids[li] = temp;
+                foundKey = true;
+                break;
+              }
+            }
+          }
+
+          // Asegurar que las capas que cubren la llave (desde keyPos + 1 hasta el tope) sean de un color DIFERENTE a keyColor
+          for (let c = keyPos + 1; c < keySourceTube.liquids.length; c++) {
+            if (keySourceTube.liquids[c].color === lockTube.keyColor) {
+              for (let ti = 0; ti < tubes.length; ti++) {
+                if (tubes[ti] === lockTube) continue;
+                for (let li = 0; li < tubes[ti].liquids.length - 1; li++) {
+                  if (tubes[ti].liquids[li].color !== lockTube.keyColor) {
+                    const swap = keySourceTube.liquids[c];
+                    keySourceTube.liquids[c] = tubes[ti].liquids[li];
+                    tubes[ti].liquids[li] = swap;
+                    break;
+                  }
+                }
+                if (keySourceTube.liquids[c].color !== lockTube.keyColor) break;
+              }
+            }
+          }
+        }
+
+        // 4.4 REGLA CRUCIAL: NINGÚN tubo accesible puede tener la llave en la superficie (tope) al inicio
+        // Si algún tubo no bloqueado tiene keyColor en el tope, intercambiarlo con un bloque interior no-keyColor
+        tubes.forEach(t => {
+          if (!t.isLocked && t.liquids.length > 0) {
+            const topIdx = t.liquids.length - 1;
+            if (t.liquids[topIdx].color === lockTube.keyColor) {
+              for (let innerT of tubes) {
+                if (innerT.isLocked) continue;
+                for (let li = 0; li < innerT.liquids.length - 1; li++) {
+                  if (innerT.liquids[li].color !== lockTube.keyColor) {
+                    const temp = t.liquids[topIdx];
+                    t.liquids[topIdx] = innerT.liquids[li];
+                    innerT.liquids[li] = temp;
+                    break;
+                  }
+                }
+                if (t.liquids[topIdx].color !== lockTube.keyColor) break;
+              }
+            }
+          }
+        });
+      }
+    }
 
     // 5. Aplicar estados de misterio: La superficie SIEMPRE está descubierta
     // REGLA: Si hay bloques consecutivos ocultos del mismo color bajo la superficie, se desbloquean juntos.
