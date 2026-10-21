@@ -384,9 +384,12 @@ class GameController {
           segment.innerHTML = `<span>?</span>`;
         } else {
           // Capa de color normal o camaleón
-          segment.style.backgroundColor = liq.color;
-          if (liq.pattern) segment.classList.add(liq.pattern);
-          if (liq.isChameleon) segment.classList.add('liquid-chameleon');
+          if (liq.isChameleon) {
+            segment.classList.add('liquid-chameleon');
+          } else {
+            segment.style.backgroundColor = liq.color;
+            if (liq.pattern) segment.classList.add(liq.pattern);
+          }
 
           // Burbujas ascendentes decorativas
           const bubble = document.createElement('div');
@@ -565,13 +568,18 @@ class GameController {
     // se vacía el tubo de origen y se esparcen sus fluidos en los demás tubos incompletos al azar (efecto químico inesperado).
     if (toTube.isNarrow) {
       let topBlockCount = 0;
-      const topColor = fromTube.liquids[fromTube.liquids.length - 1].color;
-      for (let i = fromTube.liquids.length - 1; i >= 0; i--) {
-        const item = fromTube.liquids[i];
-        if (!item.isMystery && (item.color === topColor || item.isChameleon)) {
-          topBlockCount++;
-        } else {
-          break;
+      const topFrom = fromTube.liquids[fromTube.liquids.length - 1];
+      if (topFrom.isChameleon) {
+        topBlockCount = 1; // El camaleón es siempre 1 unidad individual
+      } else {
+        const topColor = topFrom.color;
+        for (let i = fromTube.liquids.length - 1; i >= 0; i--) {
+          const item = fromTube.liquids[i];
+          if (!item.isMystery && !item.isChameleon && item.color === topColor) {
+            topBlockCount++;
+          } else {
+            break;
+          }
         }
       }
 
@@ -668,13 +676,18 @@ class GameController {
     // Tubo de precisión (1x1): NUNCA permite fluidos con 2 o más cuartos combinados
     if (toTube.isNarrow) {
       let topBlockCount = 0;
-      const topColor = fromTube.liquids[fromTube.liquids.length - 1].color;
-      for (let i = fromTube.liquids.length - 1; i >= 0; i--) {
-        const item = fromTube.liquids[i];
-        if (!item.isMystery && (item.color === topColor || item.isChameleon)) {
-          topBlockCount++;
-        } else {
-          break;
+      const topFrom = fromTube.liquids[fromTube.liquids.length - 1];
+      if (topFrom.isChameleon) {
+        topBlockCount = 1;
+      } else {
+        const topColor = topFrom.color;
+        for (let i = fromTube.liquids.length - 1; i >= 0; i--) {
+          const item = fromTube.liquids[i];
+          if (!item.isMystery && !item.isChameleon && item.color === topColor) {
+            topBlockCount++;
+          } else {
+            break;
+          }
         }
       }
       if (topBlockCount >= 2) return false;
@@ -701,16 +714,22 @@ class GameController {
     const toTube = this.tubes[toIdx];
     const topFrom = fromTube.liquids[fromTube.liquids.length - 1];
     if (topFrom.isMystery) topFrom.isMystery = false;
-    const matchColor = topFrom.color;
 
-    // Contar cuántos bloques contiguos se pueden mover
+    // Contar cuántos bloques contiguos se pueden mover:
+    // EL LÍQUIDO CAMALEÓN ES INDIVIDUAL: Se mueve siempre solo (1 unidad)
+    // y NUNCA arrastra el líquido que esté debajo.
     let count = 0;
-    for (let i = fromTube.liquids.length - 1; i >= 0; i--) {
-      const item = fromTube.liquids[i];
-      if (!item.isMystery && (item.color === matchColor || item.isChameleon)) {
-        count++;
-      } else {
-        break;
+    if (topFrom.isChameleon) {
+      count = 1;
+    } else {
+      const matchColor = topFrom.color;
+      for (let i = fromTube.liquids.length - 1; i >= 0; i--) {
+        const item = fromTube.liquids[i];
+        if (!item.isMystery && !item.isChameleon && item.color === matchColor) {
+          count++;
+        } else {
+          break;
+        }
       }
     }
 
@@ -767,7 +786,8 @@ class GameController {
           const totalPourTime = unitsToMove * portionDuration;
 
           if (window.audio) window.audio.playPourSound();
-          this.drawPourStream(fRect, tRect, matchColor, isTargetToTheRight, totalPourTime + 80);
+          const streamColor = topFrom.isChameleon ? '#ec4899' : (topFrom.color === 'chameleon' ? '#ec4899' : topFrom.color);
+          this.drawPourStream(fRect, tRect, streamColor, isTargetToTheRight, totalPourTime + 80);
 
           // PASO 5: Animación secuencial de vaciado porción por porción con transformaciones de fluido
           const fromGlass = fromEl.querySelector('.tube-glass');
@@ -830,12 +850,25 @@ class GameController {
                   item.isMystery = false;
 
                   // Camaleón adopta color receptor si aplica
-                  if (toTube.liquids.length > 0) {
-                    const targetTop = toTube.liquids[toTube.liquids.length - 1];
-                    if (item.isChameleon && !targetTop.isChameleon) {
-                      item.color = targetTop.color;
-                      item.name = targetTop.name;
-                      item.shape = targetTop.shape;
+                  if (item.isChameleon) {
+                    if (toTube.liquids.length > 0) {
+                      const targetTop = toTube.liquids[toTube.liquids.length - 1];
+                      if (!targetTop.isChameleon && targetTop.color !== 'chameleon') {
+                        item.color = targetTop.color;
+                        item.name = targetTop.name;
+                        item.shape = targetTop.shape;
+                        item.pattern = targetTop.pattern;
+                        item.textHex = targetTop.textHex;
+                        item.adaptedToColor = targetTop.color;
+                      }
+                    } else {
+                      // Al vaciarse en un frasco limpio, vuelve a su estado comodín puro
+                      item.color = 'chameleon';
+                      item.name = 'Camaleón';
+                      item.shape = '★';
+                      item.pattern = null;
+                      item.textHex = '#ffffff';
+                      item.adaptedToColor = null;
                     }
                   }
                   toTube.liquids.push(item);
@@ -993,8 +1026,15 @@ class GameController {
   isTubeComplete(tube) {
     if (!tube || tube.liquids.length === 0) return false;
     if (tube.liquids.length !== tube.capacity) return false;
-    const firstCol = tube.liquids[0].color;
-    return tube.liquids.every(l => l.color === firstCol && !l.isMystery);
+    if (tube.liquids.some(l => l.isMystery)) return false;
+
+    // Obtener colores base de líquidos que no sean camaleón
+    const baseColors = tube.liquids.filter(l => !l.isChameleon).map(l => l.color);
+    if (baseColors.length === 0) {
+      return true;
+    }
+    const targetColor = baseColors[0];
+    return baseColors.every(c => c === targetColor);
   }
 
   triggerNarrowChemicalReaction(fromIdx, toIdx) {
@@ -2690,8 +2730,8 @@ class GameController {
         `
       },
       chameleon: {
-        title: 'Líquido Camaleón Multicolor',
-        desc: 'Un fluido mágico que cambia de color y forma para adaptarse al frasco de destino donde se vierta. ¡Aprovéchalo para conectar capas separadas!',
+        title: 'Líquido Camaleón Multicolor (Comodín)',
+        desc: '¡El comodín alquímico! Se transfiere de forma individual (1 sola unidad) sin arrastrar los líquidos de abajo. Al verterlo en otro frasco, adopta su color y forma para ayudarte a completarlo. ¡Si lo pasas a un frasco vacío, se conserva multicolor!',
         icon: 'disc',
         svg: `
           <svg viewBox="0 0 220 160" class="w-full h-full">
@@ -2705,7 +2745,7 @@ class GameController {
               <rect x="143" y="103" width="30" height="28" rx="8" fill="#a855f7"/>
             </g>
             <path d="M 85 60 Q 112 35 138 60" fill="none" stroke="#ec4899" stroke-width="3" stroke-dasharray="4,3"/>
-            <text x="110" y="152" fill="#ec4899" font-size="10" font-weight="bold" text-anchor="middle">Adopta el color del frasco destino</text>
+            <text x="110" y="152" fill="#ec4899" font-size="10" font-weight="bold" text-anchor="middle">Se mueve solo (1u) y adopta el color destino</text>
           </svg>
         `
       },

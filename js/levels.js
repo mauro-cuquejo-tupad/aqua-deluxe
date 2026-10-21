@@ -66,15 +66,16 @@ class LevelGenerator {
 
       let tubeLiquids = [];
       for (let k = 0; k < cap; k++) {
+        const isCham = (hasChameleon && i === 1 && k === 1);
         tubeLiquids.push({
-          colorIndex: col.id,
-          color: col.hex,
-          name: col.name,
-          shape: col.shape,
-          pattern: col.pattern,
-          textHex: col.textHex,
-          isMystery: (hasMystery && k < cap - 1),
-          isChameleon: (hasChameleon && i === 1 && k === 1)
+          colorIndex: isCham ? 'chameleon' : col.id,
+          color: isCham ? 'chameleon' : col.hex,
+          name: isCham ? 'Camaleón' : col.name,
+          shape: isCham ? '★' : col.shape,
+          pattern: isCham ? null : col.pattern,
+          textHex: isCham ? '#ffffff' : col.textHex,
+          isMystery: (hasMystery && k < cap - 1 && !isCham),
+          isChameleon: isCham
         });
       }
 
