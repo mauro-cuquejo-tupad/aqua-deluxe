@@ -179,6 +179,48 @@ class ChallengeManager {
     });
 
     // ------------------------------------------------------------------------
+    // TIPO 7: Pureza Cristalina: Sin fisuras en frasco de afinidad
+    // ------------------------------------------------------------------------
+    if (tubes.some(t => t.isAffinity && !t.isSuperFragile)) {
+      candidates.push({
+        type: 'preserve_affinity',
+        id: 'preserve_affinity',
+        icon: 'gem',
+        title: 'Pureza Cristalina: Sin fisuras en frasco de afinidad',
+        shortTitle: 'Sin fisuras',
+        coins: 5,
+        check: (game) => game.tubes.every(t => !t.isAffinity || (t.cracks || 0) === 0),
+        getCurrentText: (game) => {
+          const aff = game.tubes.find(t => t.isAffinity && !t.isSuperFragile);
+          if (!aff) return 'Puro ✓';
+          return (aff.cracks || 0) === 0 ? 'Puro ✓' : `${aff.cracks} fisura${aff.cracks > 1 ? 's' : ''} ✕`;
+        },
+        isFailedLive: (game) => game.tubes.some(t => t.isAffinity && !t.isSuperFragile && (t.cracks || 0) > 0)
+      });
+    }
+
+    // ------------------------------------------------------------------------
+    // TIPO 8: Sobrecarga Volátil: Romper el frasco súper frágil (bonus)
+    // ------------------------------------------------------------------------
+    if (tubes.some(t => t.isSuperFragile)) {
+      candidates.push({
+        type: 'break_super_fragile',
+        id: 'break_super_fragile',
+        icon: 'flame',
+        title: 'Sobrecarga Volátil: Rompe el frasco súper frágil',
+        shortTitle: 'Romper frasco volátil',
+        coins: 6,
+        check: (game) => game.tubes.some(t => t.isSuperFragile && t.isBroken),
+        getCurrentText: (game) => {
+          const sf = game.tubes.find(t => t.isSuperFragile);
+          if (!sf) return 'Pendiente';
+          return sf.isBroken ? 'Estallado ✓' : 'Intacto ⏳';
+        },
+        isFailedLive: () => false
+      });
+    }
+
+    // ------------------------------------------------------------------------
     // SELECCIÓN SEGÚN NIVEL
     // ------------------------------------------------------------------------
     // Nivel 1: Introducción suave con límite de movimientos
@@ -208,6 +250,24 @@ class ChallengeManager {
     }
 
     // Niveles 5+: Ordenar determinísticamente los candidatos para este nivel y seleccionar `challengeCount`
+    const selected = [];
+    const usedTypes = new Set();
+
+    // Priorizar mecánicas temáticas activas si existen
+    if (tubes.some(t => t.isSuperFragile)) {
+      const bsf = candidates.find(c => c.type === 'break_super_fragile');
+      if (bsf) {
+        selected.push(bsf);
+        usedTypes.add(bsf.type);
+      }
+    } else if (tubes.some(t => t.isAffinity)) {
+      const pa = candidates.find(c => c.type === 'preserve_affinity');
+      if (pa) {
+        selected.push(pa);
+        usedTypes.add(pa.type);
+      }
+    }
+
     // Evitar duplicar el mismo tipo
     const shuffled = [...candidates].sort((a, b) => {
       const scoreA = (a.type.split('').reduce((acc, ch) => acc + ch.charCodeAt(0), 0) * 37 + level * 13) % 100;
@@ -215,8 +275,6 @@ class ChallengeManager {
       return scoreA - scoreB;
     });
 
-    const selected = [];
-    const usedTypes = new Set();
     for (const c of shuffled) {
       if (!usedTypes.has(c.type)) {
         usedTypes.add(c.type);

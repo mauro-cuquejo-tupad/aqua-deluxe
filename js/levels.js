@@ -8,35 +8,45 @@ class LevelGenerator {
   static generate(levelNum, seedVariation = 0) {
     const level = Math.max(1, Math.min(100, levelNum));
 
-    // Progresión de cantidad de colores
-    let colorCount = 3 + Math.floor((level - 1) / 12);
-    colorCount = Math.min(colorCount, 8); // Máximo 8 colores simultáneos
+    // Progresión de cantidad de colores (hasta 12 colores en los niveles finales)
+    let colorCount = 3 + Math.floor((level - 1) / 10);
+    colorCount = Math.min(colorCount, 12);
     const emptyCount = 2;
     const capacity = 4;
 
-    // Activación progresiva de mecánicas
-    const hasMystery = level >= 5;
-    const hasGiant = (level >= 10 && level < 15) || (level >= 40 && level % 3 === 0);
-    const hasLock = (level >= 15 && level < 20) || (level >= 45 && level % 4 === 0);
-    const hasNarrow = (level >= 20 && level < 25) || (level >= 50 && level % 5 === 0);
-    const hasGlued = (level >= 25 && level < 30) || (level >= 55 && level % 4 === 1);
-    const hasChameleon = (level >= 30 && level < 35) || (level >= 60 && level % 3 === 1);
-    const hasFragile = (level >= 35 && level < 40) || (level >= 65 && level % 5 === 2);
+    // Activación progresiva y espaciada de mecánicas cada 10 niveles
+    const hasMystery = (level >= 11 && level <= 20) || (level >= 81 && level % 3 === 0) || (level >= 91 && level % 2 === 1);
+    const hasGiant = (level >= 21 && level <= 30) || (level >= 81 && level % 3 === 1) || (level >= 91 && level % 3 === 0);
+    const hasSuperGiant = (level >= 85 && level % 4 === 0) || (level >= 98); // Frasco Súper Largo (Max 8)
+    const hasLock = (level >= 31 && level <= 40) || (level >= 81 && level % 3 === 2) || (level >= 92 && level % 2 === 0);
+    const hasNarrow = (level >= 41 && level <= 50) || (level >= 93 && level % 3 === 1);
+    const hasGlued = (level >= 51 && level <= 60) || (level >= 94 && level % 4 === 2);
+    const hasChameleon = (level >= 61 && level <= 70) || (level >= 85 && level % 4 === 1) || (level >= 95);
+    const hasFragile = (level >= 71 && level <= 80) || (level >= 88 && level % 4 === 3) || (level >= 96);
+    const isSuperFragile = (level >= 88 && level % 4 === 3) || (level >= 97); // Súper Frágil / Volátil (1 Uso)
 
     let mechanicTag = 'Básico';
     let primaryMechanicId = 'basic';
 
-    if (level >= 40) {
-      mechanicTag = 'Desafío Alquímico Híbrido';
+    if (level >= 91) {
+      mechanicTag = 'La Gran Obra Magna';
+      primaryMechanicId = 'magna';
+    } else if (level >= 81) {
+      mechanicTag = hasSuperGiant ? 'Frasco Súper Largo (Max 8)' : 'Conjunción Híbrida';
       primaryMechanicId = 'hybrid';
     } else if (hasFragile) {
-      mechanicTag = 'Cristal Frágil (3 Usos)';
-      primaryMechanicId = 'fragile';
+      if (isSuperFragile) {
+        mechanicTag = 'Cristal Volátil (1 Uso)';
+        primaryMechanicId = 'super_fragile';
+      } else {
+        mechanicTag = 'Cristal de Afinidad (3 Usos)';
+        primaryMechanicId = 'fragile';
+      }
     } else if (hasChameleon) {
       mechanicTag = 'Líquido Camaleón';
       primaryMechanicId = 'chameleon';
     } else if (hasGlued) {
-      mechanicTag = 'Frasco Pegado (Solo Recibe)';
+      mechanicTag = 'Frasco en Roca (Solo Recibe)';
       primaryMechanicId = 'glued';
     } else if (hasNarrow) {
       mechanicTag = 'Tubo Estrecho (1x1)';
@@ -61,12 +71,13 @@ class LevelGenerator {
     // 1. Crear frascos llenos uniformes
     for (let i = 0; i < colorCount; i++) {
       const col = activeColors[i];
+      const isThisSuper = (hasSuperGiant && i === 1);
       const isThisGiant = (hasGiant && i === 0);
-      const cap = isThisGiant ? 6 : capacity;
+      const cap = isThisSuper ? 8 : (isThisGiant ? 6 : capacity);
 
       let tubeLiquids = [];
       for (let k = 0; k < cap; k++) {
-        const isCham = (hasChameleon && i === 1 && k === 1);
+        const isCham = (hasChameleon && i === 1 && k === 1 && !isThisSuper);
         tubeLiquids.push({
           colorIndex: isCham ? 'chameleon' : col.id,
           color: isCham ? 'chameleon' : col.hex,
@@ -87,53 +98,75 @@ class LevelGenerator {
         keyColor: null,
         isNarrow: (hasNarrow && i === 2),
         isGlued: false,
-        isFragile: (hasFragile && i === 0),
-        operationsRemaining: (hasFragile && i === 0 ? 3 : null)
+        isFragile: false,
+        isAffinity: false,
+        isSuperFragile: false,
+        cracks: 0,
+        maxCracks: null,
+        isBroken: false,
+        allowedColors: [],
+        allowedColorNames: []
       });
     }
 
-    // 2. Agregar frascos vacíos de trabajo o frasco inamovible (en la roca)
+    // 2. Mezclar semilla determinista
+    const effectiveSeed = level * 7919 + seedVariation * 1337 + 12345;
+
+    // 3. Agregar frascos vacíos de trabajo o frasco inamovible (en la roca) o frasco de afinidad
     for (let i = 0; i < emptyCount; i++) {
       const isGluedTube = (hasGlued && i === 0);
-      let initialGluedLiquids = [];
+      // REGLA DEL USUARIO: Los frascos de afinidad SIEMPRE inician vacíos para evitar problemas
+      const isAffinityTube = (hasFragile && (hasGlued ? i === 1 : i === 0));
 
-      // REGLA USUARIO: Las botellas inamovibles deben tener como máximo 1/4 de líquido (1 unidad)
-      // y SOLO de líquido normal (nunca misterio). El nivel garantiza que sea 100% resoluble.
-      if (isGluedTube) {
-        const startWithQuarter = (seedVariation % 2 === 0);
-        if (startWithQuarter && tubes.length > 0 && tubes[0].liquids.length > 1) {
-          const sample = tubes[0].liquids.pop();
-          initialGluedLiquids.push({
-            colorIndex: sample.colorIndex,
-            color: sample.color,
-            name: sample.name,
-            shape: sample.shape,
-            pattern: sample.pattern,
-            textHex: sample.textHex,
-            isMystery: false,
-            isChameleon: false
-          });
-        }
+      // Si es frasco de afinidad elemental, seleccionar determinísticamente 2 colores afines
+      let allowedColors = [];
+      let allowedColorNames = [];
+      if (isAffinityTube && activeColors.length >= 2) {
+        const c1 = activeColors[Math.abs(effectiveSeed) % activeColors.length];
+        const c2 = activeColors[Math.abs(effectiveSeed + 1) % activeColors.length];
+        allowedColors = [c1.hex, c2.hex];
+        allowedColorNames = [c1.name, c2.name];
       }
 
-      tubes.push({
-        id: colorCount + i,
+      const tubeObj = {
+        id: 0,
         capacity: capacity,
-        liquids: initialGluedLiquids,
+        liquids: [], // Se inicializa vacío; si es glued, distributeAndShuffle le asigna 1 muestra estándar
         isLocked: false,
         keyColor: null,
         isNarrow: false,
-        isGlued: isGluedTube, // Frasco inamovible: solo puede recibir líquidos
-        isFragile: false,
-        operationsRemaining: null
-      });
+        isGlued: isGluedTube, // Frasco inamovible: solo puede recibir líquidos (debe ir en posición 1)
+        isFragile: isAffinityTube,
+        isAffinity: isAffinityTube,
+        isSuperFragile: isAffinityTube && isSuperFragile,
+        maxCracks: isAffinityTube ? (isSuperFragile ? 1 : 3) : null,
+        cracks: 0,
+        isBroken: false,
+        allowedColors: allowedColors,
+        allowedColorNames: allowedColorNames
+      };
+
+      // REGLA DEL USUARIO: Si hay un tubo clavado en piedra (isGlued), DEBE generarse en la primera posición
+      // del layout (posición 1 / índice 0) para no cortar la cadena consecutiva de combos al ser completado.
+      // Los tubos de trabajo vacíos se posicionan al final.
+      if (isGluedTube) {
+        tubes.unshift(tubeObj);
+      } else {
+        tubes.push(tubeObj);
+      }
     }
 
-    // 3. Mezclar deterministamente según la semilla del nivel + variación por reintentos
-    const effectiveSeed = level * 7919 + seedVariation * 1337 + 12345;
-    this.shuffleDeterministically(tubes, effectiveSeed);
+    // Reasignar identificadores secuenciales 0..tubes.length-1
+    tubes.forEach((t, idx) => {
+      t.id = idx;
+    });
 
-    // 4. Aplicar candado si corresponde
+    // 4. Distribuir y mezclar inteligentemente:
+    // REGLA DEL USUARIO: En la cadena de líquidos distribuidos NO debe haber más de dos del mismo tipo
+    // desde el inicio ni dar botellas ya resueltas.
+    this.distributeAndShuffle(tubes, effectiveSeed);
+
+    // 5. Aplicar candado si corresponde
     // REGLAS ESTRICTAS DEL USUARIO:
     // a) El tubo con candado NUNCA debe estar vacío (debe tener entre 2 y 4 unidades de líquido).
     //    Esto hace que sea 100% obligatorio desbloquearlo para completar el nivel.
@@ -277,6 +310,11 @@ class LevelGenerator {
     // 6. Cálculo de movimientos óptimos estimados para estrellas
     const optimalMoves = colorCount * 3 + Math.floor(level / 4) + (hasMystery ? 2 : 0) + (hasLock ? 2 : 0) + (hasGlued ? 2 : 0);
 
+    // Verificación final de normalización para asegurar que la colocación de la llave
+    // no haya dejado rachas mayores a 2 ni frascos resueltos
+    const mainUnlocked = tubes.filter(t => !t.isGlued && !t.isAffinity && !t.isLocked && t.liquids.length > 0);
+    this.normalizeTubes(mainUnlocked, hasLock ? tubes.find(t => t.isLocked)?.keyColor : null);
+
     return {
       level,
       seedVariation,
@@ -295,29 +333,168 @@ class LevelGenerator {
     };
   }
 
-  static shuffleDeterministically(tubes, seed) {
+  // --- DISTRIBUCIÓN INTELIGENTE DE LÍQUIDOS (MÁXIMO 2 DEL MISMO TIPO, NINGUNO RESUELTO) ---
+  static distributeAndShuffle(tubes, seed) {
     let s = (seed * 1103515245 + 12345) & 0x7fffffff;
     const rnd = () => {
       s = (s * 1103515245 + 12345) & 0x7fffffff;
       return s / 0x7fffffff;
     };
 
-    const steps = 32 + (seed % 17);
-    for (let step = 0; step < steps; step++) {
-      const fromIdx = Math.floor(rnd() * (tubes.length - 2));
-      const toIdx = Math.floor(rnd() * tubes.length);
+    const gluedTube = tubes.find(t => t.isGlued);
+    const mainTubes = tubes.filter(t => !t.isGlued && !t.isAffinity && t.capacity >= 4);
 
-      if (fromIdx !== toIdx) {
-        const fromT = tubes[fromIdx];
-        const toT = tubes[toIdx];
+    // 1. Extraer todos los líquidos de los tubos principales a un pool común
+    const pool = [];
+    mainTubes.forEach(t => {
+      pool.push(...t.liquids);
+      t.liquids = [];
+    });
 
-        // Ni origen ni destino pueden ser un frasco inamovible (mantiene su 1/4 o vacío puro)
-        if (fromT.liquids.length > 1 && toT.liquids.length < toT.capacity && !toT.isLocked && !fromT.isGlued && !toT.isGlued) {
-          const popped = fromT.liquids.pop();
-          toT.liquids.push(popped);
+    // 2. Si hay frasco atrapado en roca (gluedTube), asignarle 1 unidad de un color estándar (capacidad 4)
+    // para que el jugador sepa cuál color debe completar en la roca, garantizando que haya 4 unidades en total.
+    if (gluedTube) {
+      const colorCounts = {};
+      pool.forEach(l => {
+        if (!l.isChameleon) colorCounts[l.color] = (colorCounts[l.color] || 0) + 1;
+      });
+      const standardColors = Object.keys(colorCounts).filter(c => colorCounts[c] === 4);
+      if (standardColors.length > 0) {
+        const chosenColor = standardColors[Math.abs(seed) % standardColors.length];
+        const sampleIdx = pool.findIndex(l => l.color === chosenColor);
+        if (sampleIdx !== -1) {
+          const sample = pool.splice(sampleIdx, 1)[0];
+          sample.isMystery = false;
+          sample.isChameleon = false;
+          gluedTube.liquids = [sample];
         }
       }
     }
+
+    // 3. Mezclar determinísticamente con Fisher-Yates
+    for (let i = pool.length - 1; i > 0; i--) {
+      const j = Math.floor(rnd() * (i + 1));
+      const tmp = pool[i];
+      pool[i] = pool[j];
+      pool[j] = tmp;
+    }
+
+    // 4. Llenar los mainTubes según su capacidad
+    let pIdx = 0;
+    mainTubes.forEach(t => {
+      while (t.liquids.length < t.capacity && pIdx < pool.length) {
+        t.liquids.push(pool[pIdx++]);
+      }
+    });
+
+    // 5. Aplicar la regla de oro solicitada por el usuario:
+    // "verificar que en la cadena de liquidos que distribuis no hayan más de dos del mismo tipo desde el inicio?
+    // Solo si no existe otra distribucion posible, hay que tratar de no darle resuelto al usuario una botella"
+    this.normalizeTubes(mainTubes);
+  }
+
+  static normalizeTubes(mainTubes, forbiddenTopColor = null) {
+    for (let pass = 0; pass < 350; pass++) {
+      let violation = false;
+      for (let t1 = 0; t1 < mainTubes.length; t1++) {
+        const tube1 = mainTubes[t1];
+        if (tube1.isLocked || tube1.liquids.length === 0) continue;
+
+        const counts1 = {};
+        tube1.liquids.forEach(item => counts1[item.color] = (counts1[item.color] || 0) + 1);
+
+        // a) Ningún tubo debe comenzar resuelto al 100%
+        const isSolved = (Object.keys(counts1).length === 1 && tube1.liquids.length === tube1.capacity && tube1.capacity > 1);
+        let badColor = null;
+        let badIdx = -1;
+
+        if (isSolved) {
+          badColor = tube1.liquids[0].color;
+          badIdx = tube1.liquids.length - 1;
+        } else {
+          // b) No más de 2 del mismo color en frascos estándar de 4
+          if (tube1.capacity === 4) {
+            for (let c in counts1) {
+              if (counts1[c] > 2) {
+                badColor = c;
+                break;
+              }
+            }
+          }
+          // c) No más de 2 consecutivos del mismo color en la cadena vertical
+          if (badColor === null) {
+            for (let i = 0; i < tube1.liquids.length - 2; i++) {
+              if (tube1.liquids[i].color === tube1.liquids[i+1].color && tube1.liquids[i].color === tube1.liquids[i+2].color) {
+                badColor = tube1.liquids[i].color;
+                badIdx = i + 1;
+                break;
+              }
+            }
+          }
+        }
+
+        if (badColor !== null) {
+          violation = true;
+          if (badIdx === -1) {
+            badIdx = tube1.liquids.findLastIndex(l => l.color === badColor);
+          }
+
+          let swapped = false;
+          for (let t2 = 0; t2 < mainTubes.length && !swapped; t2++) {
+            if (t1 === t2) continue;
+            const tube2 = mainTubes[t2];
+            if (tube2.isLocked || tube2.liquids.length === 0) continue;
+
+            const counts2 = {};
+            tube2.liquids.forEach(l => counts2[l.color] = (counts2[l.color] || 0) + 1);
+
+            const maxAllowedInT2 = tube2.capacity > 4 ? 3 : 2;
+            if ((counts2[badColor] || 0) < maxAllowedInT2) {
+              for (let i2 = 0; i2 < tube2.liquids.length; i2++) {
+                const swapItem = tube2.liquids[i2];
+                // Evitar poner forbiddenTopColor en el tope
+                if (forbiddenTopColor && badIdx === tube1.liquids.length - 1 && swapItem.color === forbiddenTopColor) continue;
+                if (forbiddenTopColor && i2 === tube2.liquids.length - 1 && badColor === forbiddenTopColor) continue;
+
+                if (swapItem.color !== badColor && (counts1[swapItem.color] || 0) < 2) {
+                  const temp = tube1.liquids[badIdx];
+                  tube1.liquids[badIdx] = tube2.liquids[i2];
+                  tube2.liquids[i2] = temp;
+                  swapped = true;
+                  break;
+                }
+              }
+            }
+          }
+
+          if (!swapped) {
+            for (let t2 = 0; t2 < mainTubes.length && !swapped; t2++) {
+              if (t1 === t2) continue;
+              const tube2 = mainTubes[t2];
+              if (tube2.isLocked || tube2.liquids.length === 0) continue;
+
+              for (let i2 = 0; i2 < tube2.liquids.length; i2++) {
+                if (tube2.liquids[i2].color !== badColor) {
+                  if (forbiddenTopColor && badIdx === tube1.liquids.length - 1 && tube2.liquids[i2].color === forbiddenTopColor) continue;
+                  if (forbiddenTopColor && i2 === tube2.liquids.length - 1 && badColor === forbiddenTopColor) continue;
+
+                  const temp = tube1.liquids[badIdx];
+                  tube1.liquids[badIdx] = tube2.liquids[i2];
+                  tube2.liquids[i2] = temp;
+                  swapped = true;
+                  break;
+                }
+              }
+            }
+          }
+        }
+      }
+      if (!violation) break;
+    }
+  }
+
+  static shuffleDeterministically(tubes, seed) {
+    this.distributeAndShuffle(tubes, seed);
   }
 }
 

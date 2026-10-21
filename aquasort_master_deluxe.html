@@ -223,14 +223,20 @@
           </h2>
           <p class="text-xs text-slate-400">Selecciona cualquier nivel para jugar o superar tus récords anteriores.</p>
         </div>
-        <button id="btn-close-map" class="p-2 text-slate-400 hover:text-white rounded-xl bg-slate-800">
-          <i data-lucide="x" class="w-5 h-5"></i>
-        </button>
+        <div class="flex items-center gap-2">
+          <button id="btn-map-endings" class="btn-interactive px-2.5 py-1.5 rounded-xl bg-amber-500/20 hover:bg-amber-500/30 text-amber-300 border border-amber-400/40 text-xs font-bold flex items-center gap-1.5 shadow-sm" title="Ver epílogos y cinemáticas del final">
+            <i data-lucide="clapperboard" class="w-3.5 h-3.5 text-amber-400"></i>
+            <span class="hidden sm:inline">Finales 🎭</span>
+          </button>
+          <button id="btn-close-map" class="p-2 text-slate-400 hover:text-white rounded-xl bg-slate-800">
+            <i data-lucide="x" class="w-5 h-5"></i>
+          </button>
+        </div>
       </div>
 
-      <!-- Cuadrícula de 100 niveles con estrellas -->
-      <div id="levels-grid" class="flex-1 overflow-y-auto grid grid-cols-4 sm:grid-cols-8 md:grid-cols-10 gap-2 p-1">
-        <!-- Botones generados en JS -->
+      <!-- Secciones de niveles con estrellas y Desafíos de Honor -->
+      <div id="levels-grid" class="flex-1 overflow-y-auto space-y-3.5 p-1 pr-2 custom-scrollbar">
+        <!-- Secciones generadas en JS -->
       </div>
     </div>
   </div>
@@ -254,7 +260,11 @@
       </div>
 
       <!-- Tarjetas de Estadísticas Globales -->
-      <div class="grid grid-cols-2 sm:grid-cols-4 gap-2 mb-4">
+      <div class="grid grid-cols-2 sm:grid-cols-5 gap-2 mb-4">
+        <div class="p-2.5 rounded-2xl bg-slate-800/80 border border-amber-500/30 text-center bg-gradient-to-b from-amber-500/10 to-transparent">
+          <div class="text-[10px] text-amber-300 font-bold uppercase">Puntaje Total 🏆</div>
+          <div id="stat-total-score" class="text-base sm:text-lg font-black text-amber-400 font-mono">0 pts</div>
+        </div>
         <div class="p-2.5 rounded-2xl bg-slate-800/80 border border-slate-700/80 text-center">
           <div class="text-[10px] text-slate-400 font-bold uppercase">Niveles Superados</div>
           <div id="stat-completed-levels" class="text-base sm:text-lg font-black text-sky-300">0/100</div>
@@ -274,15 +284,18 @@
       </div>
 
       <!-- Filtros de la Tabla -->
-      <div class="flex items-center gap-2 border-b border-slate-800 pb-2 mb-2 text-xs">
-        <button data-filter="completed" class="tab-leaderboard active px-3 py-1 rounded-lg border-b-2 border-sky-400 font-bold text-sky-300">
-          Completados
+      <div class="flex items-center gap-2 border-b border-slate-800 pb-2 mb-2 text-xs overflow-x-auto">
+        <button data-filter="score" class="tab-leaderboard active px-3 py-1 rounded-lg border-b-2 border-amber-400 font-bold text-amber-300 flex items-center gap-1">
+          <span>Mayor Puntaje 🏆</span>
         </button>
-        <button data-filter="fastest" class="tab-leaderboard px-3 py-1 rounded-lg border-b-2 border-transparent font-bold text-slate-400 hover:text-white">
-          Más Rápidos
+        <button data-filter="fastest" class="tab-leaderboard px-3 py-1 rounded-lg border-b-2 border-transparent font-bold text-slate-400 hover:text-white flex items-center gap-1">
+          <span>Más Rápidos ⏱️</span>
         </button>
-        <button data-filter="all" class="tab-leaderboard px-3 py-1 rounded-lg border-b-2 border-transparent font-bold text-slate-400 hover:text-white">
-          Todos los 100
+        <button data-filter="completed" class="tab-leaderboard px-3 py-1 rounded-lg border-b-2 border-transparent font-bold text-slate-400 hover:text-white flex items-center gap-1">
+          <span>Completados</span>
+        </button>
+        <button data-filter="all" class="tab-leaderboard px-3 py-1 rounded-lg border-b-2 border-transparent font-bold text-slate-400 hover:text-white flex items-center gap-1">
+          <span>Todos los 100</span>
         </button>
       </div>
 
@@ -376,8 +389,13 @@
         <i data-lucide="award" class="w-8 h-8"></i>
       </div>
 
-      <h2 class="text-2xl font-black text-white mb-1">¡Nivel Completado!</h2>
-      <p class="text-xs text-slate-400 mb-3">Todos los colores han sido clasificados con maestría.</p>
+      <h2 id="vic-modal-title" class="text-2xl font-black text-white mb-1">¡Nivel Completado!</h2>
+      <p id="vic-modal-subtitle" class="text-xs text-slate-400 mb-3">Todos los colores han sido clasificados con maestría.</p>
+
+      <!-- Badge de los 100 Niveles Superados -->
+      <div id="lbl-vic-completion-badge" class="hidden mb-3 inline-flex items-center gap-1.5 bg-gradient-to-r from-amber-500 via-yellow-400 to-amber-500 text-slate-950 text-xs font-black px-3.5 py-1.5 rounded-full shadow-lg shadow-amber-500/30 animate-bounce">
+        <span>👑 ¡SUPREMO GRAN MAESTRO! 100/100 NIVELES 👑</span>
+      </div>
 
       <!-- Badge de nuevo récord personal si aplica -->
       <div id="lbl-new-record-badge" class="hidden mb-3 inline-flex items-center gap-1.5 bg-gradient-to-r from-amber-500 to-yellow-400 text-slate-950 text-xs font-black px-3 py-1 rounded-full shadow-md animate-bounce">
@@ -393,8 +411,22 @@
       <!-- Estrellas ganadas -->
       <div id="victory-stars" class="flex justify-center gap-2 mb-3"></div>
 
+      <!-- Tarjeta Destacada de Puntaje Alquímico -->
+      <div class="bg-gradient-to-r from-amber-500/15 via-yellow-500/10 to-amber-500/15 border border-amber-500/30 rounded-2xl p-3.5 mb-3 text-left shadow-lg">
+        <div class="flex justify-between items-center">
+          <div class="flex items-center gap-1.5 text-amber-300 font-black text-xs uppercase tracking-wider">
+            <i data-lucide="award" class="w-4 h-4 text-amber-400"></i>
+            <span>Puntaje Alquímico</span>
+          </div>
+          <span id="lbl-vic-score" class="text-lg sm:text-xl font-black text-amber-300 font-mono">0 pts</span>
+        </div>
+        <div id="lbl-vic-score-breakdown" class="mt-2.5 pt-2 border-t border-amber-500/20 grid grid-cols-2 gap-1.5 text-[11px] text-slate-300">
+          <!-- Desglose dinámico de Base, Movs, Tiempo, Combo, Desafíos -->
+        </div>
+      </div>
+
       <!-- Resumen de Métricas -->
-      <div class="bg-slate-800/80 border border-slate-700/80 rounded-2xl p-4 mb-4 text-left space-y-2 text-xs">
+      <div class="bg-slate-800/80 border border-slate-700/80 rounded-2xl p-3.5 mb-3 text-left space-y-2 text-xs">
         <div class="flex justify-between items-center text-slate-300">
           <span>Tiempo empleado:</span>
           <strong id="lbl-vic-time" class="text-emerald-400 font-mono text-sm">00:00</strong>
@@ -402,6 +434,10 @@
         <div class="flex justify-between items-center text-slate-300">
           <span>Movimientos realizados:</span>
           <strong id="lbl-vic-moves" class="text-white text-sm">0</strong>
+        </div>
+        <div class="flex justify-between items-center text-slate-300">
+          <span>Combo Consecutivo:</span>
+          <strong id="lbl-vic-combo" class="text-amber-400 font-mono text-sm">--</strong>
         </div>
         <div class="border-t border-slate-700/60 pt-2 flex justify-between items-center text-white font-black text-sm">
           <span>Monedas Ganadas:</span>
@@ -423,11 +459,29 @@
         </div>
       </div>
 
+      <!-- Banner de invitación al Desafío de Honor si la sección está 100% completada -->
+      <div id="vic-honor-unlocked-banner" class="hidden mb-4 p-3.5 bg-gradient-to-r from-amber-500/20 via-yellow-500/25 to-amber-500/20 border-2 border-amber-400/60 rounded-2xl text-left shadow-lg">
+        <div class="flex items-center justify-between text-amber-300 font-black text-xs mb-1">
+          <span class="flex items-center gap-1.5">
+            <i data-lucide="award" class="w-4 h-4 text-amber-400"></i>
+            <span>¡DESAFÍO DE HONOR DESBLOQUEADO!</span>
+          </span>
+          <span class="text-[10px] px-2 py-0.5 rounded-full bg-amber-500/30 text-amber-200 font-mono">3 ❤️ • 5:00</span>
+        </div>
+        <p id="vic-honor-banner-text" class="text-[11px] text-slate-300 mb-2.5">
+          Has completado con 3★ y todos los desafíos los niveles de esta sección. ¿Aceptas el reto para ganar la Medalla de Honor?
+        </p>
+        <button id="btn-vic-launch-honor" class="btn-interactive w-full py-2.5 bg-gradient-to-r from-amber-500 via-yellow-400 to-amber-500 hover:from-amber-400 hover:to-yellow-300 text-slate-950 font-black rounded-xl text-xs shadow-md flex items-center justify-center gap-1.5 transition-all">
+          <i data-lucide="shield" class="w-4 h-4"></i>
+          <span>Jugar Desafío de Honor Ahora</span>
+        </button>
+      </div>
+
       <!-- Botones de Acción -->
       <div class="flex flex-col gap-2">
         <button id="btn-vic-roulette" class="btn-interactive w-full py-3.5 bg-gradient-to-r from-amber-500 to-orange-500 hover:from-amber-400 hover:to-orange-400 text-slate-950 font-black rounded-2xl shadow-lg shadow-orange-500/30 flex items-center justify-center gap-2 transition-all">
           <i data-lucide="sparkles" class="w-5 h-5"></i>
-          <span>Multiplicar en la Ruleta de la Fortuna</span>
+          <span>Multiplicar en Minijuego de Fortuna (🎯 / 🎡)</span>
         </button>
 
         <button id="btn-vic-next" class="btn-interactive w-full py-3 bg-sky-600 hover:bg-sky-500 text-white font-bold rounded-2xl transition-all flex items-center justify-center gap-2 shadow-md">
@@ -444,17 +498,16 @@
   <div id="modal-roulette" class="fixed inset-0 bg-slate-950/90 backdrop-blur-md z-50 hidden flex items-center justify-center p-3 sm:p-5 modal-overlay">
     <div class="bg-slate-900 border border-slate-700 rounded-3xl max-w-md w-full p-5 sm:p-6 shadow-2xl text-center relative modal-content">
       <!-- Selector de Modo de Minijuego y Banner de Asignación Aleatoria -->
-      <div id="minigame-assigned-banner" class="mb-2 py-1 px-3 rounded-xl text-[11px] font-black bg-slate-800 text-amber-300 border border-amber-500/30 flex items-center justify-center gap-1.5 shadow-sm">
-        🎲 ¡Minijuego Asignado al Azar: Diana Alquímica!
+      <div id="minigame-assigned-banner" class="mb-1.5 py-1 px-3 rounded-xl text-[11px] font-black bg-slate-800 text-amber-300 border border-amber-500/30 flex items-center justify-center gap-1.5 shadow-sm">
+        🎲 ¡Minijuego Asignado desde la Bolsa Alquímica!
       </div>
 
-      <div class="flex items-center justify-center gap-2 mb-2.5">
-        <button id="tab-game-diana" class="px-3.5 py-1.5 rounded-xl text-xs font-black bg-gradient-to-r from-sky-500 to-indigo-600 text-white shadow-md transition-all">
-          🎯 Diana con Viento
-        </button>
-        <button id="tab-game-roulette" class="px-3.5 py-1.5 rounded-xl text-xs font-bold bg-slate-800 text-slate-300 hover:text-white transition-all">
-          🎡 Ruleta Aleatoria
-        </button>
+      <!-- Indicador visual de la Bolsa Alquímica -->
+      <div id="minigame-bag-indicator" class="mb-2.5 flex items-center justify-center gap-2.5 text-[11px] font-bold text-slate-300 bg-slate-950/70 py-1.5 px-3 rounded-xl border border-slate-800 shadow-inner">
+        <span class="flex items-center gap-1 text-slate-400 font-semibold">🎒 En Bolsa:</span>
+        <span id="bag-count-diana" class="text-sky-300 font-mono font-bold">🎯 3 Diana</span>
+        <span class="text-slate-600 font-bold">•</span>
+        <span id="bag-count-roulette" class="text-amber-300 font-mono font-bold">🎡 3 Ruleta</span>
       </div>
 
       <!-- CAJÓN DE CARTAS ALQUÍMICAS DE FORTUNA -->
@@ -472,13 +525,13 @@
           <button id="card-diana-favor" data-card="dianaFavor" class="btn-alchemy-card flex flex-col items-center justify-center p-1.5 rounded-xl bg-slate-800 border border-slate-700 hover:border-sky-400 transition-all text-center">
             <span class="text-base mb-0.5">🎯</span>
             <span class="text-[9px] font-black text-sky-300 leading-tight">Favor Diana</span>
-            <span class="text-[8px] text-slate-400 font-bold">(80% Diana)</span>
+            <span class="text-[8px] text-slate-400 font-bold">(5 bonuses)</span>
             <span class="card-count text-[9px] text-amber-300 font-black mt-0.5">x2</span>
           </button>
           <button id="card-roulette-favor" data-card="rouletteFavor" class="btn-alchemy-card flex flex-col items-center justify-center p-1.5 rounded-xl bg-slate-800 border border-slate-700 hover:border-amber-400 transition-all text-center">
             <span class="text-base mb-0.5">🎡</span>
             <span class="text-[9px] font-black text-amber-300 leading-tight">Giro Destino</span>
-            <span class="text-[8px] text-slate-400 font-bold">(80% Ruleta)</span>
+            <span class="text-[8px] text-slate-400 font-bold">(5 bonuses)</span>
             <span class="card-count text-[9px] text-amber-300 font-black mt-0.5">x2</span>
           </button>
           <button id="card-double-or-nothing" data-card="doubleOrNothing" class="btn-alchemy-card flex flex-col items-center justify-center p-1.5 rounded-xl bg-slate-800 border border-slate-700 hover:border-rose-400 transition-all text-center">
@@ -506,11 +559,14 @@
 
       <!-- VISTA 1: DIANA DE DARDOS (ESTILO MAGIC DARTS CON APUNTADO HORIZONTAL Y FUERZA ASCENDENTE) -->
       <div id="diana-view" class="flex flex-col items-center">
-        <!-- Indicador de Viento Dinámico -->
+        <!-- Indicador de Viento Dinámico con 0, 1, 2 o 3 Flechitas Animadas -->
         <div id="wind-hud" class="wind-indicator-pill mb-2">
           <i data-lucide="wind" class="w-4 h-4 text-sky-400"></i>
           <span id="wind-speed-lbl">Viento: 3.2 m/s</span>
-          <span id="wind-arrow" class="wind-compass-arrow text-base">↗</span>
+          <div id="wind-arrows-stream" class="wind-arrows-stream">
+            <span class="wind-chevron">➤</span>
+            <span class="wind-chevron">➤</span>
+          </div>
         </div>
 
         <!-- Control de Posición Horizontal (Magic Darts) -->
@@ -711,6 +767,12 @@
           <span>Taller de Creación de Niveles</span>
         </button>
 
+        <!-- Botón Epílogos Alquímicos (Finales) en Home Screen -->
+        <button id="btn-home-endings" class="btn-interactive w-full py-2.5 bg-gradient-to-r from-amber-500/20 via-yellow-500/25 to-amber-500/20 hover:from-amber-500/35 hover:to-amber-500/35 border border-amber-400/40 text-amber-300 font-bold text-xs rounded-2xl flex items-center justify-center gap-2">
+          <i data-lucide="clapperboard" class="w-4 h-4 text-amber-400"></i>
+          <span>Epílogos y Finales Alquímicos 🎭</span>
+        </button>
+
         <!-- Guardado / Carga en Archivo .JSON -->
         <div class="border-t border-slate-800 pt-3 mt-1 flex items-center justify-between gap-2">
           <button id="btn-export-file" class="btn-interactive flex-1 py-2.5 bg-emerald-500/15 hover:bg-emerald-500/25 border border-emerald-500/40 text-emerald-300 font-bold text-xs rounded-2xl flex items-center justify-center gap-1.5" title="Descargar archivo de partida para guardar progreso en tu PC">
@@ -891,7 +953,7 @@
             <input type="text" id="editor-creator-name" value="Maestro Alquimista" class="w-full bg-slate-900 border border-slate-700 rounded-xl px-3 py-1.5 text-white font-bold focus:border-purple-400 outline-none">
           </div>
           <div>
-            <label class="block text-slate-400 font-bold mb-1">Cantidad de Frascos (3 a 8):</label>
+            <label class="block text-slate-400 font-bold mb-1">Cantidad de Frascos (3 a 30):</label>
             <select id="editor-tube-count" class="w-full bg-slate-900 border border-slate-700 rounded-xl px-3 py-1.5 text-white font-bold focus:border-purple-400 outline-none cursor-pointer">
               <option value="3">3 Frascos</option>
               <option value="4">4 Frascos</option>
@@ -899,6 +961,18 @@
               <option value="6">6 Frascos</option>
               <option value="7">7 Frascos</option>
               <option value="8">8 Frascos</option>
+              <option value="9">9 Frascos</option>
+              <option value="10">10 Frascos</option>
+              <option value="12">12 Frascos</option>
+              <option value="14">14 Frascos</option>
+              <option value="16">16 Frascos</option>
+              <option value="18">18 Frascos</option>
+              <option value="20">20 Frascos</option>
+              <option value="22">22 Frascos</option>
+              <option value="24">24 Frascos</option>
+              <option value="26">26 Frascos</option>
+              <option value="28">28 Frascos</option>
+              <option value="30">30 Frascos (Laboratorio Máximo)</option>
             </select>
           </div>
         </div>
@@ -946,17 +1020,386 @@
     </div>
   </div>
 
+  <!-- ==========================================================================
+       MODAL: VICTORIA DE DESAFÍO DE HONOR (MEDALLA DE HONOR CONSEGUIDA)
+       ========================================================================== -->
+  <div id="modal-honor-victory" class="fixed inset-0 bg-slate-950/90 backdrop-blur-md z-50 hidden flex items-center justify-center p-4 modal-overlay">
+    <div class="bg-slate-900 border-2 border-amber-400/80 rounded-3xl max-w-md w-full p-6 sm:p-7 shadow-2xl text-center relative overflow-hidden modal-content">
+      <div class="w-32 h-32 bg-amber-500/25 rounded-full blur-3xl absolute -top-10 -left-10"></div>
+      <div class="w-32 h-32 bg-yellow-500/25 rounded-full blur-3xl absolute -bottom-10 -right-10"></div>
+
+      <!-- Medalla de Honor Animada -->
+      <div class="relative w-24 h-24 mx-auto mb-3 flex items-center justify-center">
+        <div class="absolute inset-0 rounded-full bg-gradient-to-tr from-amber-500 via-yellow-400 to-amber-300 animate-spin-slow opacity-80 blur-md"></div>
+        <div class="relative w-20 h-20 rounded-full bg-gradient-to-b from-yellow-300 via-amber-400 to-amber-600 border-2 border-amber-200 flex items-center justify-center shadow-xl shadow-amber-500/50 text-slate-950 font-black text-3xl">
+          <span id="honor-vic-icon">🏅</span>
+        </div>
+      </div>
+
+      <div class="inline-block px-3 py-1 rounded-full bg-amber-500/20 border border-amber-400/40 text-amber-300 font-mono text-[10px] font-black uppercase tracking-wider mb-1.5">
+        ¡Hazaña de Honor Cumplida!
+      </div>
+
+      <h2 id="honor-vic-title" class="text-xl sm:text-2xl font-black text-white mb-0.5">
+        Medalla de Honor Conseguida
+      </h2>
+      <p id="honor-vic-section" class="text-xs text-amber-200/90 font-medium mb-3">
+        Sección 1: Fundamentos Alquímicos
+      </p>
+
+      <div class="bg-slate-800/90 border border-amber-500/30 rounded-2xl p-3.5 mb-3 text-left space-y-1.5 text-xs">
+        <div class="flex justify-between items-center text-slate-300">
+          <span>Tiempo empleado:</span>
+          <strong id="honor-vic-time" class="text-emerald-400 font-mono text-sm">02:15</strong>
+        </div>
+        <div class="flex justify-between items-center text-slate-300">
+          <span>Movimientos realizados:</span>
+          <strong id="honor-vic-moves" class="text-white text-sm">18 / 24 max</strong>
+        </div>
+        <div class="flex justify-between items-center text-slate-300">
+          <span>Vidas conservadas:</span>
+          <strong id="honor-vic-lives" class="text-rose-400 text-sm">❤️❤️❤️ (3/3)</strong>
+        </div>
+        <div class="border-t border-slate-700/60 pt-1.5 flex justify-between items-center text-white font-black text-sm">
+          <span>Recompensa de Honor:</span>
+          <span id="honor-vic-coins" class="text-amber-300 text-base font-black">+50 🪙</span>
+        </div>
+      </div>
+
+      <p class="text-[11px] text-slate-400 mb-4">
+        Esta medalla queda registrada para siempre en tu vitrina de honor y en el Mapa de Niveles.
+      </p>
+
+      <button id="btn-honor-vic-close" class="btn-interactive w-full py-3 bg-gradient-to-r from-amber-500 via-yellow-400 to-amber-500 hover:from-amber-400 hover:to-yellow-300 text-slate-950 font-black rounded-2xl shadow-lg shadow-amber-500/30 flex items-center justify-center gap-2 transition-all">
+        <i data-lucide="award" class="w-5 h-5"></i>
+        <span>Guardar Medalla y Continuar</span>
+      </button>
+    </div>
+  </div>
+
+  <!-- ==========================================================================
+       MODAL: DERROTA / INTENTO FALLIDO EN DESAFÍO DE HONOR
+       ========================================================================== -->
+  <div id="modal-honor-defeat" class="fixed inset-0 bg-slate-950/90 backdrop-blur-md z-50 hidden flex items-center justify-center p-4 modal-overlay">
+    <div class="bg-slate-900 border border-rose-500/50 rounded-3xl max-w-md w-full p-6 shadow-2xl text-center relative overflow-hidden modal-content">
+      <div class="w-16 h-16 rounded-2xl bg-rose-500/20 border border-rose-500/40 flex items-center justify-center mx-auto mb-3 text-rose-400 shadow-lg shadow-rose-500/20 text-3xl">
+        <i data-lucide="skull" class="w-8 h-8"></i>
+      </div>
+
+      <h2 id="honor-defeat-title" class="text-xl font-black text-white mb-1">
+        Prueba de Honor Fallida
+      </h2>
+      <p id="honor-defeat-reason" class="text-xs text-rose-300/90 mb-3">
+        Has superado los movimientos máximos permitidos.
+      </p>
+
+      <div class="bg-slate-800/80 border border-slate-700 rounded-2xl p-4 mb-4 text-center">
+        <div class="text-xs text-slate-400 mb-1">Vidas de Honor Restantes para este Desafío:</div>
+        <div id="honor-defeat-lives-display" class="flex justify-center gap-2 text-2xl my-1">
+          <span>❤️</span><span>❤️</span><span>🖤</span>
+        </div>
+        <div id="honor-defeat-subtext" class="text-xs font-bold text-amber-300 mt-1">
+          Te quedan 2 intentos para obtener la Medalla.
+        </div>
+      </div>
+
+      <div id="honor-defeat-actions-retry" class="flex flex-col gap-2">
+        <button id="btn-honor-retry" class="btn-interactive w-full py-3 bg-gradient-to-r from-rose-500 to-red-600 hover:from-rose-400 hover:to-red-500 text-white font-bold rounded-2xl shadow-md flex items-center justify-center gap-2">
+          <i data-lucide="rotate-ccw" class="w-4 h-4"></i>
+          <span>Reintentar Desafío (-1 ❤️)</span>
+        </button>
+        <button id="btn-honor-exit" class="btn-interactive w-full py-2.5 bg-slate-800 hover:bg-slate-700 text-slate-300 font-bold rounded-2xl text-xs">
+          Regresar a Niveles Normales
+        </button>
+      </div>
+
+      <div id="honor-defeat-actions-locked" class="hidden flex flex-col gap-2">
+        <p class="text-xs text-slate-400 mb-2">
+          Has perdido las 3 vidas para este desafío. Puedes seguir avanzando en los niveles ordinarios sin ningún problema. Podrás volver a intentar la Medalla mañana a medianoche.
+        </p>
+        <button id="btn-honor-locked-ok" class="btn-interactive w-full py-3 bg-slate-800 hover:bg-slate-700 text-white font-bold rounded-2xl text-xs">
+          Continuar Juego Ordinario
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ==========================================================================
+       MODAL 11: GRAN CONSAGRACIÓN ALQUÍMICA (100 NIVELES COMPLETADOS)
+       ========================================================================== -->
+  <div id="modal-completion" class="fixed inset-0 bg-slate-950/90 backdrop-blur-md z-50 hidden flex items-center justify-center p-3 sm:p-5 modal-overlay">
+    <div class="bg-gradient-to-b from-slate-900 via-slate-900 to-amber-950/40 border-2 border-amber-400/80 rounded-3xl max-w-lg w-full p-5 sm:p-7 shadow-[0_0_50px_rgba(251,191,36,0.35)] text-center relative overflow-hidden modal-content">
+      
+      <!-- Efecto de resplandor dorado de fondo -->
+      <div class="w-40 h-40 bg-amber-500/20 rounded-full blur-3xl absolute -top-10 left-1/2 -translate-x-1/2 pointer-events-none"></div>
+      <div class="w-40 h-40 bg-sky-500/15 rounded-full blur-3xl absolute -bottom-10 right-0 pointer-events-none"></div>
+
+      <!-- Corona / Trofeo Supremo Animado -->
+      <div class="relative w-24 h-24 mx-auto mb-3 flex items-center justify-center">
+        <div class="absolute inset-0 bg-gradient-to-tr from-amber-500/30 to-yellow-300/40 rounded-full blur-xl animate-pulse"></div>
+        <div class="w-20 h-20 rounded-2xl bg-gradient-to-br from-amber-400 via-yellow-500 to-amber-600 border-2 border-yellow-200 flex items-center justify-center shadow-xl shadow-amber-500/30 transform hover:scale-105 transition-all text-slate-950">
+          <span class="text-4xl drop-shadow-md">👑</span>
+        </div>
+      </div>
+
+      <!-- Título de Felicitaciones -->
+      <span class="inline-block text-[10px] sm:text-xs font-black tracking-widest uppercase px-3 py-1 rounded-full bg-amber-500/20 text-amber-300 border border-amber-400/50 mb-2">
+        ★ Hito Legendario de Alquimia ★
+      </span>
+      <h2 class="text-2xl sm:text-3xl font-black text-transparent bg-clip-text bg-gradient-to-r from-amber-200 via-yellow-300 to-amber-400 mb-1 leading-tight">
+        ¡FELICITACIONES, SUPREMO GRAN MAESTRO!
+      </h2>
+      <p class="text-xs sm:text-sm text-sky-200 font-bold mb-4">
+        ¡Has completado con éxito los 100 Niveles de AquaSort Master Deluxe!
+      </p>
+
+      <!-- Pergamino de Consagración Alquímica -->
+      <div class="bg-slate-950/80 border border-amber-500/30 rounded-2xl p-4 mb-4 text-left relative shadow-inner">
+        <div class="flex items-center gap-2 mb-2 text-amber-300 font-black text-xs border-b border-slate-800 pb-1.5">
+          <i data-lucide="scroll" class="w-4 h-4 text-amber-400"></i>
+          <span>Decreto de la Orden Alquímica Universal</span>
+        </div>
+        <p class="text-[11px] sm:text-xs text-slate-300 leading-relaxed mb-2.5">
+          Has demostrado una visión estratégica, paciencia y dominio absoluto sobre los elementos. Desde los frascos básicos y los velos de misterio, hasta domar los matraces gigantes y titánicos, descifrar sellos rúnicos, operar en tubos 1x1, vencer la roca inamovible, guiar la esencia camaleón y templar los cristales frágiles, has culminado con éxito la <strong>Gran Obra Magna</strong>.
+        </p>
+        <p class="text-[11px] sm:text-xs text-amber-300/90 font-semibold italic">
+          Tu sabiduría ha quedado sellada para siempre en los anales de la Alquimia Suprema.
+        </p>
+      </div>
+
+      <!-- Panel de Estadísticas Finales de los 100 Niveles -->
+      <div class="grid grid-cols-3 gap-2 mb-4 text-center">
+        <div class="bg-slate-800/80 border border-slate-700/80 rounded-xl p-2.5 shadow-sm">
+          <span class="block text-[10px] text-slate-400 font-semibold">Niveles</span>
+          <strong class="text-base sm:text-lg font-black text-emerald-400">100 / 100</strong>
+          <span class="text-[9px] text-emerald-300/80 block font-bold">100% Superado</span>
+        </div>
+        <div class="bg-slate-800/80 border border-slate-700/80 rounded-xl p-2.5 shadow-sm">
+          <span class="block text-[10px] text-slate-400 font-semibold">Estrellas</span>
+          <strong id="completion-total-stars" class="text-base sm:text-lg font-black text-amber-300">---</strong>
+          <span class="text-[9px] text-amber-200/80 block font-bold">Total Obtenido</span>
+        </div>
+        <div class="bg-slate-800/80 border border-slate-700/80 rounded-xl p-2.5 shadow-sm">
+          <span class="block text-[10px] text-slate-400 font-semibold">Medallas Honor</span>
+          <strong id="completion-honor-medals" class="text-base sm:text-lg font-black text-purple-300">---</strong>
+          <span class="text-[9px] text-purple-200/80 block font-bold">Secciones</span>
+        </div>
+      </div>
+
+      <!-- Recompensa de Consagración -->
+      <div id="completion-reward-banner" class="mb-4 py-2 px-3 rounded-xl bg-gradient-to-r from-amber-500/20 via-yellow-500/30 to-amber-500/20 border border-amber-400/50 flex items-center justify-between text-xs font-bold text-amber-200">
+        <span class="flex items-center gap-1.5">
+          <span>🎁 Recompensa de Gran Maestro:</span>
+        </span>
+        <span id="completion-coins-award-lbl" class="text-amber-300 font-black font-mono text-sm">+500 🪙 Monedas</span>
+      </div>
+
+      <!-- SECCIÓN CINEMÁTICA: EL FINAL ALQUÍMICO (MALO / REGULAR / BUENO CON GIRO) -->
+      <div id="completion-ending-theater" class="mb-4 bg-slate-950/80 border-2 border-amber-500/50 rounded-2xl p-3.5 shadow-xl text-left relative overflow-hidden">
+        <div class="flex items-center justify-between mb-2 pb-1.5 border-b border-slate-800">
+          <div class="flex items-center gap-1.5">
+            <span id="ending-badge" class="text-[10px] uppercase font-mono tracking-wider px-2 py-0.5 rounded-full bg-amber-500/20 text-amber-300 border border-amber-400/40 font-black">
+              EPÍLOGO DE CAMPAÑA
+            </span>
+          </div>
+          <span id="ending-score-lbl" class="text-[11px] text-amber-300 font-mono font-black">Puntaje Total: 0 pts</span>
+        </div>
+
+        <h4 id="ending-title" class="text-sm sm:text-base font-black text-white mb-1.5 flex items-center gap-1.5">
+          <!-- Título dinámico del final -->
+        </h4>
+
+        <!-- Contenedor con la animación SVG loopeada del final (Estilo Tutorial) -->
+        <div id="ending-looper-container" class="tutorial-looper-box mb-2.5 w-full border-amber-500/30" style="height: 195px; background: radial-gradient(circle at center, #1c1917 0%, #09090b 100%);">
+          <!-- Renderizado dinámicamente según el final -->
+        </div>
+
+        <!-- Descripción / Narrativa cómica del final -->
+        <p id="ending-desc" class="text-xs text-slate-300 leading-relaxed mb-3 px-1 italic">
+          <!-- Descripción del final -->
+        </p>
+
+        <!-- Selector de Finales cómicos para reproducir / testear -->
+        <div class="flex items-center justify-between pt-2.5 border-t border-slate-800/80">
+          <span class="text-[10px] text-slate-400 font-bold uppercase">Explorar Finales Cómicos:</span>
+          <div class="flex items-center gap-1.5">
+            <button id="btn-ending-bad" class="btn-interactive px-2.5 py-1 text-[11px] rounded-xl font-black bg-rose-500/20 hover:bg-rose-500/30 text-rose-300 border border-rose-500/40 transition">
+              💥 Malo
+            </button>
+            <button id="btn-ending-regular" class="btn-interactive px-2.5 py-1 text-[11px] rounded-xl font-black bg-amber-500/20 hover:bg-amber-500/30 text-amber-300 border border-amber-500/40 transition">
+              🍌 Regular
+            </button>
+            <button id="btn-ending-good" class="btn-interactive px-2.5 py-1 text-[11px] rounded-xl font-black bg-emerald-500/20 hover:bg-emerald-500/30 text-emerald-300 border border-emerald-500/40 transition">
+              💰🌍 Bueno
+            </button>
+          </div>
+        </div>
+      </div>
+
+      <!-- Botones de Acción Post-Juego -->
+      <div class="flex flex-col gap-2">
+        <div class="grid grid-cols-2 gap-2">
+          <button id="btn-completion-map" class="py-2.5 px-3 rounded-xl bg-sky-600 hover:bg-sky-500 text-white font-bold text-xs flex items-center justify-center gap-1.5 shadow-md transition-all">
+            <i data-lucide="map" class="w-3.5 h-3.5"></i>
+            <span>Mapa de Niveles</span>
+          </button>
+          <button id="btn-completion-honor" class="py-2.5 px-3 rounded-xl bg-purple-600 hover:bg-purple-500 text-white font-bold text-xs flex items-center justify-center gap-1.5 shadow-md transition-all">
+            <i data-lucide="shield" class="w-3.5 h-3.5"></i>
+            <span>Desafíos de Honor</span>
+          </button>
+        </div>
+
+        <button id="btn-completion-editor" class="py-2 px-3 rounded-xl bg-slate-800 hover:bg-slate-700 border border-slate-600 text-slate-200 font-bold text-xs flex items-center justify-center gap-1.5 transition-all">
+          <i data-lucide="hammer" class="w-3.5 h-3.5 text-amber-400"></i>
+          <span>Crear Nuevos Niveles en el Taller</span>
+        </button>
+
+        <button id="btn-completion-replay" class="text-xs text-amber-400 hover:text-amber-300 font-bold py-1 underline">
+          Rejugar Nivel 100 (La Gran Obra Magna)
+        </button>
+      </div>
+
+    </div>
+  </div>
+
+  <!-- ==========================================================================
+       MODAL 12: EASTER EGG DE CATACLISMO QUÍMICO (EL MUNDO HA EXPLOTADO)
+       ========================================================================== -->
+  <div id="modal-apocalypse-easter-egg" class="fixed inset-0 bg-slate-950/95 backdrop-blur-lg z-50 hidden flex items-center justify-center p-3 sm:p-4 modal-overlay">
+    <div class="bg-slate-900 border-2 border-red-500/70 rounded-3xl max-w-lg w-full p-4 sm:p-6 shadow-2xl relative flex flex-col text-center modal-content overflow-hidden" style="box-shadow: 0 0 50px rgba(239, 68, 68, 0.45);">
+      
+      <!-- Botón de Cerrar / Cancelar en esquina superior -->
+      <button id="btn-close-apocalypse-x" class="absolute top-4 right-4 p-1.5 text-slate-400 hover:text-white rounded-xl bg-slate-800/80 hover:bg-slate-700 transition-colors" title="Cerrar y reiniciar">
+        <i data-lucide="x" class="w-4 h-4"></i>
+      </button>
+
+      <!-- Badge Superior de Alerta Máxima -->
+      <div class="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-red-500/20 text-red-400 border border-red-500/40 font-mono text-[11px] font-black uppercase tracking-wider mx-auto mb-2 animate-pulse">
+        <i data-lucide="alert-triangle" class="w-3.5 h-3.5 text-red-400"></i>
+        <span>CATACLISMO ALQUÍMICO TOTAL</span>
+        <i data-lucide="alert-triangle" class="w-3.5 h-3.5 text-red-400"></i>
+      </div>
+
+      <!-- Título Impactante -->
+      <h3 class="text-xl sm:text-2xl font-black text-white mb-2 tracking-tight flex items-center justify-center gap-2">
+        <span>🌍💥 ¡EL MUNDO HA EXPLOTADO!</span>
+      </h3>
+
+      <!-- Contenedor con la Animación Loopeada SVG del Mundo Explotando (Estilo Tutorial) -->
+      <div id="apocalypse-looper-container" class="tutorial-looper-box mb-3 w-full border-red-500/40" style="height: 190px; background: radial-gradient(circle at center, #1c1917 0%, #09090b 100%);">
+        <svg viewBox="0 0 240 160" class="w-full h-full apocalypse-earth-svg">
+          <!-- Estrellas del Espacio Profundo -->
+          <g class="apocalypse-stars">
+            <circle cx="20" cy="25" r="1.5" fill="#ffffff" opacity="0.8"/>
+            <circle cx="45" cy="80" r="1" fill="#93c5fd" opacity="0.6"/>
+            <circle cx="30" cy="135" r="1.2" fill="#ffffff" opacity="0.7"/>
+            <circle cx="95" cy="20" r="1" fill="#fde047" opacity="0.9"/>
+            <circle cx="150" cy="18" r="1.5" fill="#ffffff" opacity="0.8"/>
+            <circle cx="215" cy="30" r="1.2" fill="#93c5fd" opacity="0.7"/>
+            <circle cx="225" cy="85" r="1" fill="#ffffff" opacity="0.6"/>
+            <circle cx="205" cy="135" r="1.5" fill="#fde047" opacity="0.9"/>
+            <circle cx="130" cy="148" r="1" fill="#ffffff" opacity="0.7"/>
+            <circle cx="70" cy="145" r="1.2" fill="#93c5fd" opacity="0.8"/>
+          </g>
+
+          <!-- Halo Atmosférico Terrestre -->
+          <circle cx="120" cy="80" r="43" fill="none" stroke="#38bdf8" stroke-width="3" opacity="0.4" class="earth-atmosphere" />
+
+          <!-- Planeta Tierra (Se sacude y divide en fragmentos continentales) -->
+          <g class="apocalypse-earth-body">
+            <!-- Fragmento 1: Noroeste (América) -->
+            <g class="earth-chunk-tl">
+              <path d="M 120 80 L 120 40 A 40 40 0 0 0 80 80 Z" fill="#0284c7" />
+              <path d="M 92 56 Q 102 52 110 60 Q 112 70 102 75 Q 90 70 92 56 Z" fill="#10b981" />
+              <path d="M 85 70 Q 88 64 94 65 Q 96 76 89 78 Z" fill="#059669" />
+            </g>
+
+            <!-- Fragmento 2: Noreste (Eurasia) -->
+            <g class="earth-chunk-tr">
+              <path d="M 120 80 L 160 80 A 40 40 0 0 0 120 40 Z" fill="#0284c7" />
+              <path d="M 125 50 Q 140 46 150 58 Q 146 72 135 68 Q 125 72 125 50 Z" fill="#10b981" />
+              <circle cx="145" cy="65" r="4" fill="#059669" />
+            </g>
+
+            <!-- Fragmento 3: Suroeste (Sudamérica y Pacífico) -->
+            <g class="earth-chunk-bl">
+              <path d="M 120 80 L 80 80 A 40 40 0 0 0 120 120 Z" fill="#0284c7" />
+              <path d="M 98 85 Q 112 88 108 102 Q 102 114 96 106 Q 94 92 98 85 Z" fill="#10b981" />
+            </g>
+
+            <!-- Fragmento 4: Sureste (África e Índico) -->
+            <g class="earth-chunk-br">
+              <path d="M 120 80 L 120 120 A 40 40 0 0 0 160 80 Z" fill="#0284c7" />
+              <path d="M 126 84 Q 140 86 142 98 Q 135 110 128 105 Q 124 94 126 84 Z" fill="#10b981" />
+            </g>
+          </g>
+
+          <!-- Grietas Incandescentes de Magma -->
+          <g class="magma-fissures">
+            <path d="M 120 40 L 120 80 L 160 80 M 120 80 L 80 80 M 120 80 L 120 120" stroke="#f59e0b" stroke-width="3" stroke-linecap="round" fill="none" />
+            <path d="M 120 40 L 118 60 L 122 75 L 120 80 L 140 82 L 160 80" stroke="#ef4444" stroke-width="1.8" stroke-linecap="round" fill="none" />
+          </g>
+
+          <!-- Ondas de Choque Expansivas -->
+          <circle cx="120" cy="80" r="10" fill="none" stroke="#fef08a" stroke-width="4" class="apocalypse-shockwave-1" />
+          <circle cx="120" cy="80" r="15" fill="none" stroke="#f97316" stroke-width="3" class="apocalypse-shockwave-2" />
+
+          <!-- Núcleo de Fuego y Explosión -->
+          <g class="apocalypse-fireball">
+            <circle cx="120" cy="80" r="28" fill="#fbbf24" opacity="0.9" />
+            <polygon points="120,42 128,68 155,62 134,80 152,98 126,92 120,118 114,92 88,98 106,80 85,62 112,68" fill="#ef4444" />
+            <circle cx="120" cy="80" r="16" fill="#ffffff" />
+          </g>
+
+          <!-- Meteoros y Escombros Cósmicos -->
+          <g class="flying-debris">
+            <circle cx="65" cy="38" r="4" fill="#ea580c"/>
+            <circle cx="178" cy="42" r="3.5" fill="#f97316"/>
+            <circle cx="185" cy="115" r="4.5" fill="#ea580c"/>
+            <circle cx="58" cy="118" r="3" fill="#f59e0b"/>
+            <circle cx="120" cy="22" r="3" fill="#ef4444"/>
+            <circle cx="120" cy="140" r="3.5" fill="#f97316"/>
+          </g>
+
+          <!-- Cartel Cómico '💥 BOOM!' -->
+          <g class="boom-text-group">
+            <rect x="75" y="65" width="90" height="30" rx="8" fill="#dc2626" stroke="#fef08a" stroke-width="2"/>
+            <text x="120" y="86" fill="#fef08a" font-size="16" font-weight="900" font-family="'Inter', sans-serif" text-anchor="middle" letter-spacing="1.5">💥 BOOM!</text>
+          </g>
+        </svg>
+      </div>
+
+      <!-- Mensaje Solicitado: "te dije que no mezclaras eso! contento?" -->
+      <div class="bg-red-950/40 border border-red-500/30 rounded-2xl p-3.5 mb-4">
+        <p class="text-base sm:text-lg font-black text-amber-300 italic tracking-wide">
+          "¡Te dije que no mezclaras eso! ¿Contento?"
+        </p>
+        <p class="text-[11px] text-slate-300 mt-1 leading-relaxed">
+          Forzaste 50 veces verter líquidos químicos incompatibles. La reacción molecular en cadena desestabilizó el núcleo de la Tierra.
+        </p>
+      </div>
+
+      <!-- Botón de Reiniciar el Nivel -->
+      <button id="btn-restart-apocalypse" class="btn-interactive w-full py-3.5 bg-gradient-to-r from-red-600 via-amber-500 to-rose-600 hover:from-red-500 hover:to-rose-500 text-slate-950 font-black rounded-2xl shadow-xl shadow-red-500/30 text-xs sm:text-sm flex items-center justify-center gap-2 transform active:scale-95 transition-all">
+        <i data-lucide="rotate-ccw" class="w-4 h-4"></i>
+        <span>Restaurar el Planeta (Reiniciar Nivel) 🔄</span>
+      </button>
+
+    </div>
+  </div>
+
   <!-- Input oculto para importación de partida en archivo JSON -->
   <input type="file" id="input-save-file" accept=".json" class="hidden">
 
   <!-- Scripts modulares -->
-  <script src="js/audio.js?v=13"></script>
-  <script src="js/palette.js?v=13"></script>
-  <script src="js/levels.js?v=13"></script>
-  <script src="js/challenges.js?v=13"></script>
-  <script src="js/state.js?v=13"></script>
-  <script src="js/leaderboard.js?v=13"></script>
-  <script src="js/roulette.js?v=13"></script>
-  <script src="js/game.js?v=13"></script>
+  <script src="js/audio.js?v=14"></script>
+  <script src="js/palette.js?v=14"></script>
+  <script src="js/levels.js?v=14"></script>
+  <script src="js/challenges.js?v=14"></script>
+  <script src="js/honor.js?v=14"></script>
+  <script src="js/state.js?v=14"></script>
+  <script src="js/leaderboard.js?v=14"></script>
+  <script src="js/roulette.js?v=14"></script>
+  <script src="js/game.js?v=14"></script>
 </body>
 </html>

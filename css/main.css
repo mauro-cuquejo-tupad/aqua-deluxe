@@ -202,17 +202,80 @@ body {
   height: 24px;
 }
 .wind-indicator-pill {
-  background: rgba(30, 41, 59, 0.85);
+  background: rgba(15, 23, 42, 0.9);
   border: 1px solid rgba(56, 189, 248, 0.4);
-  padding: 4px 12px;
+  padding: 4px 14px;
   border-radius: 9999px;
   display: inline-flex;
   align-items: center;
-  gap: 6px;
+  gap: 8px;
   font-size: 11px;
-  font-weight: 700;
+  font-weight: 800;
   color: #bae6fd;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.35);
+  transition: all 0.3s ease;
 }
+.wind-indicator-pill.wind-calm {
+  border-color: rgba(52, 211, 153, 0.5);
+  color: #6ee7b7;
+  background: rgba(6, 78, 59, 0.35);
+}
+.wind-indicator-pill.wind-light {
+  border-color: rgba(56, 189, 248, 0.5);
+  color: #7dd3fc;
+  background: rgba(12, 74, 110, 0.35);
+}
+.wind-indicator-pill.wind-moderate {
+  border-color: rgba(129, 140, 248, 0.6);
+  color: #c7d2fe;
+  background: rgba(49, 46, 129, 0.4);
+}
+.wind-indicator-pill.wind-strong {
+  border-color: rgba(251, 146, 60, 0.7);
+  color: #fed7aa;
+  background: rgba(124, 45, 18, 0.4);
+  box-shadow: 0 0 12px rgba(251, 146, 60, 0.3);
+}
+
+.wind-arrows-stream {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 1px;
+  transform-origin: center center;
+  transition: transform 0.4s cubic-bezier(0.34, 1.56, 0.64, 1);
+  line-height: 1;
+  min-width: 24px;
+  height: 20px;
+}
+
+.wind-chevron {
+  display: inline-block;
+  font-size: 13px;
+  line-height: 1;
+  color: #38bdf8;
+  filter: drop-shadow(0 0 3px currentColor);
+  animation: windFlow 1.1s infinite ease-in-out;
+}
+.wind-chevron:nth-child(1) { animation-delay: 0s; }
+.wind-chevron:nth-child(2) { animation-delay: 0.18s; }
+.wind-chevron:nth-child(3) { animation-delay: 0.36s; }
+
+@keyframes windFlow {
+  0% {
+    transform: translateX(-4px);
+    opacity: 0.25;
+  }
+  50% {
+    transform: translateX(2px);
+    opacity: 1;
+  }
+  100% {
+    transform: translateX(7px);
+    opacity: 0.25;
+  }
+}
+
 .wind-compass-arrow {
   display: inline-block;
   transition: transform 0.5s cubic-bezier(0.34, 1.56, 0.64, 1);
@@ -596,5 +659,397 @@ body {
 .challenge-coin-shimmer {
   animation: pulse 1.5s infinite;
 }
+
+/* ==========================================================================
+   AQUASORT MASTER DELUXE - SECTIONS & HONOR CHALLENGES STYLES
+   ========================================================================== */
+.section-map-card {
+  background: rgba(15, 23, 42, 0.7);
+  border: 1px solid rgba(56, 189, 248, 0.2);
+  border-radius: 1.25rem;
+  padding: 1rem;
+  transition: all 0.25s ease;
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.25);
+}
+
+.section-map-card.is-medal-won {
+  border-color: rgba(251, 191, 36, 0.5);
+  background: radial-gradient(circle at top right, rgba(245, 158, 11, 0.08), rgba(15, 23, 42, 0.8));
+  box-shadow: 0 0 20px rgba(245, 158, 11, 0.12);
+}
+
+.section-map-card.is-unlocked-honor {
+  border-color: rgba(245, 158, 11, 0.4);
+}
+
+.section-header-title {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.5rem;
+  border-bottom: 1px solid rgba(51, 65, 85, 0.6);
+  padding-bottom: 0.5rem;
+  margin-bottom: 0.75rem;
+}
+
+.honor-challenge-card {
+  margin-top: 0.75rem;
+  border-radius: 1rem;
+  padding: 0.75rem 1rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+  transition: all 0.2s ease;
+}
+
+@media (min-width: 640px) {
+  .honor-challenge-card {
+    flex-direction: row;
+    align-items: center;
+    justify-content: space-between;
+  }
+}
+
+.honor-challenge-card.state-locked {
+  background: rgba(30, 41, 59, 0.4);
+  border: 1px dashed rgba(71, 85, 105, 0.6);
+}
+
+.honor-challenge-card.state-ready {
+  background: linear-gradient(135deg, rgba(245, 158, 11, 0.15), rgba(217, 119, 6, 0.22));
+  border: 1.5px solid rgba(251, 191, 36, 0.6);
+  box-shadow: 0 0 15px rgba(245, 158, 11, 0.2);
+}
+
+.honor-challenge-card.state-completed {
+  background: linear-gradient(135deg, rgba(16, 185, 129, 0.12), rgba(245, 158, 11, 0.12));
+  border: 1.5px solid rgba(245, 158, 11, 0.6);
+  box-shadow: 0 0 16px rgba(245, 158, 11, 0.25);
+}
+
+.honor-challenge-card.state-failed-today {
+  background: rgba(30, 41, 59, 0.5);
+  border: 1px solid rgba(239, 68, 68, 0.4);
+}
+
+/* Indicadores de Honor en HUD */
+.honor-hud-active {
+  border-color: rgba(245, 158, 11, 0.8) !important;
+  box-shadow: 0 0 25px rgba(245, 158, 11, 0.3) !important;
+}
+
+.timer-countdown-warning {
+  animation: countdownPulse 0.8s infinite alternate ease-in-out;
+  color: #f43f5e !important;
+  font-weight: 900 !important;
+}
+
+@keyframes countdownPulse {
+  from {
+    transform: scale(1);
+    opacity: 1;
+    text-shadow: 0 0 4px rgba(244, 63, 94, 0.6);
+  }
+  to {
+    transform: scale(1.12);
+    opacity: 0.85;
+    text-shadow: 0 0 14px rgba(244, 63, 94, 0.9);
+  }
+}
+
+.honor-moves-warning {
+  color: #f87171 !important;
+  animation: pulse 1s infinite;
+}
+
+@keyframes spinSlow {
+  from {
+    transform: rotate(0deg);
+  }
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+.animate-spin-slow {
+  animation: spinSlow 12s linear infinite;
+}
+
+/* ==========================================================================
+   EASTER EGG: CATACLISMO QUÍMICO Y APOCALIPSIS DEL MUNDO (50 INTENTOS)
+   ========================================================================== */
+
+/* Sacudida sísmica de la pantalla completa */
+@keyframes screenApocalypseRumble {
+  0% { transform: translate(0, 0) rotate(0deg); }
+  10% { transform: translate(-8px, 6px) rotate(-1deg); }
+  20% { transform: translate(8px, -6px) rotate(1.2deg); }
+  30% { transform: translate(-9px, -5px) rotate(-1.5deg); }
+  40% { transform: translate(9px, 7px) rotate(1deg); }
+  50% { transform: translate(-7px, 5px) rotate(-0.8deg); }
+  60% { transform: translate(6px, -4px) rotate(0.6deg); }
+  70% { transform: translate(-4px, 3px) rotate(-0.4deg); }
+  80% { transform: translate(3px, -2px) rotate(0.2deg); }
+  100% { transform: translate(0, 0) rotate(0deg); }
+}
+body.screen-apocalypse-rumble {
+  animation: screenApocalypseRumble 0.9s cubic-bezier(0.36, 0.07, 0.19, 0.97) infinite;
+  overflow: hidden;
+}
+
+/* Reacción química inestable violenta en el tubo receptor */
+@keyframes tubeCatastrophicPulse {
+  0%, 100% { filter: drop-shadow(0 0 10px #ef4444) brightness(1); transform: scale(1) rotate(0deg); }
+  25% { filter: drop-shadow(0 0 25px #f59e0b) brightness(1.6); transform: scale(1.08) rotate(-4deg); }
+  50% { filter: drop-shadow(0 0 35px #dc2626) brightness(2); transform: scale(1.12) rotate(4deg); }
+  75% { filter: drop-shadow(0 0 25px #fbbf24) brightness(1.7); transform: scale(1.06) rotate(-3deg); }
+}
+.tube-catastrophic-reaction {
+  animation: tubeCatastrophicPulse 0.15s infinite !important;
+  z-index: 60 !important;
+}
+
+/* --- ANIMACIONES SVG DEL MUNDO EXPLOTANDO (ESTILO TUTORIAL) --- */
+/* Ciclo loopeado de 5.5s */
+
+/* 1. Cuerpo terrestre: Flota suave, vibra a los 22% y estalla */
+@keyframes earthBodyCycle {
+  0%, 20% { transform: translate(0, 0) scale(1); opacity: 1; }
+  22%, 38% { transform: translate(-1.5px, 1.5px) rotate(-0.5deg); opacity: 1; }
+  25%, 35% { transform: translate(2px, -2px) rotate(0.8deg); opacity: 1; }
+  30%, 37% { transform: translate(-2.5px, -1.5px) rotate(-1deg); opacity: 1; }
+  40% { transform: scale(1.06); opacity: 1; }
+  43%, 88% { opacity: 1; transform: scale(1.1); }
+  92%, 100% { opacity: 1; transform: scale(1); }
+}
+.apocalypse-earth-body {
+  animation: earthBodyCycle 5.5s infinite ease-in-out;
+  transform-origin: 120px 80px;
+}
+
+/* 2. Grietas de magma que se iluminan al agrietarse la corteza */
+@keyframes magmaFissuresCycle {
+  0%, 20% { opacity: 0; stroke-width: 0.5px; }
+  24%, 39% { opacity: 1; stroke-width: 2.5px; filter: drop-shadow(0 0 6px #f59e0b); }
+  41%, 43% { opacity: 1; stroke-width: 4px; filter: drop-shadow(0 0 12px #ef4444); }
+  44%, 100% { opacity: 0; stroke-width: 0.5px; }
+}
+.magma-fissures {
+  animation: magmaFissuresCycle 5.5s infinite ease-in-out;
+}
+
+/* 3. Fragmentos tectónicos disparados al espacio */
+@keyframes fragTopLeftBlast {
+  0%, 39% { transform: translate(0, 0) rotate(0deg); opacity: 1; }
+  42%, 78% { transform: translate(-48px, -36px) rotate(-45deg); opacity: 0.95; }
+  85%, 100% { transform: translate(-65px, -48px) rotate(-60deg); opacity: 0; }
+}
+@keyframes fragTopRightBlast {
+  0%, 39% { transform: translate(0, 0) rotate(0deg); opacity: 1; }
+  42%, 78% { transform: translate(50px, -34px) rotate(50deg); opacity: 0.95; }
+  85%, 100% { transform: translate(68px, -46px) rotate(65deg); opacity: 0; }
+}
+@keyframes fragBottomLeftBlast {
+  0%, 39% { transform: translate(0, 0) rotate(0deg); opacity: 1; }
+  42%, 78% { transform: translate(-44px, 42px) rotate(-35deg); opacity: 0.95; }
+  85%, 100% { transform: translate(-60px, 55px) rotate(-50deg); opacity: 0; }
+}
+@keyframes fragBottomRightBlast {
+  0%, 39% { transform: translate(0, 0) rotate(0deg); opacity: 1; }
+  42%, 78% { transform: translate(46px, 40px) rotate(40deg); opacity: 0.95; }
+  85%, 100% { transform: translate(62px, 52px) rotate(55deg); opacity: 0; }
+}
+.earth-chunk-tl { animation: fragTopLeftBlast 5.5s infinite ease-out; transform-origin: 100px 60px; }
+.earth-chunk-tr { animation: fragTopRightBlast 5.5s infinite ease-out; transform-origin: 140px 60px; }
+.earth-chunk-bl { animation: fragBottomLeftBlast 5.5s infinite ease-out; transform-origin: 100px 100px; }
+.earth-chunk-br { animation: fragBottomRightBlast 5.5s infinite ease-out; transform-origin: 140px 100px; }
+
+/* 4. Ondas de choque expansivas anulares */
+@keyframes shockwaveCycle1 {
+  0%, 41% { transform: scale(0.1); opacity: 0; }
+  42% { opacity: 1; }
+  58% { transform: scale(2.8); opacity: 0.8; }
+  75%, 100% { transform: scale(4); opacity: 0; }
+}
+@keyframes shockwaveCycle2 {
+  0%, 43% { transform: scale(0.1); opacity: 0; }
+  44% { opacity: 1; }
+  62% { transform: scale(3.5); opacity: 0.7; }
+  80%, 100% { transform: scale(4.8); opacity: 0; }
+}
+.apocalypse-shockwave-1 {
+  animation: shockwaveCycle1 5.5s infinite cubic-bezier(0.1, 0.8, 0.3, 1);
+  transform-origin: 120px 80px;
+}
+.apocalypse-shockwave-2 {
+  animation: shockwaveCycle2 5.5s infinite cubic-bezier(0.1, 0.8, 0.3, 1);
+  transform-origin: 120px 80px;
+}
+
+/* 5. Núcleo de fuego y estrella de detonación */
+@keyframes fireballCoreCycle {
+  0%, 40% { transform: scale(0); opacity: 0; }
+  42% { transform: scale(1.4); opacity: 1; filter: drop-shadow(0 0 20px #f59e0b); }
+  50% { transform: scale(1.1); opacity: 0.9; }
+  68% { transform: scale(0.6); opacity: 0.4; }
+  78%, 100% { transform: scale(0); opacity: 0; }
+}
+.apocalypse-fireball {
+  animation: fireballCoreCycle 5.5s infinite ease-out;
+  transform-origin: 120px 80px;
+}
+
+/* 6. Escombros y meteoros dispersos */
+@keyframes debrisCycle {
+  0%, 41% { transform: scale(0); opacity: 0; }
+  43% { opacity: 1; }
+  65% { opacity: 0.8; }
+  80%, 100% { transform: scale(2.2); opacity: 0; }
+}
+.flying-debris {
+  animation: debrisCycle 5.5s infinite ease-out;
+  transform-origin: 120px 80px;
+}
+
+/* 7. Cartel cómic '💥 BOOM!' */
+@keyframes boomBadgeCycle {
+  0%, 42% { transform: scale(0); opacity: 0; }
+  44% { transform: scale(1.2) rotate(-5deg); opacity: 1; }
+  48% { transform: scale(1) rotate(0deg); opacity: 1; }
+  65% { transform: scale(0.95); opacity: 0.9; }
+  75%, 100% { transform: scale(0.5); opacity: 0; }
+}
+.boom-text-group {
+  animation: boomBadgeCycle 5.5s infinite cubic-bezier(0.34, 1.56, 0.64, 1);
+  transform-origin: 120px 80px;
+}
+
+/* ==========================================================================
+   CINEMÁTICAS DE FINAL ALQUÍMICO (MALO / REGULAR / BUENO CON GIRO)
+   ========================================================================== */
+
+/* 1. FINAL MALO: EXPLOSIÓN DEL LABORATORIO */
+@keyframes flaskThrobbing {
+  0%, 20% { transform: scale(1); }
+  25% { transform: scale(1.08, 0.95); }
+  32% { transform: scale(0.92, 1.15) rotate(-3deg); filter: drop-shadow(0 0 10px #c084fc); }
+  38% { transform: scale(1.18, 1.22) rotate(4deg); filter: drop-shadow(0 0 18px #ef4444); }
+  43%, 92% { transform: scale(0); opacity: 0; }
+  96%, 100% { transform: scale(1); opacity: 1; }
+}
+.bad-flask-group {
+  animation: flaskThrobbing 5.2s infinite ease-in-out;
+  transform-origin: 120px 95px;
+}
+
+@keyframes labBlastSoot {
+  0%, 41% { transform: scale(0); opacity: 0; }
+  44% { transform: scale(1.5); opacity: 1; filter: drop-shadow(0 0 25px #fbbf24); }
+  52% { transform: scale(1.2); opacity: 0.95; }
+  68% { transform: scale(1.05); opacity: 0.6; }
+  82%, 100% { transform: scale(0.4); opacity: 0; }
+}
+.bad-soot-cloud {
+  animation: labBlastSoot 5.2s infinite ease-out;
+  transform-origin: 120px 90px;
+}
+
+@keyframes sootAlchemistBlink {
+  0%, 48% { opacity: 0; transform: translateY(10px); }
+  52% { opacity: 1; transform: translateY(0); }
+  62%, 66% { transform: scaleY(0.1); }
+  68%, 88% { opacity: 1; transform: scaleY(1); }
+  94%, 100% { opacity: 0; }
+}
+.bad-alchemist-soot {
+  animation: sootAlchemistBlink 5.2s infinite ease-in-out;
+  transform-origin: 120px 105px;
+}
+
+@keyframes brokenFlaskClink {
+  0%, 56% { transform: translateY(-40px) rotate(0deg); opacity: 0; }
+  62% { transform: translateY(0) rotate(18deg); opacity: 1; }
+  68% { transform: translateY(-8px) rotate(28deg); opacity: 1; }
+  75%, 88% { transform: translateY(0) rotate(22deg); opacity: 1; }
+  94%, 100% { opacity: 0; }
+}
+.bad-flask-clink {
+  animation: brokenFlaskClink 5.2s infinite cubic-bezier(0.34, 1.56, 0.64, 1);
+  transform-origin: 120px 60px;
+}
+
+/* 2. FINAL REGULAR: PLANTAS DE PLÁTANO Y ALERGIA */
+@keyframes vineGrowSprout {
+  0%, 15% { transform: scale(0.1); opacity: 0; }
+  28%, 85% { transform: scale(1); opacity: 1; }
+  92%, 100% { opacity: 0; }
+}
+.banana-vines-group {
+  animation: vineGrowSprout 5.5s infinite ease-out;
+  transform-origin: 120px 120px;
+}
+
+@keyframes bananaPopZoom {
+  0%, 28% { transform: scale(0); opacity: 0; }
+  33% { transform: scale(1.35) rotate(-12deg); opacity: 1; }
+  40%, 86% { transform: scale(1) rotate(0deg); opacity: 1; }
+  92%, 100% { opacity: 0; }
+}
+.banana-bunch-pop {
+  animation: bananaPopZoom 5.5s infinite cubic-bezier(0.34, 1.56, 0.64, 1);
+  transform-origin: 120px 65px;
+}
+
+@keyframes allergicSneezeShake {
+  0%, 42% { opacity: 0; transform: scale(0.8); }
+  46% { opacity: 1; transform: scale(1); }
+  52% { transform: translate(-6px, -4px) rotate(-6deg); }
+  56% { transform: translate(6px, 4px) rotate(8deg); }
+  60% { transform: translate(-8px, -5px) rotate(-8deg); }
+  66%, 86% { transform: translate(0, 0) rotate(0deg); opacity: 1; }
+  92%, 100% { opacity: 0; }
+}
+.allergic-alchemist-face {
+  animation: allergicSneezeShake 5.5s infinite ease-in-out;
+  transform-origin: 120px 100px;
+}
+
+@keyframes sneezeBubblePop {
+  0%, 54% { transform: scale(0); opacity: 0; }
+  58% { transform: scale(1.2) rotate(4deg); opacity: 1; }
+  64%, 86% { transform: scale(1) rotate(0deg); opacity: 1; }
+  92%, 100% { opacity: 0; }
+}
+.sneeze-speech-bubble {
+  animation: sneezeBubblePop 5.5s infinite cubic-bezier(0.34, 1.56, 0.64, 1);
+  transform-origin: 160px 50px;
+}
+
+/* 3. FINAL BUENO: ÁRBOLES DE DINERO */
+@keyframes moneyTreeSprout {
+  0% { transform: scale(0.35); opacity: 0.6; }
+  18% { transform: scale(1.08); opacity: 1; }
+  25%, 88% { transform: scale(1); opacity: 1; }
+  94%, 100% { transform: scale(0.95); opacity: 0.85; }
+}
+.money-tree-grow {
+  animation: moneyTreeSprout 5s infinite ease-out;
+  transform-origin: 120px 125px;
+}
+
+@keyframes coinSparkleRain {
+  0% { transform: translateY(-20px) rotate(0deg); opacity: 0; }
+  20% { opacity: 1; }
+  80% { transform: translateY(85px) rotate(360deg); opacity: 1; }
+  100% { transform: translateY(105px) rotate(480deg); opacity: 0; }
+}
+.coin-rain-item {
+  animation: coinSparkleRain 3.2s infinite ease-in;
+}
+.coin-c1 { animation-delay: 0.2s; }
+.coin-c2 { animation-delay: 0.7s; }
+.coin-c3 { animation-delay: 1.2s; }
+.coin-c4 { animation-delay: 1.8s; }
+.coin-c5 { animation-delay: 2.3s; }
 
 

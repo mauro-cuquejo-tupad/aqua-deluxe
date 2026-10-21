@@ -12,10 +12,29 @@ const DEFAULT_PALETTE = [
   { id: 5, name: 'Naranja Fuego', hex: '#f97316', shape: '✚', pattern: 'pattern-vertical', textHex: '#ffffff' },
   { id: 6, name: 'Rosa Neón', hex: '#ec4899', shape: '♥', pattern: 'pattern-cross', textHex: '#ffffff' },
   { id: 7, name: 'Cian Glaciar', hex: '#06b6d4', shape: '✦', pattern: 'pattern-zigzag', textHex: '#000000' },
-  { id: 8, name: 'Marrón Tierra', hex: '#854d0e', shape: '⬟', pattern: 'pattern-checker', textHex: '#ffffff' }
+  { id: 8, name: 'Marrón Tierra', hex: '#854d0e', shape: '⬟', pattern: 'pattern-checker', textHex: '#ffffff' },
+  { id: 9, name: 'Lima Radioactiva', hex: '#84cc16', shape: '⬢', pattern: 'pattern-dots', textHex: '#000000' },
+  { id: 10, name: 'Violeta Profundo', hex: '#6366f1', shape: '✿', pattern: 'pattern-stripes', textHex: '#ffffff' },
+  { id: 11, name: 'Ámbar Alquímico', hex: '#f59e0b', shape: '❄', pattern: 'pattern-grid', textHex: '#000000' },
+  { id: 12, name: 'Turquesa Mar', hex: '#14b8a6', shape: '✪', pattern: 'pattern-horizontal', textHex: '#000000' },
+  { id: 13, name: 'Rubí Carmín', hex: '#be123c', shape: '⯁', pattern: 'pattern-vertical', textHex: '#ffffff' },
+  { id: 14, name: 'Coral Solar', hex: '#fb7185', shape: '🞛', pattern: 'pattern-cross', textHex: '#ffffff' },
+  { id: 15, name: 'Zafiro Real', hex: '#1d4ed8', shape: '🞗', pattern: 'pattern-zigzag', textHex: '#ffffff' },
+  { id: 16, name: 'Jade Imperial', hex: '#047857', shape: '🞖', pattern: 'pattern-checker', textHex: '#ffffff' },
+  { id: 17, name: 'Amatista Noble', hex: '#7e22ce', shape: '🞙', pattern: 'pattern-stripes', textHex: '#ffffff' },
+  { id: 18, name: 'Bronce Antiguo', hex: '#a16207', shape: '🞘', pattern: 'pattern-dots', textHex: '#ffffff' },
+  { id: 19, name: 'Menta Fría', hex: '#2dd4bf', shape: '🞚', pattern: 'pattern-grid', textHex: '#000000' },
+  { id: 20, name: 'Fucsia Astral', hex: '#d946ef', shape: '🞜', pattern: 'pattern-horizontal', textHex: '#ffffff' },
+  { id: 21, name: 'Azul Cobalto', hex: '#2563eb', shape: '🞝', pattern: 'pattern-vertical', textHex: '#ffffff' },
+  { id: 22, name: 'Oliva Silvestre', hex: '#65a30d', shape: '🞞', pattern: 'pattern-cross', textHex: '#ffffff' },
+  { id: 23, name: 'Cobre Alquímico', hex: '#b45309', shape: '🞟', pattern: 'pattern-zigzag', textHex: '#ffffff' },
+  { id: 24, name: 'Índigo Astral', hex: '#4f46e5', shape: '🞠', pattern: 'pattern-checker', textHex: '#ffffff' },
+  { id: 25, name: 'Orquídea Real', hex: '#c026d3', shape: '🞡', pattern: 'pattern-stripes', textHex: '#ffffff' },
+  { id: 26, name: 'Esmeralda Clara', hex: '#34d399', shape: '🞢', pattern: 'pattern-dots', textHex: '#000000' },
+  { id: 27, name: 'Púrpura Nocturno', hex: '#581c87', shape: '🞣', pattern: 'pattern-grid', textHex: '#ffffff' }
 ];
 
-const AVAILABLE_SHAPES = ['●', '▲', '■', '★', '◆', '✚', '♥', '✦', '⬟', '⬢', '✿', '❄'];
+const AVAILABLE_SHAPES = ['●', '▲', '■', '★', '◆', '✚', '♥', '✦', '⬟', '⬢', '✿', '❄', '✪', '⯁', '🞛', '🞗', '🞖', '🞙', '🞘', '🞚', '🞜', '🞝', '🞞', '🞟', '🞠', '🞡', '🞢', '🞣'];
 
 class PaletteManager {
   constructor() {
@@ -28,8 +47,8 @@ class PaletteManager {
       const stored = localStorage.getItem('aquasort_custom_palette');
       if (stored) {
         const parsed = JSON.parse(stored);
-        if (Array.isArray(parsed) && parsed.length >= 9) {
-          this.palette = parsed;
+        if (Array.isArray(parsed) && parsed.length > 0) {
+          this.palette = DEFAULT_PALETTE.map((def, idx) => parsed[idx] || def);
         }
       }
     } catch (e) {

@@ -29,8 +29,14 @@ const DEFAULT_STATE = {
   progress: {
     unlockedLevel: 1,
     completedLevels: {},       // { "1": { stars: 3, bestMoves: 8, bestTimeSec: 15, usedHints: false } }
-    completedChallenges: {},   // { "1": { completedCount: 1, totalCount: 1, bonusCoins: 3 } }
+    completedChallenges: {},   // { "1": { completedCount: 1, totalCount: 1, completedIds: [], bonusCoins: 3 } }
+    honorMastery: {},          // { [sectionId]: { completed: boolean, lives: number, failedDate: string | null } }
     seenTutorials: []          // Lista de tutoriales ya vistos
+  },
+  minigameBag: {
+    tokens: ['diana', 'diana', 'diana', 'roulette', 'roulette', 'roulette'],
+    activeCard: null,         // 'dianaFavor' | 'rouletteFavor' | null
+    cardUsesRemaining: 0     // Cantidad de minijuegos restantes con beneficio activo
   },
   customLevels: [],            // Niveles creados por el usuario [{ id, name, author, tubes, verified: true }]
   auxiliaryCooldownRemaining: 0 // Movimientos restantes para usar botella extra (persistente)
@@ -53,9 +59,17 @@ class StateManager {
           player: { ...DEFAULT_STATE.player, ...parsed.player },
           upgrades: { ...DEFAULT_STATE.upgrades, ...parsed.upgrades },
           cards: { ...DEFAULT_STATE.cards, ...(parsed.cards || {}) },
+          minigameBag: {
+            tokens: (parsed.minigameBag && Array.isArray(parsed.minigameBag.tokens) && parsed.minigameBag.tokens.length > 0)
+              ? parsed.minigameBag.tokens
+              : ['diana', 'diana', 'diana', 'roulette', 'roulette', 'roulette'],
+            activeCard: parsed.minigameBag?.activeCard || null,
+            cardUsesRemaining: typeof parsed.minigameBag?.cardUsesRemaining === 'number' ? parsed.minigameBag.cardUsesRemaining : 0
+          },
           progress: {
             ...DEFAULT_STATE.progress,
             ...parsed.progress,
+            honorMastery: parsed.progress?.honorMastery || {},
             seenTutorials: Array.isArray(parsed.progress?.seenTutorials) ? parsed.progress.seenTutorials : []
           },
           customLevels: Array.isArray(parsed.customLevels) ? parsed.customLevels : []
@@ -233,27 +247,113 @@ class StateManager {
     }
   }
 
-  // --- REGISTRO DE DESAFÍOS DE NIVEL ---
-  recordLevelChallenges(level, results) {
+  // --- REGISTRO DE DESAFÍOS DE NIVEL (ACUMULATIVO EN PARTES DISTINTAS) ---
+  recordLevelChallenges(level, bonusData, completedIds = [], totalCount = 1) {
     if (!this.state.progress.completedChallenges) {
       this.state.progress.completedChallenges = {};
     }
     const key = String(level);
-    const prev = this.state.progress.completedChallenges[key];
-    // Conservar el mejor resultado de desafíos completados
-    if (!prev || (results.completedCount > prev.completedCount)) {
-      this.state.progress.completedChallenges[key] = {
-        completedCount: results.completedCount,
-        totalCount: results.totalCount,
-        bonusCoins: results.totalCoins,
-        date: new Date().toLocaleDateString()
-      };
-      this.saveState();
-    }
+    const prev = this.state.progress.completedChallenges[key] || {
+      completedCount: 0,
+      totalCount: totalCount,
+      completedIds: [],
+      bonusCoins: 0
+    };
+
+    // Unir IDs de desafíos completados históricamente (se pueden hacer en partes distintas)
+    const prevIds = Array.isArray(prev.completedIds) ? prev.completedIds : [];
+    const allCompletedIds = Array.from(new Set([...prevIds, ...completedIds]));
+
+    const effectiveTotal = Math.max(prev.totalCount || 0, totalCount);
+    const effectiveCompleted = Math.min(effectiveTotal, Math.max(prev.completedCount || 0, allCompletedIds.length));
+
+    this.state.progress.completedChallenges[key] = {
+      completedCount: effectiveCompleted,
+      totalCount: effectiveTotal,
+      completedIds: allCompletedIds,
+      bonusCoins: Math.max(prev.bonusCoins || 0, bonusData?.totalCoins || 0),
+      date: new Date().toLocaleDateString()
+    };
+    this.saveState();
   }
 
   getLevelChallenges(level) {
-    return this.state.progress.completedChallenges ? this.state.progress.completedChallenges[String(level)] : null;
+    const data = this.state.progress.completedChallenges ? this.state.progress.completedChallenges[String(level)] : null;
+    if (!data) return null;
+    return {
+      completedCount: data.completedCount || 0,
+      totalCount: data.totalCount || 1,
+      completedIds: data.completedIds || [],
+      bonusCoins: data.bonusCoins || 0,
+      isAllCompleted: (data.completedCount || 0) >= (data.totalCount || 1)
+    };
+  }
+
+  // --- DESAFÍOS DE HONOR Y MEDALLAS DE SECCIÓN (3 VIDAS, 5 MINUTOS, REINICIO DIARIO) ---
+  getHonorChallengeState(sectionId) {
+    if (!this.state.progress.honorMastery) {
+      this.state.progress.honorMastery = {};
+    }
+    const key = String(sectionId);
+    let record = this.state.progress.honorMastery[key];
+
+    const today = new Date().toISOString().slice(0, 10);
+
+    if (!record) {
+      record = {
+        completed: false,
+        lives: 3,
+        failedDate: null
+      };
+      this.state.progress.honorMastery[key] = record;
+      this.saveState();
+    } else {
+      // Reinicio diario si agotó las 3 vidas en un día anterior
+      if (record.failedDate && record.failedDate !== today && !record.completed) {
+        record.lives = 3;
+        record.failedDate = null;
+        this.saveState();
+      }
+    }
+
+    const canPlayToday = record.lives > 0 && (!record.failedDate || record.failedDate !== today);
+
+    return {
+      sectionId: Number(sectionId),
+      completed: !!record.completed,
+      lives: typeof record.lives === 'number' ? record.lives : 3,
+      failedDate: record.failedDate,
+      canPlayToday: canPlayToday
+    };
+  }
+
+  consumeHonorLife(sectionId) {
+    const key = String(sectionId);
+    const st = this.getHonorChallengeState(sectionId);
+    const today = new Date().toISOString().slice(0, 10);
+
+    const remaining = Math.max(0, st.lives - 1);
+    this.state.progress.honorMastery[key] = {
+      ...this.state.progress.honorMastery[key],
+      lives: remaining,
+      failedDate: remaining === 0 ? today : null
+    };
+    this.saveState();
+    return remaining;
+  }
+
+  awardHonorMedal(sectionId) {
+    const key = String(sectionId);
+    if (!this.state.progress.honorMastery) {
+      this.state.progress.honorMastery = {};
+    }
+    this.state.progress.honorMastery[key] = {
+      completed: true,
+      lives: 3,
+      failedDate: null,
+      achievedAt: new Date().toISOString()
+    };
+    this.saveState();
   }
 
   // --- EXPORTAR / IMPORTAR ARCHIVO DE PARTIDA (.JSON) ---
@@ -437,6 +537,127 @@ class StateManager {
       return true;
     }
     return false;
+  }
+
+  // --- BOLSA DE MINIJUEGOS Y CARTAS ALQUÍMICAS (DIANA / RULETA) ---
+  getMinigameBag() {
+    if (!this.state.minigameBag) {
+      this.state.minigameBag = {
+        tokens: ['diana', 'diana', 'diana', 'roulette', 'roulette', 'roulette'],
+        activeCard: null,
+        cardUsesRemaining: 0
+      };
+    }
+    if (!Array.isArray(this.state.minigameBag.tokens) || this.state.minigameBag.tokens.length === 0) {
+      this.refillMinigameBag();
+    }
+    return this.state.minigameBag;
+  }
+
+  refillMinigameBag() {
+    if (!this.state.minigameBag) {
+      this.state.minigameBag = {
+        tokens: [],
+        activeCard: null,
+        cardUsesRemaining: 0
+      };
+    }
+    // Bolsa equilibrada con 3 fichas de Diana y 3 de Ruleta (50% de probabilidad equitativa)
+    const newTokens = ['diana', 'diana', 'diana', 'roulette', 'roulette', 'roulette'];
+
+    // Si hay una carta de favor activa con usos restantes, se añaden fichas extras para mantener la ventaja
+    if (this.state.minigameBag.activeCard === 'dianaFavor' && this.state.minigameBag.cardUsesRemaining > 0) {
+      newTokens.push('diana', 'diana', 'diana');
+    } else if (this.state.minigameBag.activeCard === 'rouletteFavor' && this.state.minigameBag.cardUsesRemaining > 0) {
+      newTokens.push('roulette', 'roulette', 'roulette');
+    }
+
+    this.state.minigameBag.tokens = newTokens;
+    this.saveState();
+    return this.state.minigameBag.tokens;
+  }
+
+  drawMinigameToken() {
+    const bag = this.getMinigameBag();
+    if (!bag.tokens || bag.tokens.length === 0) {
+      this.refillMinigameBag();
+    }
+
+    const tokens = this.state.minigameBag.tokens;
+    const randomIndex = Math.floor(Math.random() * tokens.length);
+    const chosen = tokens.splice(randomIndex, 1)[0];
+
+    // Decrementar usos de la carta de favor activa si está vigente
+    let cardJustExpired = false;
+    let currentActiveCard = this.state.minigameBag.activeCard;
+    if (this.state.minigameBag.activeCard && this.state.minigameBag.cardUsesRemaining > 0) {
+      this.state.minigameBag.cardUsesRemaining--;
+      if (this.state.minigameBag.cardUsesRemaining <= 0) {
+        this.state.minigameBag.activeCard = null;
+        this.state.minigameBag.cardUsesRemaining = 0;
+        cardJustExpired = true;
+      }
+    }
+
+    // Si la bolsa se quedó sin fichas (o salieron todas), se vuelve a llenar inmediatamente
+    const wasEmptied = (tokens.length === 0);
+    if (wasEmptied) {
+      this.refillMinigameBag();
+    }
+
+    this.saveState();
+
+    const remainingDiana = this.state.minigameBag.tokens.filter(t => t === 'diana').length;
+    const remainingRoulette = this.state.minigameBag.tokens.filter(t => t === 'roulette').length;
+
+    return {
+      chosen,
+      wasEmptied,
+      cardJustExpired,
+      activeCard: this.state.minigameBag.activeCard,
+      activeCardName: currentActiveCard,
+      cardUsesRemaining: this.state.minigameBag.cardUsesRemaining,
+      remainingDiana,
+      remainingRoulette,
+      totalRemaining: this.state.minigameBag.tokens.length
+    };
+  }
+
+  activateBonusFavorCard(cardId, uses = 5) {
+    if (!this.state.cards || !this.state.cards[cardId] || this.state.cards[cardId] <= 0) {
+      return { success: false, msg: 'No posees esta carta en tu inventario.' };
+    }
+
+    // Consumir 1 unidad de la carta del inventario
+    this.state.cards[cardId]--;
+
+    if (!this.state.minigameBag) {
+      this.getMinigameBag();
+    }
+
+    this.state.minigameBag.activeCard = cardId;
+    this.state.minigameBag.cardUsesRemaining = uses;
+
+    // Agregar 5 fichas de la modalidad favorecida directamente a la bolsa
+    const bonusType = (cardId === 'dianaFavor') ? 'diana' : 'roulette';
+    for (let i = 0; i < 5; i++) {
+      this.state.minigameBag.tokens.push(bonusType);
+    }
+
+    this.saveState();
+    return {
+      success: true,
+      activeCard: cardId,
+      cardUsesRemaining: uses,
+      cardsLeft: this.state.cards[cardId]
+    };
+  }
+
+  deactivateBonusFavorCard() {
+    if (!this.state.minigameBag) return;
+    this.state.minigameBag.activeCard = null;
+    this.state.minigameBag.cardUsesRemaining = 0;
+    this.saveState();
   }
 }
 

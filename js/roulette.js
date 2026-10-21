@@ -82,22 +82,20 @@ class MinigameEngine {
     this.updateRulesText();
   }
 
-  // Selección aleatoria del bonus respetando cartas alquímicas
+  // Selección aleatoria del bonus mediante la bolsa alquímica (3 Diana y 3 Ruleta sin reemplazo)
   rollRandomMode() {
-    let dianaChance = 0.5;
-
-    if (this.activeCard === 'dianaFavor') {
-      dianaChance = 0.8;
-    } else if (this.activeCard === 'rouletteFavor') {
-      dianaChance = 0.2;
+    if (!window.stateManager) {
+      this.setMode(Math.random() < 0.5 ? 'diana' : 'roulette', true);
+      return;
     }
 
-    const roll = Math.random();
-    const chosenMode = (roll < dianaChance) ? 'diana' : 'roulette';
-    this.setMode(chosenMode, true);
+    const drawResult = window.stateManager.drawMinigameToken();
+    this.lastBagDraw = drawResult;
+    this.setMode(drawResult.chosen, true, drawResult);
+    this.updateBagIndicatorUI(drawResult);
   }
 
-  setMode(mode, fromRandom = false) {
+  setMode(mode, fromRandom = false, bagInfo = null) {
     this.currentMode = mode;
     const tabRoulette = document.getElementById('tab-game-roulette') || document.getElementById('tab-minigame-roulette');
     const tabDiana = document.getElementById('tab-game-diana') || document.getElementById('tab-minigame-diana');
@@ -114,7 +112,13 @@ class MinigameEngine {
       if (colorPickerCont && colorPickerCont.parentElement) colorPickerCont.parentElement.classList.remove('hidden');
       if (titleEl) titleEl.innerHTML = '<i data-lucide="disc" class="w-5 h-5 text-amber-400"></i> Ruleta de la Fortuna';
       if (bannerEl && fromRandom) {
-        bannerEl.innerHTML = '🎲 ¡Minijuego Asignado al Azar: Ruleta Alquímica!';
+        if (bagInfo) {
+          const cardNote = bagInfo.activeCardName === 'rouletteFavor' ? ` • ✨ Favor Ruleta (${bagInfo.cardUsesRemaining} restantes)` : '';
+          const refillNote = bagInfo.wasEmptied ? ' 🔄 (¡Bolsa vaciada y rellenada!)' : '';
+          bannerEl.innerHTML = `🎲 ¡Extraído de la Bolsa: <strong>Ruleta Alquímica</strong>!${cardNote}${refillNote}`;
+        } else {
+          bannerEl.innerHTML = '🎲 ¡Minijuego Asignado desde la Bolsa: Ruleta Alquímica!';
+        }
       }
     } else {
       if (tabDiana) tabDiana.className = 'px-3.5 py-1.5 rounded-xl text-xs font-black bg-gradient-to-r from-sky-500 to-indigo-600 text-white shadow-md transition-all';
@@ -126,13 +130,32 @@ class MinigameEngine {
       if (colorPickerCont && colorPickerCont.parentElement) colorPickerCont.parentElement.classList.add('hidden');
       if (titleEl) titleEl.innerHTML = '<i data-lucide="crosshair" class="w-5 h-5 text-sky-400"></i> Diana de Dardos Alquímica';
       if (bannerEl && fromRandom) {
-        bannerEl.innerHTML = '🎲 ¡Minijuego Asignado al Azar: Diana de Dardos!';
+        if (bagInfo) {
+          const cardNote = bagInfo.activeCardName === 'dianaFavor' ? ` • ✨ Favor Diana (${bagInfo.cardUsesRemaining} restantes)` : '';
+          const refillNote = bagInfo.wasEmptied ? ' 🔄 (¡Bolsa vaciada y rellenada!)' : '';
+          bannerEl.innerHTML = `🎲 ¡Extraído de la Bolsa: <strong>Diana de Dardos</strong>!${cardNote}${refillNote}`;
+        } else {
+          bannerEl.innerHTML = '🎲 ¡Minijuego Asignado desde la Bolsa: Diana de Dardos!';
+        }
       }
       if (window.audio) window.audio.playWindGust();
     }
 
     if (window.lucide) window.lucide.createIcons();
     this.updateRulesText();
+  }
+
+  updateBagIndicatorUI(drawInfo = null) {
+    const bag = window.stateManager ? window.stateManager.getMinigameBag() : null;
+    if (!bag) return;
+
+    const dianaCount = drawInfo ? drawInfo.remainingDiana : bag.tokens.filter(t => t === 'diana').length;
+    const rouletteCount = drawInfo ? drawInfo.remainingRoulette : bag.tokens.filter(t => t === 'roulette').length;
+
+    const elDiana = document.getElementById('bag-count-diana');
+    const elRoulette = document.getElementById('bag-count-roulette');
+    if (elDiana) elDiana.textContent = `🎯 ${dianaCount} Diana`;
+    if (elRoulette) elRoulette.textContent = `🎡 ${rouletteCount} Ruleta`;
   }
 
   // --- GESTIÓN DE CARTAS ALQUÍMICAS ---
@@ -149,8 +172,15 @@ class MinigameEngine {
     if (this.isSpinning || this.isCharging || this.isDartFlying) return;
     if (window.audio) window.audio.init();
 
-    // Si ya estaba activa, la desactivamos
-    if (this.activeCard === cardId) {
+    const stateMgr = window.stateManager;
+    if (!stateMgr) return;
+    const bag = stateMgr.getMinigameBag();
+
+    // Comprobar si ya está activa para desactivar
+    if (this.activeCard === cardId || (bag && bag.activeCard === cardId)) {
+      if (cardId === 'dianaFavor' || cardId === 'rouletteFavor') {
+        stateMgr.deactivateBonusFavorCard();
+      }
       this.activeCard = null;
       this.calmAtmosphereBenefit = null;
       this.extraShotAvailable = false;
@@ -160,40 +190,46 @@ class MinigameEngine {
       return;
     }
 
-    // Verificar si el jugador tiene la carta
-    const stateMgr = window.stateManager;
-    if (!stateMgr) return;
+    // Verificar si el jugador tiene la carta en inventario
     const cards = stateMgr.getCards();
     if (!cards[cardId] || cards[cardId] <= 0) {
       alert('No dispones de esta carta en tu inventario. Puedes adquirirla en la Tienda Alquímica por 20 monedas.');
       return;
     }
 
-    // Descontar carta y activarla
+    // ACTIVACIÓN DE CARTAS DE FAVOR DE LA BOLSA (5 bonuses con más chances)
+    if (cardId === 'dianaFavor' || cardId === 'rouletteFavor') {
+      const act = stateMgr.activateBonusFavorCard(cardId, 5);
+      if (act.success) {
+        this.activeCard = cardId;
+        if (window.audio) window.audio.playUnlock();
+        this.setMode(cardId === 'dianaFavor' ? 'diana' : 'roulette', false);
+        this.updateCardsUI();
+        this.updateBagIndicatorUI();
+      }
+      return;
+    }
+
+    // ACTIVACIÓN DE CARTAS TÁCTICAS DE RONDA INDIVIDUAL
     stateMgr.consumeCard(cardId);
     this.activeCard = cardId;
     if (window.audio) window.audio.playUnlock();
 
-    // Aplicar efectos inmediatos según la carta
-    if (cardId === 'dianaFavor') {
-      this.setMode('diana', false);
-    } else if (cardId === 'rouletteFavor') {
-      this.setMode('roulette', false);
-    } else if (cardId === 'doubleOrNothing') {
+    if (cardId === 'doubleOrNothing') {
       this.setMode('roulette', false);
       this.shuffleSlices();
     } else if (cardId === 'calmAtmosphere') {
       this.setMode('diana', false);
-      // Beneficio aleatorio entre los 3 pedidos por el usuario
       const benefits = ['noWind', 'slowMeter', 'extraShot'];
       this.calmAtmosphereBenefit = benefits[Math.floor(Math.random() * benefits.length)];
       if (this.calmAtmosphereBenefit === 'noWind') {
         this.windSpeed = 0.0;
         this.windAngle = 0;
+        this.updateWindUI();
       } else if (this.calmAtmosphereBenefit === 'slowMeter') {
-        this.verticalSpeedModifier = 0.5; // Medidor el doble de lento
+        this.verticalSpeedModifier = 0.5;
       } else if (this.calmAtmosphereBenefit === 'extraShot') {
-        this.extraShotAvailable = true; // 1 tiro de respaldo si falla
+        this.extraShotAvailable = true;
       }
     }
 
@@ -204,7 +240,9 @@ class MinigameEngine {
   }
 
   updateCardsUI() {
-    const cards = window.stateManager ? window.stateManager.getCards() : {};
+    const stateMgr = window.stateManager;
+    const cards = stateMgr ? stateMgr.getCards() : {};
+    const bag = stateMgr ? stateMgr.getMinigameBag() : null;
     const pill = document.getElementById('active-card-pill');
 
     document.querySelectorAll('.btn-alchemy-card').forEach(btn => {
@@ -213,7 +251,10 @@ class MinigameEngine {
       const count = cards[cardId] || 0;
       if (countEl) countEl.textContent = `x${count}`;
 
-      if (this.activeCard === cardId) {
+      const isBagActive = (bag && bag.activeCard === cardId && bag.cardUsesRemaining > 0);
+      const isRoundActive = (this.activeCard === cardId);
+
+      if (isBagActive || isRoundActive) {
         btn.classList.add('active-card');
       } else {
         btn.classList.remove('active-card');
@@ -221,15 +262,12 @@ class MinigameEngine {
     });
 
     if (pill) {
-      if (!this.activeCard) {
-        pill.textContent = 'Toca una carta para activarla';
-        pill.className = 'text-[10px] text-amber-300 font-semibold px-2 py-0.5 rounded-full bg-amber-500/10 border border-amber-500/30';
-      } else if (this.activeCard === 'dianaFavor') {
-        pill.textContent = '✨ Activa: Favor de Diana (80% Diana)';
-        pill.className = 'text-[10px] text-sky-300 font-bold px-2 py-0.5 rounded-full bg-sky-500/20 border border-sky-400';
-      } else if (this.activeCard === 'rouletteFavor') {
-        pill.textContent = '✨ Activa: Giro del Destino (80% Ruleta)';
-        pill.className = 'text-[10px] text-amber-300 font-bold px-2 py-0.5 rounded-full bg-amber-500/20 border border-amber-400';
+      if (bag && bag.activeCard === 'dianaFavor' && bag.cardUsesRemaining > 0) {
+        pill.textContent = `✨ Favor Diana Activo (${bag.cardUsesRemaining} bonuses restantes)`;
+        pill.className = 'text-[10px] text-sky-300 font-bold px-2 py-0.5 rounded-full bg-sky-500/20 border border-sky-400 animate-pulse';
+      } else if (bag && bag.activeCard === 'rouletteFavor' && bag.cardUsesRemaining > 0) {
+        pill.textContent = `✨ Favor Ruleta Activo (${bag.cardUsesRemaining} bonuses restantes)`;
+        pill.className = 'text-[10px] text-amber-300 font-bold px-2 py-0.5 rounded-full bg-amber-500/20 border border-amber-400 animate-pulse';
       } else if (this.activeCard === 'doubleOrNothing') {
         pill.textContent = '✨ Activa: Doble o Nada (Ruleta 2 colores x2.0)';
         pill.className = 'text-[10px] text-rose-300 font-bold px-2 py-0.5 rounded-full bg-rose-500/20 border border-rose-400';
@@ -239,8 +277,13 @@ class MinigameEngine {
           : (this.calmAtmosphereBenefit === 'slowMeter' ? 'Medidor Lento (Máxima Precisión)' : 'Tiro Extra de Respaldo');
         pill.textContent = `✨ Activa: ${desc}`;
         pill.className = 'text-[10px] text-emerald-300 font-bold px-2 py-0.5 rounded-full bg-emerald-500/20 border border-emerald-400';
+      } else {
+        pill.textContent = 'Toca una carta para activarla';
+        pill.className = 'text-[10px] text-amber-300 font-semibold px-2 py-0.5 rounded-full bg-amber-500/10 border border-amber-500/30';
       }
     }
+
+    this.updateBagIndicatorUI();
   }
 
   // Mezcla aleatoriamente los sectores
@@ -287,20 +330,78 @@ class MinigameEngine {
       this.windSpeed = 0.0;
       this.windAngle = 0;
     } else {
-      // Ocasionalmente puede no haber viento de manera natural
-      const rollCalm = Math.random() < 0.25;
+      // Ocasionalmente puede no haber viento de manera natural (20% de probabilidad)
+      const rollCalm = Math.random() < 0.20;
       this.windSpeed = rollCalm ? 0.0 : parseFloat((Math.random() * 4.2 + 1.2).toFixed(1));
       this.windAngle = Math.floor(Math.random() * 360);
     }
 
+    this.updateWindUI();
+  }
+
+  // Actualiza la interfaz del viento con 0, 1, 2 o 3 flechas animadas en la dirección exacta
+  updateWindUI() {
+    const windHud = document.getElementById('wind-hud');
     const windSpeedLbl = document.getElementById('wind-speed-lbl') || document.getElementById('diana-wind-speed');
-    const windArrow = document.getElementById('wind-arrow') || document.getElementById('diana-wind-arrow');
-    if (windSpeedLbl) {
-      windSpeedLbl.textContent = this.windSpeed === 0.0 ? 'Viento: Calmo (0.0 m/s)' : `Viento: ${this.windSpeed} m/s`;
+    const arrowsStream = document.getElementById('wind-arrows-stream');
+
+    // Determinar nivel de intensidad: 0, 1, 2 o 3 flechas según solicitud del usuario
+    let arrowCount = 0;
+    let intensityName = 'Calmo';
+    let pillClass = 'wind-calm';
+
+    if (this.windSpeed === 0.0) {
+      arrowCount = 0;
+      intensityName = 'Calmo';
+      pillClass = 'wind-calm';
+    } else if (this.windSpeed <= 2.2) {
+      arrowCount = 1;
+      intensityName = 'Suave';
+      pillClass = 'wind-light';
+    } else if (this.windSpeed <= 3.8) {
+      arrowCount = 2;
+      intensityName = 'Moderado';
+      pillClass = 'wind-moderate';
+    } else {
+      arrowCount = 3;
+      intensityName = 'Fuerte';
+      pillClass = 'wind-strong';
     }
-    if (windArrow) {
-      windArrow.style.transform = `rotate(${this.windAngle}deg)`;
-      windArrow.style.opacity = this.windSpeed === 0.0 ? '0.3' : '1';
+
+    // Dirección cardinal en 8 rumbos (0° = Este / Derecha balística en SVG)
+    const compassDirections = ['Este ➔', 'Sureste ↘', 'Sur ⬇', 'Suroeste ↙', 'Oeste ⬅', 'Noroeste ↖', 'Norte ⬆', 'Noreste ↗'];
+    const compassIdx = Math.round(this.windAngle / 45) % 8;
+    const compassName = compassDirections[compassIdx];
+
+    if (windHud) {
+      windHud.className = `wind-indicator-pill mb-2 ${pillClass}`;
+    }
+
+    if (windSpeedLbl) {
+      if (this.windSpeed === 0.0) {
+        windSpeedLbl.textContent = 'Viento: Calmo (0.0 m/s) • Sin Desvío';
+      } else {
+        windSpeedLbl.textContent = `Viento: ${this.windSpeed} m/s • ${compassName} (${intensityName})`;
+      }
+    }
+
+    if (arrowsStream) {
+      // Rotación geométrica exacta del contenedor según el ángulo balístico (0° = Derecha/Este)
+      arrowsStream.style.transform = `rotate(${this.windAngle}deg)`;
+      arrowsStream.innerHTML = '';
+
+      if (arrowCount === 0) {
+        arrowsStream.innerHTML = `<span class="text-xs">🍃</span>`;
+      } else {
+        const chevronColor = arrowCount === 3 ? '#fb923c' : (arrowCount === 2 ? '#818cf8' : '#38bdf8');
+        for (let i = 0; i < arrowCount; i++) {
+          const chevron = document.createElement('span');
+          chevron.className = 'wind-chevron';
+          chevron.textContent = '➤';
+          chevron.style.color = chevronColor;
+          arrowsStream.appendChild(chevron);
+        }
+      }
     }
   }
 
@@ -779,10 +880,33 @@ class MinigameEngine {
     const hitY = Math.round(Math.max(20, Math.min(280, this.aimY + Math.sin(windRad) * windPush)));
 
     const impactsGroup = document.getElementById('diana-impacts-group');
+    const dartsGroup = document.getElementById('diana-darts-group');
+
+    // Visualizar estela de vuelo balístico guiada por el viento
+    if (dartsGroup) {
+      dartsGroup.innerHTML = `
+        <line x1="${this.aimX}" y1="${this.aimY}" x2="${hitX}" y2="${hitY}" stroke="#38bdf8" stroke-width="2" stroke-dasharray="3,3" opacity="0.6"/>
+        <g id="flying-dart" transform="translate(${this.aimX}, ${this.aimY})">
+          <circle cx="0" cy="0" r="4.5" fill="#fde047" stroke="#ffffff" stroke-width="1.5"/>
+        </g>
+      `;
+      const flyingEl = document.getElementById('flying-dart');
+      if (flyingEl && flyingEl.animate) {
+        flyingEl.animate([
+          { transform: `translate(${this.aimX}px, ${this.aimY}px) scale(1.4)`, opacity: 0.9 },
+          { transform: `translate(${hitX}px, ${hitY}px) scale(0.85)`, opacity: 1 }
+        ], {
+          duration: 380,
+          easing: 'ease-out',
+          fill: 'forwards'
+        });
+      }
+    }
 
     // Animación de vuelo y marcado de impacto con 'X'
     setTimeout(() => {
       if (window.audio) window.audio.playDartHit();
+      if (dartsGroup) dartsGroup.innerHTML = '';
 
       // REGLA USUARIO: Visualizar el dardo con una 'X' clara en el punto de impacto
       if (impactsGroup) {

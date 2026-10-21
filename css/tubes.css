@@ -423,3 +423,109 @@
   box-shadow: 0 0 16px rgba(251, 113, 133, 0.5);
 }
 
+/* ==========================================================================
+   FRASCO DE AFINIDAD ELEMENTAL (CRISTAL SELECTIVO Y VOLÁTIL)
+   ========================================================================== */
+.test-tube.tube-affinity .tube-glass {
+  border-color: rgba(192, 132, 252, 0.7);
+  box-shadow: 0 0 20px rgba(168, 85, 247, 0.35), inset 0 0 12px rgba(192, 132, 252, 0.2);
+}
+
+.test-tube.tube-super-fragile .tube-glass {
+  border-color: rgba(251, 191, 36, 0.85);
+  box-shadow: 0 0 22px rgba(245, 158, 11, 0.45), inset 0 0 14px rgba(251, 191, 36, 0.25);
+  animation: volatileGlow 1.8s infinite alternate ease-in-out;
+}
+
+@keyframes volatileGlow {
+  0% { box-shadow: 0 0 14px rgba(245, 158, 11, 0.35); }
+  100% { box-shadow: 0 0 28px rgba(245, 158, 11, 0.75), 0 0 10px rgba(239, 68, 68, 0.5); }
+}
+
+/* Indicador flotante superior de Gemas de Afinidad */
+.affinity-gems-pill {
+  position: absolute;
+  top: -24px;
+  left: 50%;
+  transform: translateX(-50%);
+  display: flex;
+  align-items: center;
+  gap: 3px;
+  background: rgba(15, 23, 42, 0.92);
+  border: 1px solid rgba(192, 132, 252, 0.6);
+  padding: 2px 6px;
+  border-radius: 9999px;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.5);
+  z-index: 35;
+  pointer-events: none;
+  white-space: nowrap;
+}
+
+.affinity-gem-dot {
+  width: 9px;
+  height: 9px;
+  border-radius: 50%;
+  border: 1px solid rgba(255, 255, 255, 0.9);
+  box-shadow: 0 0 6px currentColor;
+  display: inline-block;
+}
+
+/* Capa de Grietas en el Vidrio (Crack Overlays) */
+.crack-overlay {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  z-index: 28;
+  opacity: 0.85;
+  transition: opacity 0.3s ease;
+}
+
+.crack-overlay.crack-stage-1 {
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 60 180' fill='none' stroke='%23ffffff' stroke-width='1.2' stroke-linecap='round' opacity='0.75'%3E%3Cpath d='M28 20 L33 42 L25 60 L38 88 L31 115'/%3E%3Cpath d='M33 42 L42 50'/%3E%3Cpath d='M25 60 L18 72'/%3E%3C/svg%3E");
+  background-size: 100% 100%;
+}
+
+.crack-overlay.crack-stage-2 {
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 60 180' fill='none' stroke='%23fca5a5' stroke-width='1.5' stroke-linecap='round'%3E%3Cpath d='M28 15 L35 38 L22 58 L40 92 L30 120 L45 155' stroke='%23ffffff'/%3E%3Cpath d='M35 38 L48 48 L52 65'/%3E%3Cpath d='M22 58 L12 70 L8 95'/%3E%3Cpath d='M40 92 L50 105'/%3E%3Cpath d='M30 120 L18 135 L12 160'/%3E%3Cpath d='M45 155 L50 170'/%3E%3C/svg%3E");
+  background-size: 100% 100%;
+  filter: drop-shadow(0 0 5px rgba(239, 68, 68, 0.7));
+}
+
+/* Sacudida de impacto al fracturarse */
+@keyframes tubeCrackJolt {
+  0% { transform: scale(1); filter: brightness(1); }
+  20% { transform: scale(1.08) rotate(-4deg); filter: brightness(1.4) drop-shadow(0 0 16px #ef4444); }
+  40% { transform: scale(1.06) rotate(4deg); }
+  60% { transform: scale(1.02) rotate(-2deg); }
+  100% { transform: scale(1) rotate(0deg); filter: brightness(1); }
+}
+.test-tube.tube-crack-jolt {
+  animation: tubeCrackJolt 0.5s ease-out;
+}
+
+/* Animación de rotura total / estallido en mil pedazos */
+@keyframes glassShatterBurst {
+  0% { transform: scale(1); opacity: 1; filter: brightness(1.5); }
+  35% { transform: scale(1.15) rotate(5deg); opacity: 0.9; filter: drop-shadow(0 0 25px rgba(239, 68, 68, 1)); }
+  70% { transform: scale(0.85) translateY(20px); opacity: 0.4; }
+  100% { transform: scale(0.4) translateY(45px); opacity: 0; }
+}
+.test-tube.tube-shattering {
+  animation: glassShatterBurst 0.65s cubic-bezier(0.16, 1, 0.3, 1) forwards !important;
+  pointer-events: none !important;
+}
+
+/* Frasco destruido (restos en el tablero) */
+.test-tube.tube-shattered-remains {
+  opacity: 0.25 !important;
+  filter: grayscale(1) !important;
+  cursor: not-allowed !important;
+  pointer-events: none !important;
+}
+.test-tube.tube-shattered-remains .tube-glass {
+  border-style: dashed !important;
+  border-color: rgba(239, 68, 68, 0.4) !important;
+  background: rgba(239, 68, 68, 0.05) !important;
+}
+
+

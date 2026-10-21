@@ -857,6 +857,338 @@ class ProceduralAudioEngine {
       whiteNoise.stop(now + 0.65);
     } catch (e) {}
   }
+
+  // Fanfarria Real Triunfal: Concesión de la Medalla de Honor Alquímica
+  playHonorVictory() {
+    if (this.isMuted) return;
+    this.init();
+    const now = this.ctx.currentTime;
+    const notes = [
+      { f: 261.63, t: 0.00, d: 0.20 }, // C4
+      { f: 329.63, t: 0.16, d: 0.20 }, // E4
+      { f: 392.00, t: 0.32, d: 0.22 }, // G4
+      { f: 523.25, t: 0.48, d: 0.45 }, // C5
+      { f: 659.25, t: 0.70, d: 0.30 }, // E5
+      { f: 783.99, t: 0.90, d: 0.75 }  // G5 (acorde final sostenido)
+    ];
+
+    notes.forEach(n => {
+      const osc = this.ctx.createOscillator();
+      const gain = this.ctx.createGain();
+      osc.type = 'triangle';
+      osc.frequency.setValueAtTime(n.f, now + n.t);
+
+      gain.gain.setValueAtTime(0.2, now + n.t);
+      gain.gain.exponentialRampToValueAtTime(0.001, now + n.t + n.d);
+
+      osc.connect(gain);
+      gain.connect(this.sfxGain);
+      osc.start(now + n.t);
+      osc.stop(now + n.t + n.d + 0.05);
+    });
+  }
+
+  // Tic tac sutil del temporizador de honor cuando queda poco tiempo
+  playHonorTimerTick() {
+    if (this.isMuted) return;
+    this.init();
+    const now = this.ctx.currentTime;
+    const osc = this.ctx.createOscillator();
+    const gain = this.ctx.createGain();
+    osc.type = 'sine';
+    osc.frequency.setValueAtTime(880, now);
+    osc.frequency.exponentialRampToValueAtTime(440, now + 0.04);
+    gain.gain.setValueAtTime(0.08, now);
+    gain.gain.exponentialRampToValueAtTime(0.001, now + 0.04);
+    osc.connect(gain);
+    gain.connect(this.sfxGain);
+    osc.start(now);
+    osc.stop(now + 0.05);
+  }
+
+  // Sonido de crujido y fisura de vidrio al introducir un color no afín
+  playGlassCrack(severity = 1) {
+    if (this.isMuted) return;
+    this.init();
+    const now = this.ctx.currentTime;
+
+    // Ruido impulsivo de impacto inicial
+    const baseFreq = severity === 2 ? 3200 : 2600;
+    const osc = this.ctx.createOscillator();
+    const gain = this.ctx.createGain();
+
+    osc.type = 'triangle';
+    osc.frequency.setValueAtTime(baseFreq, now);
+    osc.frequency.exponentialRampToValueAtTime(1400, now + 0.12);
+
+    gain.gain.setValueAtTime(0.28, now);
+    gain.gain.exponentialRampToValueAtTime(0.001, now + 0.14);
+
+    osc.connect(gain);
+    gain.connect(this.sfxGain);
+    osc.start(now);
+    osc.stop(now + 0.15);
+
+    // Segundo chasquido agudo desfasado
+    setTimeout(() => {
+      if (this.isMuted || !this.ctx) return;
+      const t = this.ctx.currentTime;
+      const osc2 = this.ctx.createOscillator();
+      const gain2 = this.ctx.createGain();
+      osc2.type = 'sawtooth';
+      osc2.frequency.setValueAtTime(baseFreq * 1.25, t);
+      osc2.frequency.exponentialRampToValueAtTime(800, t + 0.08);
+
+      gain2.gain.setValueAtTime(0.2, t);
+      gain2.gain.exponentialRampToValueAtTime(0.001, t + 0.09);
+
+      osc2.connect(gain2);
+      gain2.connect(this.sfxGain);
+      osc2.start(t);
+      osc2.stop(t + 0.1);
+    }, 35);
+  }
+
+  // Estallido de cristal rompiéndose en mil pedazos
+  playGlassShatter() {
+    if (this.isMuted) return;
+    this.init();
+    const now = this.ctx.currentTime;
+
+    // 1. Estallido de ruido blanco filtrado
+    try {
+      const bufferSize = Math.floor(this.ctx.sampleRate * 0.45);
+      const noiseBuffer = this.ctx.createBuffer(1, bufferSize, this.ctx.sampleRate);
+      const output = noiseBuffer.getChannelData(0);
+      for (let i = 0; i < bufferSize; i++) {
+        output[i] = Math.random() * 2 - 1;
+      }
+      const whiteNoise = this.ctx.createBufferSource();
+      whiteNoise.buffer = noiseBuffer;
+
+      const filter = this.ctx.createBiquadFilter();
+      filter.type = 'highpass';
+      filter.frequency.setValueAtTime(1600, now);
+
+      const noiseGain = this.ctx.createGain();
+      noiseGain.gain.setValueAtTime(0.35, now);
+      noiseGain.gain.exponentialRampToValueAtTime(0.001, now + 0.45);
+
+      whiteNoise.connect(filter);
+      filter.connect(noiseGain);
+      noiseGain.connect(this.sfxGain);
+
+      whiteNoise.start(now);
+      whiteNoise.stop(now + 0.45);
+    } catch (e) {}
+
+    // 2. Cascadas de cristales rotos tintineando en caída
+    const shardFreqs = [3800, 4600, 5200, 2900, 6100];
+    shardFreqs.forEach((freq, idx) => {
+      const startT = now + idx * 0.04;
+      const osc = this.ctx.createOscillator();
+      const gain = this.ctx.createGain();
+
+      osc.type = 'sine';
+      osc.frequency.setValueAtTime(freq, startT);
+      osc.frequency.exponentialRampToValueAtTime(freq * 0.7, startT + 0.18);
+
+      gain.gain.setValueAtTime(0.18, startT);
+      gain.gain.exponentialRampToValueAtTime(0.001, startT + 0.18);
+
+      osc.connect(gain);
+      gain.connect(this.sfxGain);
+
+      osc.start(startT);
+      osc.stop(startT + 0.2);
+    });
+  }
+
+  // Estallido de Cataclismo Cósmico (Easter Egg: El Mundo Explotando)
+  playWorldExplosion() {
+    if (this.isMuted) return;
+    this.init();
+    const now = this.ctx.currentTime;
+
+    // 1. Estruendo Sísmico Grave Sub-Bass (80Hz -> 20Hz)
+    try {
+      const osc = this.ctx.createOscillator();
+      const gain = this.ctx.createGain();
+      osc.type = 'sawtooth';
+      osc.frequency.setValueAtTime(80, now);
+      osc.frequency.exponentialRampToValueAtTime(20, now + 1.8);
+
+      gain.gain.setValueAtTime(0.55, now);
+      gain.gain.exponentialRampToValueAtTime(0.001, now + 2.0);
+
+      osc.connect(gain);
+      gain.connect(this.sfxGain);
+      osc.start(now);
+      osc.stop(now + 2.1);
+    } catch (e) {}
+
+    // 2. Onda expansiva masiva con Ruido Blanco de Frecuencia Descendente
+    try {
+      const bufferSize = Math.floor(this.ctx.sampleRate * 2.2);
+      const noiseBuffer = this.ctx.createBuffer(1, bufferSize, this.ctx.sampleRate);
+      const output = noiseBuffer.getChannelData(0);
+      for (let i = 0; i < bufferSize; i++) {
+        output[i] = Math.random() * 2 - 1;
+      }
+      const whiteNoise = this.ctx.createBufferSource();
+      whiteNoise.buffer = noiseBuffer;
+
+      const filter = this.ctx.createBiquadFilter();
+      filter.type = 'lowpass';
+      filter.frequency.setValueAtTime(1400, now);
+      filter.frequency.exponentialRampToValueAtTime(80, now + 2.0);
+
+      const noiseGain = this.ctx.createGain();
+      noiseGain.gain.setValueAtTime(0.65, now);
+      noiseGain.gain.exponentialRampToValueAtTime(0.001, now + 2.2);
+
+      whiteNoise.connect(filter);
+      filter.connect(noiseGain);
+      noiseGain.connect(this.sfxGain);
+
+      whiteNoise.start(now);
+      whiteNoise.stop(now + 2.2);
+    } catch (e) {}
+
+    // 3. Destellos / Chispas agudas de escombros celestes en dispersión
+    const debrisPitches = [950, 720, 540, 380, 210];
+    debrisPitches.forEach((freq, idx) => {
+      try {
+        const startT = now + 0.08 + idx * 0.12;
+        const osc = this.ctx.createOscillator();
+        const gain = this.ctx.createGain();
+        osc.type = 'triangle';
+        osc.frequency.setValueAtTime(freq, startT);
+        osc.frequency.exponentialRampToValueAtTime(freq * 0.4, startT + 0.35);
+
+        gain.gain.setValueAtTime(0.25, startT);
+        gain.gain.exponentialRampToValueAtTime(0.001, startT + 0.35);
+
+        osc.connect(gain);
+        gain.connect(this.sfxGain);
+        osc.start(startT);
+        osc.stop(startT + 0.38);
+      } catch (e) {}
+    });
+  }
+
+  // Sonido cómico de explosión de laboratorio (Final Malo)
+  playLabExplosion() {
+    if (this.isMuted) return;
+    this.init();
+    const now = this.ctx.currentTime;
+
+    // 1. Silbido ascendente de olla a presión
+    try {
+      const osc = this.ctx.createOscillator();
+      const gain = this.ctx.createGain();
+      osc.type = 'sine';
+      osc.frequency.setValueAtTime(240, now);
+      osc.frequency.exponentialRampToValueAtTime(950, now + 0.28);
+      gain.gain.setValueAtTime(0.2, now);
+      gain.gain.exponentialRampToValueAtTime(0.001, now + 0.3);
+      osc.connect(gain);
+      gain.connect(this.sfxGain);
+      osc.start(now);
+      osc.stop(now + 0.3);
+    } catch (e) {}
+
+    // 2. Detonación cómica con estrépito
+    setTimeout(() => {
+      try {
+        const t2 = this.ctx.currentTime;
+        const bufferSize = Math.floor(this.ctx.sampleRate * 0.9);
+        const noiseBuffer = this.ctx.createBuffer(1, bufferSize, this.ctx.sampleRate);
+        const output = noiseBuffer.getChannelData(0);
+        for (let i = 0; i < bufferSize; i++) output[i] = Math.random() * 2 - 1;
+
+        const whiteNoise = this.ctx.createBufferSource();
+        whiteNoise.buffer = noiseBuffer;
+        const filter = this.ctx.createBiquadFilter();
+        filter.type = 'lowpass';
+        filter.frequency.setValueAtTime(800, t2);
+        filter.frequency.exponentialRampToValueAtTime(90, t2 + 0.85);
+
+        const gain = this.ctx.createGain();
+        gain.gain.setValueAtTime(0.6, t2);
+        gain.gain.exponentialRampToValueAtTime(0.001, t2 + 0.9);
+
+        whiteNoise.connect(filter);
+        filter.connect(gain);
+        gain.connect(this.sfxGain);
+        whiteNoise.start(t2);
+        whiteNoise.stop(t2 + 0.9);
+
+        // Clink de cristal roto al final
+        setTimeout(() => {
+          if (typeof this.playGlassShatter === 'function') this.playGlassShatter();
+        }, 320);
+      } catch (e) {}
+    }, 280);
+  }
+
+  // Sonido cómico de estornudo alérgico por plátanos (Final Regular)
+  playBananaSneeze() {
+    if (this.isMuted) return;
+    this.init();
+    const now = this.ctx.currentTime;
+
+    // 1. Inhalación cómica "Ah... ah..."
+    try {
+      const osc1 = this.ctx.createOscillator();
+      const gain1 = this.ctx.createGain();
+      osc1.type = 'triangle';
+      osc1.frequency.setValueAtTime(320, now);
+      osc1.frequency.exponentialRampToValueAtTime(480, now + 0.22);
+      gain1.gain.setValueAtTime(0.18, now);
+      gain1.gain.exponentialRampToValueAtTime(0.01, now + 0.22);
+      osc1.connect(gain1);
+      gain1.connect(this.sfxGain);
+      osc1.start(now);
+      osc1.stop(now + 0.25);
+    } catch (e) {}
+
+    // 2. Estornudo explosivo "...¡¡CHÚÚÚ!!" con rebote de resorte
+    setTimeout(() => {
+      try {
+        const t2 = this.ctx.currentTime;
+        const osc2 = this.ctx.createOscillator();
+        const gain2 = this.ctx.createGain();
+        osc2.type = 'sawtooth';
+        osc2.frequency.setValueAtTime(750, t2);
+        osc2.frequency.exponentialRampToValueAtTime(140, t2 + 0.35);
+
+        gain2.gain.setValueAtTime(0.5, t2);
+        gain2.gain.exponentialRampToValueAtTime(0.001, t2 + 0.4);
+
+        osc2.connect(gain2);
+        gain2.connect(this.sfxGain);
+        osc2.start(t2);
+        osc2.stop(t2 + 0.42);
+
+        // Boing cómico de banana elástica
+        const osc3 = this.ctx.createOscillator();
+        const gain3 = this.ctx.createGain();
+        osc3.type = 'sine';
+        osc3.frequency.setValueAtTime(220, t2 + 0.15);
+        osc3.frequency.linearRampToValueAtTime(540, t2 + 0.32);
+        osc3.frequency.linearRampToValueAtTime(300, t2 + 0.5);
+
+        gain3.gain.setValueAtTime(0.25, t2 + 0.15);
+        gain3.gain.exponentialRampToValueAtTime(0.001, t2 + 0.55);
+
+        osc3.connect(gain3);
+        gain3.connect(this.sfxGain);
+        osc3.start(t2 + 0.15);
+        osc3.stop(t2 + 0.58);
+      } catch (e) {}
+    }, 280);
+  }
 }
 
 // Instancia global
