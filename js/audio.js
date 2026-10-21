@@ -678,6 +678,73 @@ class ProceduralAudioEngine {
     osc.start(now);
     osc.stop(now + 0.28);
   }
+
+  // Efecto químico inesperado / ebullición y desborde por sobrecarga en tubo 1x1
+  playChemicalReactionSound() {
+    if (this.isMuted) return;
+    this.init();
+    const now = this.ctx.currentTime;
+
+    // 1. Burbujeo rápido / ebullición química modulada
+    const osc = this.ctx.createOscillator();
+    const modOsc = this.ctx.createOscillator();
+    const modGain = this.ctx.createGain();
+    const gain = this.ctx.createGain();
+
+    modOsc.frequency.setValueAtTime(45, now);
+    modOsc.frequency.linearRampToValueAtTime(15, now + 0.65);
+    modGain.gain.setValueAtTime(140, now);
+
+    osc.type = 'sawtooth';
+    osc.frequency.setValueAtTime(280, now);
+    osc.frequency.linearRampToValueAtTime(620, now + 0.25);
+    osc.frequency.exponentialRampToValueAtTime(120, now + 0.7);
+
+    modOsc.connect(modGain);
+    modGain.connect(osc.frequency);
+
+    gain.gain.setValueAtTime(0.01, now);
+    gain.gain.linearRampToValueAtTime(0.28, now + 0.08);
+    gain.gain.exponentialRampToValueAtTime(0.001, now + 0.75);
+
+    osc.connect(gain);
+    gain.connect(this.sfxGain);
+
+    modOsc.start(now);
+    osc.start(now);
+    modOsc.stop(now + 0.75);
+    osc.stop(now + 0.75);
+
+    // 2. Chispazo / escape de vapor a presión
+    try {
+      const bufferSize = Math.floor(this.ctx.sampleRate * 0.65);
+      const noiseBuffer = this.ctx.createBuffer(1, bufferSize, this.ctx.sampleRate);
+      const output = noiseBuffer.getChannelData(0);
+      for (let i = 0; i < bufferSize; i++) {
+        output[i] = Math.random() * 2 - 1;
+      }
+      const whiteNoise = this.ctx.createBufferSource();
+      whiteNoise.buffer = noiseBuffer;
+
+      const filter = this.ctx.createBiquadFilter();
+      filter.type = 'bandpass';
+      filter.frequency.setValueAtTime(1800, now);
+      filter.frequency.exponentialRampToValueAtTime(400, now + 0.6);
+      filter.Q.setValueAtTime(2.5, now);
+
+      const noiseGain = this.ctx.createGain();
+      noiseGain.gain.setValueAtTime(0.01, now);
+      noiseGain.gain.linearRampToValueAtTime(0.22, now + 0.05);
+      noiseGain.gain.exponentialRampToValueAtTime(0.001, now + 0.65);
+
+      whiteNoise.connect(filter);
+      filter.connect(noiseGain);
+      noiseGain.connect(this.sfxGain);
+
+      whiteNoise.start(now);
+      whiteNoise.stop(now + 0.65);
+    } catch (e) {}
+  }
 }
 
 // Instancia global

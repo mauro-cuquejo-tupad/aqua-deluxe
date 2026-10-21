@@ -401,27 +401,15 @@ class GameController {
         stoneEl.className = 'tube-stone-base';
         stoneEl.title = 'Frasco Inamovible (Incrustado en la roca: solo recibe líquidos)';
         stoneEl.innerHTML = `
-          <svg viewBox="0 0 66 32" class="w-full h-full drop-shadow-[0_4px_10px_rgba(0,0,0,0.9)]" fill="none" xmlns="http://www.w3.org/2000/svg">
-            <defs>
-              <linearGradient id="rock-grad-1" x1="0%" y1="0%" x2="100%" y2="100%">
-                <stop offset="0%" stop-color="#475569"/>
-                <stop offset="50%" stop-color="#334155"/>
-                <stop offset="100%" stop-color="#1e293b"/>
-              </linearGradient>
-              <linearGradient id="rock-grad-2" x1="0%" y1="0%" x2="0%" y2="100%">
-                <stop offset="0%" stop-color="#64748b"/>
-                <stop offset="100%" stop-color="#334155"/>
-              </linearGradient>
-            </defs>
-            <path d="M 3 28 L 8 13 L 20 6 L 33 4 L 46 6 L 58 13 L 63 28 Z" fill="url(#rock-grad-1)" stroke="#475569" stroke-width="1.2"/>
-            <path d="M 8 13 L 20 6 L 27 16 L 15 28 Z" fill="#1e293b"/>
-            <path d="M 33 4 L 46 6 L 39 16 L 27 16 Z" fill="url(#rock-grad-2)"/>
-            <path d="M 46 6 L 58 13 L 52 28 L 39 16 Z" fill="#0f172a"/>
-            <path d="M 31 10 L 28 17 L 32 23" stroke="#94a3b8" stroke-width="1" stroke-linecap="round"/>
-            <path d="M 36 11 L 38 18 L 35 24" stroke="#94a3b8" stroke-width="1" stroke-linecap="round"/>
-            <circle cx="21" cy="21" r="1.2" fill="#10b981"/>
-            <circle cx="45" cy="22" r="1.2" fill="#38bdf8"/>
-            <ellipse cx="33" cy="7" rx="25" ry="4.5" fill="#0b0f19" stroke="#64748b" stroke-width="1.2"/>
+          <svg viewBox="93 182 70 35" class="w-full h-full" xmlns="http://www.w3.org/2000/svg">
+            <!-- Roca posterior -->
+            <path d="M 104,187 L 116,184 L 128,193 L 140,184 L 152,190 L 160,208 L 144,215 L 111,215 L 95,208 Z" fill="#26364c"/>
+            <!-- Facetas de la roca -->
+            <path d="M 104,190 L 116,187 L 123,199 L 111,211 L 97,207 Z" fill="#34465e"/>
+            <path d="M 128,193 L 140,187 L 151,194 L 144,211 L 128,215 L 123,199 Z" fill="#1b293d"/>
+            <path d="M 140,187 L 152,190 L 160,208 L 144,211 L 151,194 Z" fill="#2d3e55"/>
+            <!-- Grietas y aristas -->
+            <path d="M 116,187 L 123,199 L 111,211 M 140,187 L 134,201 L 144,211" fill="none" stroke="#64758a" stroke-width="1.5" stroke-linejoin="round" stroke-linecap="round"/>
           </svg>
         `;
         tubeEl.appendChild(stoneEl);
@@ -532,6 +520,28 @@ class GameController {
       }
     }
 
+    // REGLA DEL TUBO DE PRECISIÓN (1x1):
+    // Solo permite ingresar un fluido de un solo elemento (1 cuarto aislado).
+    // Si se intenta verter un fluido que combinó 2 o más cuartos juntos, se rechaza,
+    // se vacía el tubo de origen y se esparcen sus fluidos en los demás tubos incompletos al azar (efecto químico inesperado).
+    if (toTube.isNarrow) {
+      let topBlockCount = 0;
+      const topColor = fromTube.liquids[fromTube.liquids.length - 1].color;
+      for (let i = fromTube.liquids.length - 1; i >= 0; i--) {
+        const item = fromTube.liquids[i];
+        if (!item.isMystery && (item.color === topColor || item.isChameleon)) {
+          topBlockCount++;
+        } else {
+          break;
+        }
+      }
+
+      if (topBlockCount >= 2) {
+        this.triggerNarrowChemicalReaction(fromIdx, toIdx);
+        return;
+      }
+    }
+
     // Verificar si el vertido es válido
     if (this.canPour(fromIdx, toIdx)) {
       this.executePour(fromIdx, toIdx);
@@ -567,6 +577,21 @@ class GameController {
     // Cristal frágil sin operaciones restantes
     if (fromTube.isFragile && typeof fromTube.operationsRemaining === 'number' && fromTube.operationsRemaining <= 0) return false;
     if (toTube.isFragile && typeof toTube.operationsRemaining === 'number' && toTube.operationsRemaining <= 0) return false;
+
+    // Tubo de precisión (1x1): NUNCA permite fluidos con 2 o más cuartos combinados
+    if (toTube.isNarrow) {
+      let topBlockCount = 0;
+      const topColor = fromTube.liquids[fromTube.liquids.length - 1].color;
+      for (let i = fromTube.liquids.length - 1; i >= 0; i--) {
+        const item = fromTube.liquids[i];
+        if (!item.isMystery && (item.color === topColor || item.isChameleon)) {
+          topBlockCount++;
+        } else {
+          break;
+        }
+      }
+      if (topBlockCount >= 2) return false;
+    }
 
     // Asegurar que la capa superior NUNCA esté bloqueada por misterio
     const topFrom = fromTube.liquids[fromTube.liquids.length - 1];
@@ -877,21 +902,120 @@ class GameController {
     requestAnimationFrame(render);
   }
 
+  // --- REGLAS DE TUBOS COMPLETOS Y REACCIÓN QUÍMICA 1x1 ---
+  isTubeComplete(tube) {
+    if (!tube || tube.liquids.length === 0) return false;
+    if (tube.liquids.length !== tube.capacity) return false;
+    const firstCol = tube.liquids[0].color;
+    return tube.liquids.every(l => l.color === firstCol && !l.isMystery);
+  }
+
+  triggerNarrowChemicalReaction(fromIdx, toIdx) {
+    this.saveStateForUndo();
+    this.isPouringAnimation = true;
+
+    const fromTube = this.tubes[fromIdx];
+    const toTube = this.tubes[toIdx];
+
+    const allTubeEls = this.tubesGrid.querySelectorAll('.test-tube');
+    const fromEl = allTubeEls[fromIdx];
+    const toEl = allTubeEls[toIdx];
+
+    // Reproducir audio de reacción química
+    if (window.audio && typeof window.audio.playChemicalReactionSound === 'function') {
+      window.audio.playChemicalReactionSound();
+    } else if (window.audio) {
+      window.audio.playFailSound();
+    }
+
+    // Efectos visuales de sobrecarga y ebullición en DOM:
+    if (toEl) {
+      toEl.classList.add('tube-overload-flash');
+      setTimeout(() => toEl.classList.remove('tube-overload-flash'), 800);
+    }
+    if (fromEl) {
+      fromEl.classList.add('tube-boil-overflow');
+      setTimeout(() => fromEl.classList.remove('tube-boil-overflow'), 800);
+    }
+
+    // Mostrar banner de reacción química inesperada
+    this.showChemicalReactionBanner();
+
+    // Vaciado del tubo y dispersión aleatoria en tubos incompletos
+    const spilled = [...fromTube.liquids];
+    fromTube.liquids = [];
+
+    // Distribuir cada unidad en los demás tubos que NO estén completos y tengan espacio libre
+    for (let i = 0; i < spilled.length; i++) {
+      const item = spilled[i];
+      item.isMystery = false; // Se revela por la reacción química
+
+      const eligibleTubes = this.tubes.filter((t, idx) => {
+        if (idx === fromIdx) return false;
+        if (t.isLocked) return false;
+        if (t.isNarrow) return false;
+        if (this.isTubeComplete(t)) return false; // NUNCA alterar tubos completos
+        return t.liquids.length < t.capacity;
+      });
+
+      if (eligibleTubes.length > 0) {
+        const dest = eligibleTubes[Math.floor(Math.random() * eligibleTubes.length)];
+        dest.liquids.push(item);
+      } else {
+        // Si ningún otro frasco tiene lugar, regresa al frasco origen
+        fromTube.liquids.push(item);
+      }
+    }
+
+    // Incrementar movimientos (penalización que retrasa y afecta el récord y monedas)
+    this.moves++;
+    if (window.stateManager) {
+      window.stateManager.onMoveMade();
+    }
+    this.updateMovesUI();
+
+    setTimeout(() => {
+      this.selectedTubeIndex = null;
+      this.clearHintHighlight();
+      this.isPouringAnimation = false;
+      this.renderTubes();
+      this.updateButtonsUI();
+      this.checkVictory();
+    }, 750);
+  }
+
+  showChemicalReactionBanner() {
+    let banner = document.getElementById('chemical-reaction-banner');
+    if (!banner) {
+      banner = document.createElement('div');
+      banner.id = 'chemical-reaction-banner';
+      banner.className = 'chemical-banner animate-bounce';
+      document.body.appendChild(banner);
+    }
+    banner.innerHTML = `
+      <div class="flex items-center justify-center gap-2 mb-1">
+        <span class="text-base sm:text-lg">⚗️💥</span>
+        <span class="text-amber-300 font-black tracking-wide text-xs sm:text-sm">¡EFECTO QUÍMICO INESPERADO!</span>
+      </div>
+      <span class="text-[10px] sm:text-[11px] block font-medium text-amber-100 leading-tight">
+        El tubo de precisión (1x1) no admite fluidos combinados (2+ cuartos). ¡La sobrecarga desbordó el frasco y sus fluidos se esparcieron!
+      </span>
+    `;
+    banner.style.display = 'block';
+
+    if (this._chemBannerTimer) clearTimeout(this._chemBannerTimer);
+    this._chemBannerTimer = setTimeout(() => {
+      if (banner) banner.style.display = 'none';
+    }, 3800);
+  }
+
   // --- COMPROBACIÓN DE VICTORIA Y SECUENCIA DE CORCHOS ---
   checkVictory() {
     let allDone = true;
 
     for (const tube of this.tubes) {
       if (tube.liquids.length === 0) continue;
-
-      if (tube.liquids.length !== tube.capacity) {
-        allDone = false;
-        break;
-      }
-
-      const firstCol = tube.liquids[0].color;
-      const isUniform = tube.liquids.every(l => l.color === firstCol && !l.isMystery);
-      if (!isUniform) {
+      if (!this.isTubeComplete(tube)) {
         allDone = false;
         break;
       }
@@ -2112,11 +2236,14 @@ class GameController {
                 <rect x="141" y="97" width="28" height="28" rx="7" fill="#3b82f6"/>
               </g>
 
-              <!-- Roca base Excalibur ajustada a la base del tubo -->
-              <path d="M 120 142 L 128 126 L 140 120 L 155 118 L 170 120 L 182 126 L 190 142 Z" fill="#334155" stroke="#475569" stroke-width="1.5"/>
-              <path d="M 128 126 L 140 120 L 148 132 L 135 142 Z" fill="#1e293b"/>
-              <path d="M 155 118 L 170 120 L 163 132 L 148 132 Z" fill="#64748b"/>
-              <ellipse cx="155" cy="120" rx="18" ry="4" fill="#0f172a" stroke="#475569" stroke-width="1.2"/>
+              <!-- Roca base Excalibur poligonal facetada ajustada a la base del tubo -->
+              <g transform="translate(155, 130) scale(0.607) translate(-128, -199)">
+                <path d="M 104,187 L 116,184 L 128,193 L 140,184 L 152,190 L 160,208 L 144,215 L 111,215 L 95,208 Z" fill="#26364c"/>
+                <path d="M 104,190 L 116,187 L 123,199 L 111,211 L 97,207 Z" fill="#34465e"/>
+                <path d="M 128,193 L 140,187 L 151,194 L 144,211 L 128,215 L 123,199 Z" fill="#1b293d"/>
+                <path d="M 140,187 L 152,190 L 160,208 L 144,211 L 151,194 Z" fill="#2d3e55"/>
+                <path d="M 116,187 L 123,199 L 111,211 M 140,187 L 134,201 L 144,211" fill="none" stroke="#64758a" stroke-width="1.5" stroke-linejoin="round" stroke-linecap="round"/>
+              </g>
 
               <!-- Signo de prohibido cuando intenta salir -->
               <g class="demo-no-sign" style="transform-origin: 155px 50px;">
@@ -2221,8 +2348,8 @@ class GameController {
         `
       },
       narrow: {
-        title: 'Tubo Estrecho (1x1)',
-        desc: 'Tubo de precisión ultra delgado. Solo puede contener y transferir 1 sola unidad de fluido por movimiento. Es ideal como casilla de paso temporal.',
+        title: 'Tubo Estrecho de Precisión (1x1)',
+        desc: 'Tubo de precisión ultra delgado: solo permite ingresar 1 cuarto de fluido puro (aislado). Si intentas meter un líquido que ya combinó 2 o más cuartos juntos, ¡se produce una Reacción Química Inesperada!, vaciando el frasco origen y esparciendo sus fluidos en los demás tubos que no estén completos.',
         icon: 'minimize-2',
         svg: `
           <svg viewBox="0 0 220 160" class="w-full h-full">
@@ -2238,7 +2365,7 @@ class GameController {
               <text x="151" y="26" fill="#c084fc" font-size="10" font-weight="900" text-anchor="middle">1x1</text>
             </g>
             <path d="M 85 55 Q 115 35 138 50" fill="none" stroke="#a855f7" stroke-width="3" stroke-dasharray="4,3"/>
-            <text x="110" y="152" fill="#c084fc" font-size="10" font-weight="bold" text-anchor="middle">Solo 1 unidad por movimiento</text>
+            <text x="110" y="152" fill="#c084fc" font-size="9" font-weight="bold" text-anchor="middle">Solo 1 cuarto puro (¡2+ causan sobrecarga!)</text>
           </svg>
         `
       },

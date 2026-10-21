@@ -294,14 +294,22 @@
   bottom: -8px;
   left: 50%;
   transform: translateX(-50%);
-  width: 66px;
-  height: 32px;
+  width: 76px;
+  height: 38px;
   pointer-events: none;
   z-index: 25;
+  filter: drop-shadow(0 6px 14px rgba(0, 0, 0, 0.9));
+}
+@media (min-width: 640px) {
+  .tube-stone-base {
+    bottom: -10px;
+    width: 96px;
+    height: 48px;
+  }
 }
 .test-tube.tube-glued .tube-glass {
-  border-bottom: 2px solid #334155;
-  box-shadow: 0 10px 16px -4px rgba(0, 0, 0, 0.9), inset 0 -4px 10px rgba(51, 65, 85, 0.6);
+  border-bottom: 2px solid #26364c;
+  box-shadow: 0 10px 16px -4px rgba(0, 0, 0, 0.9), inset 0 -4px 10px rgba(38, 54, 76, 0.6);
 }
 .test-tube.tube-glued-shake {
   animation: gluedShake 0.35s ease-in-out;
