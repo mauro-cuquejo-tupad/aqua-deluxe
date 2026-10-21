@@ -42,6 +42,9 @@
           <span>Nivel <strong id="lbl-level" class="text-sky-300 font-bold">1</strong>/100</span>
           <span class="text-slate-600">•</span>
           <span id="lbl-mechanic-tag" class="text-emerald-400 font-semibold truncate max-w-[150px] sm:max-w-none">Básico</span>
+          <button id="btn-quick-help" class="p-0.5 text-slate-400 hover:text-sky-300 transition-colors" title="Ver tutorial/guía de esta mecánica">
+            <i data-lucide="help-circle" class="w-3.5 h-3.5"></i>
+          </button>
         </div>
       </div>
     </div>
@@ -93,6 +96,11 @@
       <!-- Botón Opciones y Accesibilidad -->
       <button id="btn-open-settings" class="p-2 bg-slate-800/90 hover:bg-slate-700 active:scale-95 border border-slate-700 rounded-xl text-sky-300 transition-all shadow-sm" title="Opciones y Personalización de Colores">
         <i data-lucide="sliders-horizontal" class="w-5 h-5"></i>
+      </button>
+
+      <!-- Botón Ayuda y Guía de Tubos / Tutoriales -->
+      <button id="btn-open-help" class="p-2 bg-sky-500/20 hover:bg-sky-500/35 border border-sky-400/40 rounded-xl text-sky-300 active:scale-95 transition-all shadow-sm" title="Guía y Tutoriales de Mecánicas Desbloqueadas">
+        <i data-lucide="help-circle" class="w-5 h-5 text-sky-300"></i>
       </button>
 
       <!-- Botón Audio / Mute -->
@@ -672,9 +680,9 @@
             <i data-lucide="trophy" class="w-4 h-4 text-amber-400"></i>
             <span>Clasificaciones</span>
           </button>
-          <button id="btn-home-settings" class="btn-interactive py-2.5 bg-slate-800/80 hover:bg-slate-700 border border-slate-700/80 text-slate-300 font-semibold text-xs rounded-2xl flex items-center justify-center gap-2">
-            <i data-lucide="sliders-horizontal" class="w-4 h-4 text-sky-400"></i>
-            <span>Opciones</span>
+          <button id="btn-home-tutorials" class="btn-interactive py-2.5 bg-sky-500/15 hover:bg-sky-500/25 border border-sky-500/40 text-sky-300 font-semibold text-xs rounded-2xl flex items-center justify-center gap-2" title="Guía y tutoriales de tubos desbloqueados">
+            <i data-lucide="help-circle" class="w-4 h-4 text-sky-400"></i>
+            <span>Guía de Tubos</span>
           </button>
         </div>
 
@@ -766,28 +774,59 @@
   </div>
 
   <!-- ==========================================================================
-       MODAL 9: TUTORIAL PARA NUEVAS MECÁNICAS CON ANIMACIÓN LOOPEADA
+       MODAL 9: GUÍA Y TUTORIALES DE MECÁNICAS (ANIMACIONES LOOPEADAS)
        ========================================================================== -->
-  <div id="modal-tutorial" class="fixed inset-0 bg-slate-950/90 backdrop-blur-md z-50 hidden flex items-center justify-center p-4 modal-overlay">
-    <div class="bg-slate-900 border border-sky-500/40 rounded-3xl max-w-md w-full p-6 shadow-2xl text-center relative modal-content">
-      <div id="tutorial-icon-box" class="w-16 h-16 rounded-2xl bg-sky-500/20 border border-sky-400/40 flex items-center justify-center mx-auto mb-3 text-sky-400 shadow-lg shadow-sky-500/20">
-        <i data-lucide="sparkles" class="w-8 h-8"></i>
-      </div>
-      <div class="text-[10px] uppercase font-mono tracking-widest text-sky-400 font-black mb-1">¡NUEVA MECÁNICA ALQUÍMICA!</div>
-      <h3 id="tutorial-title" class="text-xl font-black text-white mb-2">Frasco Pegado</h3>
+  <div id="modal-tutorial" class="fixed inset-0 bg-slate-950/90 backdrop-blur-md z-50 hidden flex items-center justify-center p-3 sm:p-4 modal-overlay">
+    <div class="bg-slate-900 border border-sky-500/40 rounded-3xl max-w-lg w-full p-4 sm:p-6 shadow-2xl relative flex flex-col max-h-[92vh] modal-content">
       
-      <!-- Animación Loopeada de Demostración -->
-      <div id="tutorial-looper-container" class="tutorial-looper-box mb-4">
-        <!-- Renderizado dinámico con SVG interactivo por GameController -->
+      <!-- Cabecera Superior del Modal -->
+      <div class="flex items-center justify-between pb-2.5 mb-2.5 border-b border-slate-800/80">
+        <div class="flex items-center gap-2">
+          <span id="tutorial-badge" class="text-[10px] uppercase font-mono tracking-wider px-2.5 py-0.5 rounded-full bg-sky-500/20 text-sky-300 border border-sky-400/30 font-black">GUÍA DE TUBOS</span>
+          <span id="tutorial-unlock-level" class="text-[11px] text-slate-400 font-medium">Nivel 1+</span>
+        </div>
+        <button id="btn-close-tutorial-x" class="p-1.5 text-slate-400 hover:text-white rounded-xl bg-slate-800/70 hover:bg-slate-800 transition-colors" title="Cerrar Guía">
+          <i data-lucide="x" class="w-4 h-4"></i>
+        </button>
       </div>
 
-      <p id="tutorial-desc" class="text-xs text-slate-300 mb-5 leading-relaxed">
-        Este frasco está empernado a la mesa de trabajo. Solo puede RECIBIR fluidos, nunca vaciarse. ¡Si colocas un color incorrecto, deberás reiniciar el nivel!
-      </p>
+      <!-- Selector de Pestañas / Tipos de Tubos Desbloqueados -->
+      <div id="tutorial-tabs-container" class="flex items-center gap-1.5 overflow-x-auto pb-2 mb-3 max-w-full no-scrollbar">
+        <!-- Generado dinámicamente según mecánicas desbloqueadas -->
+      </div>
 
-      <button id="btn-close-tutorial" class="btn-interactive w-full py-3.5 bg-gradient-to-r from-sky-500 to-indigo-600 hover:from-sky-400 hover:to-indigo-500 text-white font-black rounded-2xl shadow-lg shadow-sky-500/30 text-xs sm:text-sm">
-        ¡Entendido, a Experimentar!
-      </button>
+      <!-- Área de Contenido del Tutorial Seleccionado -->
+      <div class="flex-1 overflow-y-auto text-center flex flex-col items-center">
+        <div id="tutorial-icon-box" class="w-14 h-14 sm:w-16 sm:h-16 rounded-2xl bg-sky-500/20 border border-sky-400/40 flex items-center justify-center mx-auto mb-2 text-sky-400 shadow-lg shadow-sky-500/20">
+          <i data-lucide="droplets" class="w-7 h-7 sm:w-8 sm:h-8"></i>
+        </div>
+
+        <h3 id="tutorial-title" class="text-lg sm:text-xl font-black text-white mb-2">Reglas Básicas de AquaSort</h3>
+        
+        <!-- Animación Loopeada de Demostración -->
+        <div id="tutorial-looper-container" class="tutorial-looper-box mb-3 w-full">
+          <!-- Renderizado dinámico con SVG interactivo por GameController -->
+        </div>
+
+        <p id="tutorial-desc" class="text-xs text-slate-300 mb-2 leading-relaxed px-1">
+          Toca un frasco para levantarlo y luego toca otro para verter su líquido.
+        </p>
+      </div>
+
+      <!-- Controles de Navegación y Cierre -->
+      <div class="flex items-center gap-2 mt-2 pt-3 border-t border-slate-800/80">
+        <button id="btn-tut-prev" class="btn-interactive px-3 py-2 bg-slate-800 hover:bg-slate-700 active:scale-95 text-slate-300 rounded-xl text-xs font-bold flex items-center gap-1 transition-all disabled:opacity-30 disabled:pointer-events-none" title="Tutorial anterior">
+          <i data-lucide="chevron-left" class="w-4 h-4"></i>
+          <span class="hidden sm:inline">Anterior</span>
+        </button>
+        <button id="btn-close-tutorial" class="btn-interactive flex-1 py-2.5 bg-gradient-to-r from-sky-500 to-indigo-600 hover:from-sky-400 hover:to-indigo-500 text-white font-black rounded-xl shadow-lg shadow-sky-500/30 text-xs sm:text-sm">
+          ¡Entendido!
+        </button>
+        <button id="btn-tut-next" class="btn-interactive px-3 py-2 bg-slate-800 hover:bg-slate-700 active:scale-95 text-slate-300 rounded-xl text-xs font-bold flex items-center gap-1 transition-all disabled:opacity-30 disabled:pointer-events-none" title="Siguiente tutorial">
+          <span class="hidden sm:inline">Siguiente</span>
+          <i data-lucide="chevron-right" class="w-4 h-4"></i>
+        </button>
+      </div>
     </div>
   </div>
 
@@ -892,12 +931,12 @@
   <input type="file" id="input-save-file" accept=".json" class="hidden">
 
   <!-- Scripts modulares -->
-  <script src="js/audio.js?v=5"></script>
-  <script src="js/palette.js?v=5"></script>
-  <script src="js/levels.js?v=5"></script>
-  <script src="js/state.js?v=5"></script>
-  <script src="js/leaderboard.js?v=5"></script>
-  <script src="js/roulette.js?v=5"></script>
-  <script src="js/game.js?v=5"></script>
+  <script src="js/audio.js?v=6"></script>
+  <script src="js/palette.js?v=6"></script>
+  <script src="js/levels.js?v=6"></script>
+  <script src="js/state.js?v=6"></script>
+  <script src="js/leaderboard.js?v=6"></script>
+  <script src="js/roulette.js?v=6"></script>
+  <script src="js/game.js?v=6"></script>
 </body>
 </html>

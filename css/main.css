@@ -250,6 +250,26 @@ body {
   box-shadow: inset 0 0 25px rgba(0, 0, 0, 0.6);
 }
 
+/* 0. REGLAS BÁSICAS: Tubo A se inclina y vierte líquido en Tubo B */
+@keyframes basicTilt {
+  0%, 15% { transform: translate(0, 0) rotate(0deg); }
+  30%, 65% { transform: translate(45px, -18px) rotate(48deg); }
+  75%, 100% { transform: translate(0, 0) rotate(0deg); }
+}
+@keyframes basicBlueTransfer {
+  0%, 25% { transform: scaleY(1); opacity: 1; }
+  45%, 75% { transform: scaleY(0); opacity: 0; }
+  90%, 100% { transform: scaleY(1); opacity: 1; }
+}
+@keyframes basicBlueFillB {
+  0%, 35% { transform: scaleY(0); opacity: 0; }
+  50%, 75% { transform: scaleY(1); opacity: 1; }
+  90%, 100% { transform: scaleY(0); opacity: 0; }
+}
+.demo-basic-tubeA { animation: basicTilt 4s infinite ease-in-out; transform-origin: 60px 40px; }
+.demo-basic-pour { animation: basicBlueTransfer 4s infinite ease-in-out; transform-origin: bottom center; }
+.demo-basic-fill { animation: basicBlueFillB 4s infinite ease-in-out; transform-origin: bottom center; }
+
 /* 1. MISTERIO: Vierte bloque azul de Tubo A a B, y el bloque oculto en A revela estrella amarilla */
 @keyframes mysteryTilt {
   0%, 15% { transform: translate(0, 0) rotate(0deg); }

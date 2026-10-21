@@ -45,8 +45,13 @@ class GameController {
     this.initCanvas();
     this.initEditorWorkspace();
 
-    // Sincronizar nivel desbloqueado guardado si existe
-    if (window.stateManager && window.stateManager.state.progress.unlockedLevel) {
+    // Sincronizar nivel desde parámetro URL o progreso guardado
+    const urlParams = new URLSearchParams(window.location.search);
+    const paramLevel = parseInt(urlParams.get('level'), 10);
+    if (!isNaN(paramLevel) && paramLevel >= 1 && paramLevel <= this.maxLevels) {
+      this.currentLevel = paramLevel;
+      if (this.modalHome) this.modalHome.classList.add('hidden');
+    } else if (window.stateManager && window.stateManager.state.progress.unlockedLevel) {
       this.currentLevel = window.stateManager.state.progress.unlockedLevel;
     }
 
@@ -97,6 +102,20 @@ class GameController {
     this.modalRestartConfirm = document.getElementById('modal-restart-confirm');
     this.modalTutorial = document.getElementById('modal-tutorial');
     this.modalEditor = document.getElementById('modal-editor');
+
+    // Catálogo de Mecánicas y Guía de Tutoriales
+    this.mechanicsCatalog = [
+      { id: 'basic', title: 'Básico', fullName: 'Reglas Básicas de AquaSort', level: 1, icon: 'droplets' },
+      { id: 'mystery', title: "Líquidos '?'", fullName: "Líquidos Ocultos '?'", level: 5, icon: 'help-circle' },
+      { id: 'giant', title: 'Gigante', fullName: 'Frasco Gigante (Capacidad 6)', level: 10, icon: 'maximize-2' },
+      { id: 'lock', title: 'Candado', fullName: 'Candado Alquímico con Llave', level: 15, icon: 'lock' },
+      { id: 'narrow', title: 'Estrecho', fullName: 'Tubo Estrecho (1x1)', level: 20, icon: 'minimize-2' },
+      { id: 'glued', title: 'En la Roca', fullName: 'Frasco Inamovible en la Roca', level: 25, icon: 'mountain' },
+      { id: 'chameleon', title: 'Camaleón', fullName: 'Líquido Camaleón Multicolor', level: 30, icon: 'disc' },
+      { id: 'fragile', title: 'Frágil', fullName: 'Cristal Frágil (3 Usos)', level: 35, icon: 'shield-alert' },
+      { id: 'hybrid', title: 'Híbrido', fullName: 'Desafío Alquímico Híbrido', level: 40, icon: 'sparkles' }
+    ];
+    this.currentTutorialId = 'basic';
 
     // Elementos de la Tienda y Pantalla de Inicio
     this.shopItemsContainer = document.getElementById('shop-items-container');
@@ -181,7 +200,7 @@ class GameController {
     if (!customLevelData && this.levelData.primaryMechanicId && this.levelData.primaryMechanicId !== 'basic') {
       if (window.stateManager && !window.stateManager.hasSeenTutorial(this.levelData.primaryMechanicId)) {
         setTimeout(() => {
-          this.showTutorialModal(this.levelData.primaryMechanicId);
+          this.showTutorialModal(this.levelData.primaryMechanicId, true);
           window.stateManager.markTutorialSeen(this.levelData.primaryMechanicId);
         }, 400);
       }
@@ -1541,10 +1560,43 @@ class GameController {
       btnCancelRestart.addEventListener('click', () => this.closeRestartConfirmModal());
     }
 
-    // Modal Tutorial
+    // Botón Ayuda y Guía de Tubos / Tutoriales en Header
+    const btnOpenHelp = document.getElementById('btn-open-help');
+    if (btnOpenHelp) {
+      btnOpenHelp.addEventListener('click', () => this.openTutorialsHelp());
+    }
+
+    // Botón Rápido de Tutorial de Mecánica en Subtítulo de Nivel
+    const btnQuickHelp = document.getElementById('btn-quick-help');
+    if (btnQuickHelp) {
+      btnQuickHelp.addEventListener('click', () => this.openTutorialsHelp(this.levelData?.primaryMechanicId));
+    }
+
+    // Botón Guía de Tubos en Pantalla de Inicio
+    const btnHomeTutorials = document.getElementById('btn-home-tutorials');
+    if (btnHomeTutorials) {
+      btnHomeTutorials.addEventListener('click', () => {
+        this.closeHomeModal();
+        this.openTutorialsHelp();
+      });
+    }
+
+    // Modal Tutorial (Cerrar, Cerrar X, Anterior, Siguiente)
     const btnCloseTut = document.getElementById('btn-close-tutorial');
     if (btnCloseTut) {
       btnCloseTut.addEventListener('click', () => this.closeTutorialModal());
+    }
+    const btnCloseTutX = document.getElementById('btn-close-tutorial-x');
+    if (btnCloseTutX) {
+      btnCloseTutX.addEventListener('click', () => this.closeTutorialModal());
+    }
+    const btnTutPrev = document.getElementById('btn-tut-prev');
+    if (btnTutPrev) {
+      btnTutPrev.addEventListener('click', () => this.navigateTutorial(-1));
+    }
+    const btnTutNext = document.getElementById('btn-tut-next');
+    if (btnTutNext) {
+      btnTutNext.addEventListener('click', () => this.navigateTutorial(1));
     }
 
     // Modal Editor de Niveles botones y pestañas
@@ -1918,9 +1970,128 @@ class GameController {
     if (window.audio) window.audio.playSelect();
   }
 
-  // --- MODAL DE TUTORIAL DE NUEVA MECÁNICA CON ANIMACIÓN LOOPEADA ---
-  showTutorialModal(mechanicId) {
+  // --- GUÍA Y TUTORIALES DE MECÁNICAS (ANIMACIONES LOOPEADAS) ---
+  isMechanicUnlocked(mechanicId) {
+    if (mechanicId === 'basic') return true;
+    const cat = this.mechanicsCatalog.find(m => m.id === mechanicId);
+    if (!cat) return false;
+    const currentLvl = this.currentLevel || 1;
+    const highestLvl = Math.max(currentLvl, window.stateManager?.state?.progress?.unlockedLevel || 1);
+    const seen = window.stateManager?.state?.progress?.seenTutorials || [];
+    return highestLvl >= cat.level || currentLvl >= cat.level || seen.includes(mechanicId);
+  }
+
+  openTutorialsHelp(preferredId = null) {
+    let targetId = preferredId;
+    if (!targetId || !this.isMechanicUnlocked(targetId)) {
+      if (this.levelData?.primaryMechanicId && this.isMechanicUnlocked(this.levelData.primaryMechanicId)) {
+        targetId = this.levelData.primaryMechanicId;
+      } else {
+        const unlocked = this.mechanicsCatalog.filter(m => this.isMechanicUnlocked(m.id));
+        targetId = unlocked.length > 0 ? unlocked[unlocked.length - 1].id : 'basic';
+      }
+    }
+    this.showTutorialModal(targetId, false);
+  }
+
+  showTutorialModal(mechanicId = 'basic', isNewAnnouncement = false) {
+    this.currentTutorialId = mechanicId;
+    this.renderTutorialTabs();
+    this.renderTutorialContent(this.currentTutorialId, isNewAnnouncement);
+
+    if (this.modalTutorial) this.modalTutorial.classList.remove('hidden');
+    if (window.audio) {
+      if (isNewAnnouncement) window.audio.playReveal();
+      else window.audio.playPop();
+    }
+  }
+
+  switchTutorial(mechanicId) {
+    if (!this.isMechanicUnlocked(mechanicId)) return;
+    this.currentTutorialId = mechanicId;
+    this.renderTutorialTabs();
+    this.renderTutorialContent(this.currentTutorialId, false);
+    if (window.audio) window.audio.playPop();
+  }
+
+  navigateTutorial(dir) {
+    const unlocked = this.mechanicsCatalog.filter(m => this.isMechanicUnlocked(m.id));
+    if (unlocked.length === 0) return;
+    const currentIndex = unlocked.findIndex(m => m.id === this.currentTutorialId);
+    const newIndex = currentIndex + dir;
+    if (newIndex >= 0 && newIndex < unlocked.length) {
+      this.switchTutorial(unlocked[newIndex].id);
+    }
+  }
+
+  renderTutorialTabs() {
+    const tabsCont = document.getElementById('tutorial-tabs-container');
+    if (!tabsCont) return;
+
+    tabsCont.innerHTML = '';
+    this.mechanicsCatalog.forEach(m => {
+      const isUnlocked = this.isMechanicUnlocked(m.id);
+      const isActive = m.id === this.currentTutorialId;
+
+      if (isUnlocked) {
+        const btn = document.createElement('button');
+        btn.type = 'button';
+        btn.className = `flex-shrink-0 flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-bold transition-all ${
+          isActive
+            ? 'bg-gradient-to-r from-sky-500/30 to-indigo-600/30 text-sky-200 border border-sky-400 shadow-md shadow-sky-500/20'
+            : 'bg-slate-800/80 hover:bg-slate-700/80 text-slate-400 hover:text-slate-200 border border-slate-700/60'
+        }`;
+        btn.innerHTML = `
+          <i data-lucide="${m.icon}" class="w-3.5 h-3.5 ${isActive ? 'text-sky-300' : 'text-slate-400'}"></i>
+          <span>${m.title}</span>
+        `;
+        btn.addEventListener('click', () => this.switchTutorial(m.id));
+        tabsCont.appendChild(btn);
+      } else {
+        const lockedDiv = document.createElement('div');
+        lockedDiv.className = 'flex-shrink-0 flex items-center gap-1 px-2.5 py-1.5 rounded-xl text-[11px] font-medium bg-slate-800/40 text-slate-500 border border-slate-800 select-none cursor-not-allowed';
+        lockedDiv.title = `Se desbloquea al alcanzar el Nivel ${m.level}`;
+        lockedDiv.innerHTML = `
+          <i data-lucide="lock" class="w-3 h-3 text-slate-500"></i>
+          <span>${m.title} (Niv. ${m.level})</span>
+        `;
+        tabsCont.appendChild(lockedDiv);
+      }
+    });
+
+    // Auto-scroll hacia la pestaña activa
+    const activeBtn = tabsCont.querySelector('.border-sky-400');
+    if (activeBtn) {
+      activeBtn.scrollIntoView({ behavior: 'smooth', block: 'nearest', inline: 'center' });
+    }
+  }
+
+  renderTutorialContent(mechanicId, isNewAnnouncement = false) {
     const tutorials = {
+      basic: {
+        title: 'Reglas Básicas de AquaSort',
+        desc: 'Toca un frasco para levantarlo y luego toca otro para verter su líquido. Solo puedes verter si el frasco de destino tiene espacio libre y el líquido superior coincide en color (¡o si el frasco está totalmente vacío!). Agrupa cada color en su propio frasco para ganar el nivel.',
+        icon: 'droplets',
+        svg: `
+          <svg viewBox="0 0 220 160" class="w-full h-full">
+            <!-- Tubo A (Izquierda, se inclina y vierte azul) -->
+            <g class="demo-basic-tubeA">
+              <rect x="42" y="25" width="36" height="110" rx="14" fill="rgba(255,255,255,0.06)" stroke="#38bdf8" stroke-width="2"/>
+              <rect x="45" y="102" width="30" height="28" rx="8" fill="#ef4444"/>
+              <rect x="45" y="72" width="30" height="28" rx="4" fill="#3b82f6" class="demo-basic-pour"/>
+            </g>
+            <!-- Tubo B (Derecha, recibe el líquido azul) -->
+            <g>
+              <rect x="142" y="25" width="36" height="110" rx="14" fill="rgba(255,255,255,0.06)" stroke="#38bdf8" stroke-width="2"/>
+              <rect x="145" y="102" width="30" height="28" rx="8" fill="#3b82f6"/>
+              <rect x="145" y="72" width="30" height="28" rx="4" fill="#3b82f6" class="demo-basic-fill"/>
+            </g>
+            <path d="M 80 50 Q 112 25 140 50" fill="none" stroke="#38bdf8" stroke-width="2" stroke-dasharray="4,3"/>
+            <text x="60" y="152" fill="#94a3b8" font-size="9" font-weight="bold" text-anchor="middle">1. Toca para verter</text>
+            <text x="160" y="152" fill="#38bdf8" font-size="9" font-weight="bold" text-anchor="middle">2. Mismo color o vacío</text>
+          </svg>
+        `
+      },
       glued: {
         title: 'Frasco Inamovible en la Roca',
         desc: 'Este frasco está enterrado en la piedra como la espada de Excalibur. Solo puede RECIBIR fluidos (normales o camaleón), ¡nunca puede vaciarse! Si te equivocas vertiendo un color indebido, tendrás que reiniciar el nivel.',
@@ -2123,22 +2294,44 @@ class GameController {
       }
     };
 
-    const data = tutorials[mechanicId];
-    if (!data) return;
+    const data = tutorials[mechanicId] || tutorials.basic;
+    const cat = this.mechanicsCatalog.find(m => m.id === mechanicId) || this.mechanicsCatalog[0];
 
+    const badgeEl = document.getElementById('tutorial-badge');
+    const unlockLvlEl = document.getElementById('tutorial-unlock-level');
     const titleEl = document.getElementById('tutorial-title');
     const descEl = document.getElementById('tutorial-desc');
     const looperCont = document.getElementById('tutorial-looper-container');
     const iconBox = document.getElementById('tutorial-icon-box');
 
+    if (badgeEl) {
+      badgeEl.textContent = isNewAnnouncement ? '¡NUEVA MECÁNICA ALQUÍMICA!' : 'GUÍA DE TUBOS Y MECÁNICAS';
+      if (isNewAnnouncement) {
+        badgeEl.className = 'text-[10px] uppercase font-mono tracking-wider px-2.5 py-0.5 rounded-full bg-amber-500/20 text-amber-300 border border-amber-400/40 font-black animate-pulse';
+      } else {
+        badgeEl.className = 'text-[10px] uppercase font-mono tracking-wider px-2.5 py-0.5 rounded-full bg-sky-500/20 text-sky-300 border border-sky-400/30 font-black';
+      }
+    }
+
+    if (unlockLvlEl && cat) {
+      unlockLvlEl.textContent = cat.level === 1 ? 'Nivel 1+ (Básico)' : `Desbloqueado (Nivel ${cat.level}+)`;
+    }
+
     if (titleEl) titleEl.textContent = data.title;
     if (descEl) descEl.textContent = data.desc;
     if (looperCont) looperCont.innerHTML = data.svg;
-    if (iconBox) iconBox.innerHTML = `<i data-lucide="${data.icon}" class="w-8 h-8"></i>`;
+    if (iconBox) iconBox.innerHTML = `<i data-lucide="${data.icon}" class="w-7 h-7 sm:w-8 sm:h-8"></i>`;
+
+    // Actualizar botones de navegación Anterior / Siguiente
+    const unlocked = this.mechanicsCatalog.filter(m => this.isMechanicUnlocked(m.id));
+    const currentIndex = unlocked.findIndex(m => m.id === mechanicId);
+    const btnPrev = document.getElementById('btn-tut-prev');
+    const btnNext = document.getElementById('btn-tut-next');
+
+    if (btnPrev) btnPrev.disabled = currentIndex <= 0;
+    if (btnNext) btnNext.disabled = currentIndex < 0 || currentIndex >= unlocked.length - 1;
 
     if (window.lucide) lucide.createIcons();
-    if (this.modalTutorial) this.modalTutorial.classList.remove('hidden');
-    if (window.audio) window.audio.playReveal();
   }
 
   closeTutorialModal() {
