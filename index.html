@@ -19,6 +19,16 @@
   <!-- Canvas Confetti -->
   <script src="https://cdn.jsdelivr.net/npm/canvas-confetti@1.9.2/dist/confetti.browser.min.js"></script>
 
+  <!-- Progressive Web App (PWA) & Mobile Meta -->
+  <meta name="theme-color" content="#0b1329">
+  <meta name="mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <meta name="apple-mobile-web-app-title" content="AquaSort Deluxe">
+  <link rel="manifest" href="manifest.json">
+  <link rel="apple-touch-icon" href="icons/icon-192.png">
+  <link rel="icon" type="image/svg+xml" href="icons/icon.svg">
+
   <!-- Modular Stylesheets -->
   <link rel="stylesheet" href="css/main.css?v=12">
   <link rel="stylesheet" href="css/tubes.css?v=12">
@@ -773,6 +783,12 @@
           <span>Epílogos y Finales Alquímicos 🎭</span>
         </button>
 
+        <!-- Botón Instalar App Móvil (PWA) -->
+        <button id="btn-install-app" class="btn-interactive w-full py-2.5 bg-gradient-to-r from-cyan-500/20 via-sky-500/25 to-blue-500/20 hover:from-cyan-500/35 hover:to-blue-500/35 border border-sky-400/40 text-sky-200 font-bold text-xs rounded-2xl flex items-center justify-center gap-2">
+          <i data-lucide="smartphone" class="w-4 h-4 text-sky-300"></i>
+          <span id="btn-install-app-text">📲 Instalar como App en tu Celular</span>
+        </button>
+
         <!-- Guardado / Carga en Archivo .JSON -->
         <div class="border-t border-slate-800 pt-3 mt-1 flex items-center justify-between gap-2">
           <button id="btn-export-file" class="btn-interactive flex-1 py-2.5 bg-emerald-500/15 hover:bg-emerald-500/25 border border-emerald-500/40 text-emerald-300 font-bold text-xs rounded-2xl flex items-center justify-center gap-1.5" title="Descargar archivo de partida para guardar progreso en tu PC">
@@ -1401,5 +1417,18 @@
   <script src="js/leaderboard.js?v=14"></script>
   <script src="js/roulette.js?v=14"></script>
   <script src="js/game.js?v=14"></script>
+
+  <!-- Registro de Service Worker PWA -->
+  <script>
+    if ('serviceWorker' in navigator) {
+      window.addEventListener('load', () => {
+        navigator.serviceWorker.register('./sw.js').then((reg) => {
+          console.log('AquaSort PWA ServiceWorker activo:', reg.scope);
+        }).catch((err) => {
+          console.warn('Error registrando PWA ServiceWorker:', err);
+        });
+      });
+    }
+  </script>
 </body>
 </html>

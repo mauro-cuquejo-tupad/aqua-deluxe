@@ -373,39 +373,58 @@ class GameController {
 
   updateCoinsUI() {
     const current = this.getCoins();
-    if (this.lblCoins) this.lblCoins.textContent = current;
+    const formatted = current >= 1000000000
+      ? (current / 1000000000).toFixed(1) + 'B'
+      : current >= 1000000
+        ? (current / 1000000).toFixed(1) + 'M'
+        : current >= 10000
+          ? (current / 1000).toFixed(1) + 'k'
+          : current.toLocaleString();
+
+    if (this.lblCoins) {
+      this.lblCoins.textContent = formatted;
+      this.lblCoins.title = `${current.toLocaleString()} monedas`;
+    }
     const shopBal = document.getElementById('shop-coins-balance');
-    if (shopBal) shopBal.textContent = current;
+    if (shopBal) shopBal.textContent = formatted;
     const homeCoins = document.getElementById('home-stat-coins');
-    if (homeCoins) homeCoins.textContent = `${current} 🪙`;
+    if (homeCoins) homeCoins.textContent = `${formatted} 🪙`;
   }
 
-  // --- RENDERIZADO VISUAL DE FRASCOS Y LÍQUIDOS ---
+  // --- RENDERIZADO VISUAL DE FRASCOS Y LÍQUIDOS (OPTIMIZADO PARA MÓVILES Y PWA) ---
   renderTubes() {
     if (!this.tubesGrid) return;
     this.tubesGrid.innerHTML = '';
 
     const totalTubes = this.tubes.length;
-    let widthClass = 'w-16 sm:w-20';
+    const isMobile = (typeof window !== 'undefined' && window.innerWidth < 640);
+    const isNarrow = (typeof window !== 'undefined' && window.innerWidth < 400);
+
+    let widthClass = 'tube-size-normal';
     let heightMultiplier = 1;
-    let gapClass = 'gap-5 sm:gap-8';
+    let gapClass = 'gap-3 sm:gap-6';
     let maxWidthClass = 'max-w-4xl';
 
-    if (totalTubes > 22) {
-      widthClass = 'w-9 sm:w-11';
-      gapClass = 'gap-1.5 sm:gap-2.5';
-      maxWidthClass = 'max-w-[96vw]';
-      heightMultiplier = 0.70;
-    } else if (totalTubes > 14) {
-      widthClass = 'w-11 sm:w-13';
-      gapClass = 'gap-2 sm:gap-3.5';
-      maxWidthClass = 'max-w-7xl';
-      heightMultiplier = 0.80;
-    } else if (totalTubes > 8) {
-      widthClass = 'w-13 sm:w-16';
-      gapClass = 'gap-3 sm:gap-5';
-      maxWidthClass = 'max-w-6xl';
-      heightMultiplier = 0.90;
+    if (totalTubes > 14) {
+      widthClass = 'tube-size-tiny';
+      gapClass = isNarrow ? 'gap-1' : 'gap-1.5 sm:gap-2.5';
+      maxWidthClass = 'max-w-[98vw]';
+      heightMultiplier = isMobile ? 0.72 : 0.80;
+    } else if (totalTubes > 9) {
+      widthClass = 'tube-size-compact';
+      gapClass = isNarrow ? 'gap-1.5' : 'gap-2 sm:gap-3.5';
+      maxWidthClass = 'max-w-5xl';
+      heightMultiplier = isMobile ? 0.78 : 0.88;
+    } else if (totalTubes > 6) {
+      widthClass = 'tube-size-medium';
+      gapClass = isNarrow ? 'gap-2' : 'gap-2.5 sm:gap-4';
+      maxWidthClass = 'max-w-4xl';
+      heightMultiplier = isMobile ? 0.84 : 0.94;
+    } else {
+      widthClass = 'tube-size-normal';
+      gapClass = isNarrow ? 'gap-2.5' : 'gap-3 sm:gap-6';
+      maxWidthClass = 'max-w-3xl';
+      heightMultiplier = isMobile ? 0.88 : 1;
     }
 
     this.tubesGrid.className = `flex flex-wrap items-center justify-center ${gapClass} z-20 ${maxWidthClass} transition-all duration-300`;
@@ -414,10 +433,10 @@ class GameController {
       const tubeEl = document.createElement('div');
       tubeEl.className = `test-tube ${widthClass} relative`;
 
-      let baseHeight = 190;
-      if (tube.capacity === 8) baseHeight = 310;
-      else if (tube.capacity === 6) baseHeight = 250;
-      else if (tube.capacity === 1) baseHeight = 85;
+      let baseHeight = isMobile ? 155 : 190;
+      if (tube.capacity === 8) baseHeight = isMobile ? 245 : 310;
+      else if (tube.capacity === 6) baseHeight = isMobile ? 200 : 250;
+      else if (tube.capacity === 1) baseHeight = isMobile ? 70 : 85;
       tubeEl.style.height = `${Math.round(baseHeight * heightMultiplier)}px`;
       tubeEl.dataset.index = idx;
 
@@ -2548,6 +2567,10 @@ class GameController {
 
   closeHomeModal() {
     if (this.modalHome) this.modalHome.classList.add('hidden');
+    if (window.audio) {
+      window.audio.init();
+      window.audio.playMusic('level');
+    }
   }
 
   // --- GUARDADO Y CARGA EN ARCHIVO (.JSON) ---
@@ -2814,6 +2837,45 @@ class GameController {
         }
       });
     }
+
+    // Soporte e Instalación de App Móvil (PWA)
+    let deferredInstallPrompt = null;
+    const btnInstallApp = document.getElementById('btn-install-app');
+    const btnInstallAppText = document.getElementById('btn-install-app-text');
+
+    window.addEventListener('beforeinstallprompt', (e) => {
+      e.preventDefault();
+      deferredInstallPrompt = e;
+      if (btnInstallApp) {
+        btnInstallApp.classList.remove('hidden');
+        if (btnInstallAppText) btnInstallAppText.textContent = '📲 Instalar AquaSort en tu Celular';
+      }
+    });
+
+    if (btnInstallApp) {
+      btnInstallApp.addEventListener('click', async () => {
+        if (deferredInstallPrompt) {
+          deferredInstallPrompt.prompt();
+          const { outcome } = await deferredInstallPrompt.userChoice;
+          if (outcome === 'accepted') {
+            btnInstallApp.classList.add('hidden');
+          }
+          deferredInstallPrompt = null;
+        } else {
+          const isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent) && !window.MSStream;
+          if (isIOS) {
+            alert('Para instalar en iPhone/iPad:\n1. Toca el botón Compartir (el ícono ⎋ en Safari).\n2. Elige "Agregar a pantalla de inicio" ➕.\n¡Y listo! Se abrirá como una App nativa a pantalla completa.');
+          } else {
+            alert('Para instalar como App en tu teléfono:\n1. Abre el menú del navegador (los 3 puntos ⋮).\n2. Elige "Instalar aplicación" o "Agregar a la pantalla principal".\n¡Se guardará con su ícono y pantalla completa!');
+          }
+        }
+      });
+    }
+
+    window.addEventListener('appinstalled', () => {
+      if (btnInstallApp) btnInstallApp.classList.add('hidden');
+      console.log('AquaSort Deluxe PWA instalada exitosamente');
+    });
 
     // Modal Tienda botones internos
     const btnCloseShop = document.getElementById('btn-close-shop');
