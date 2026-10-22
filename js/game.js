@@ -276,10 +276,37 @@ class GameController {
     window.addEventListener('touchstart', unlock);
   }
 
+  isLevelUnlocked(lvl) {
+    if (lvl <= 1) return true;
+    const prevRec = window.leaderboardManager ? window.leaderboardManager.getRecord(lvl - 1) : null;
+    if (prevRec && prevRec.stars >= 1) return true;
+    const comp = window.stateManager ? window.stateManager.state.progress.completedLevels[String(lvl - 1)] : null;
+    if (comp && comp.stars >= 1) return true;
+    const unlockedSaved = window.stateManager?.state?.progress?.unlockedLevel || 1;
+    if (lvl <= unlockedSaved) return true;
+    return false;
+  }
+
+  hasAllLevelsAtLeastOneStar() {
+    for (let i = 1; i <= 100; i++) {
+      const rec = window.leaderboardManager ? window.leaderboardManager.getRecord(i) : null;
+      const comp = window.stateManager ? window.stateManager.state.progress.completedLevels[String(i)] : null;
+      const stars = (rec && rec.stars) ? rec.stars : (comp && comp.stars ? comp.stars : 0);
+      if (stars < 1) return false;
+    }
+    return true;
+  }
+
   // --- CARGA Y GENERACIÓN DE NIVELES ---
   loadLevel(lvl, seedVariation = 0, customLevelData = null) {
-    if (lvl !== 'daily') {
-      this.currentLevel = Math.max(1, Math.min(lvl, this.maxLevels));
+    if (lvl !== 'daily' && !customLevelData && !this.isHonorMode) {
+      const targetLvl = Math.max(1, Math.min(lvl, this.maxLevels));
+      if (!this.isLevelUnlocked(targetLvl)) {
+        if (window.audio) window.audio.playFailSound();
+        alert(`¡El Nivel ${targetLvl} está bloqueado! Debes superar el Nivel ${targetLvl - 1} primero.`);
+        return;
+      }
+      this.currentLevel = targetLvl;
       this.isDailyChallenge = false;
     }
     this.moves = 0;
@@ -2015,17 +2042,22 @@ class GameController {
         });
       }
     } else if (this.currentLevel === 100) {
+      const hasAllOneStar = this.hasAllLevelsAtLeastOneStar();
       if (window.stateManager) {
         window.stateManager.state.progress.hasCompletedAll100 = true;
         window.stateManager.saveState();
       }
 
       if (vicTitle) {
-        vicTitle.innerHTML = '👑 ¡NIVEL 100 SUPERADO!';
+        vicTitle.innerHTML = '👑 ¡GRAN OBRA MAGNA SUPERADA!';
         vicTitle.className = 'text-2xl font-black text-transparent bg-clip-text bg-gradient-to-r from-amber-300 via-yellow-300 to-amber-400 mb-1 animate-pulse';
       }
       if (vicSubtitle) {
-        vicSubtitle.innerHTML = '✨ ¡FELICITACIONES! Has consumado la Gran Obra Magna de los 100 niveles.';
+        if (hasAllOneStar) {
+          vicSubtitle.innerHTML = '✨ ¡FELICITACIONES! Has consumado la Gran Obra Magna Alquímica con estrellas.';
+        } else {
+          vicSubtitle.innerHTML = '✨ ¡Superaste el último nivel! Pero para desbloquear el Epílogo Alquímico, debes obtener al menos 1★ en cada nivel de campaña.';
+        }
         vicSubtitle.className = 'text-xs text-amber-200 font-bold mb-3';
       }
       if (completionBadge) {
@@ -2033,7 +2065,11 @@ class GameController {
       }
       if (btnVicNext) {
         btnVicNext.className = 'btn-interactive w-full py-3.5 bg-gradient-to-r from-amber-500 via-yellow-400 to-amber-500 hover:from-amber-400 hover:to-yellow-300 text-slate-950 font-black rounded-2xl transition-all flex items-center justify-center gap-2 shadow-lg shadow-amber-500/30';
-        btnVicNext.innerHTML = '<span>👑 Ver Consagración de los 100 Niveles</span><i data-lucide="award" class="w-4 h-4"></i>';
+        if (hasAllOneStar) {
+          btnVicNext.innerHTML = '<span>👑 Ver Consagración y Epílogo Final</span><i data-lucide="award" class="w-4 h-4"></i>';
+        } else {
+          btnVicNext.innerHTML = '<span>🗺️ Ver Mapa de Niveles</span><i data-lucide="map" class="w-4 h-4"></i>';
+        }
       }
 
       // Torrente continuado de confeti dorado
@@ -2325,7 +2361,14 @@ class GameController {
 
   multiplyCoins(mult) {
     const current = this.getCoins();
-    const updated = Math.round(current * mult);
+    let updated;
+    if (mult < 0) {
+      // Pérdida porcentual por sector negativo (ej. -0.5 pierde el 50%)
+      const lossRatio = Math.min(1, Math.abs(mult));
+      updated = Math.max(0, Math.round(current * (1 - lossRatio)));
+    } else {
+      updated = Math.round(current * mult);
+    }
     const diff = updated - current;
     if (diff > 0) {
       this.addCoins(diff);
@@ -3247,9 +3290,31 @@ class GameController {
         if (this.isDailyChallenge) {
           this.showLeaderboardModal();
         } else if (this.currentLevel >= 100) {
-          this.showGameCompletionModal();
+          if (!this.hasAllLevelsAtLeastOneStar()) {
+            this.openMapModal();
+          } else {
+            this.showGameCompletionModal();
+          }
         } else {
           this.loadLevel(this.currentLevel + 1);
+        }
+      });
+    }
+
+    // Modal Ajustes: Reinicio de Partida
+    const btnResetProgress = document.getElementById('btn-reset-all-progress');
+    if (btnResetProgress) {
+      this.bindTapOrClick(btnResetProgress, () => {
+        const confirmed = confirm('⚠️ ¿Estás completamente seguro de reiniciar TODO el progreso?\n\nSe restablecerá la campaña al Nivel 1, y se borrarán todas tus estrellas, monedas y récords.');
+        if (confirmed) {
+          if (window.stateManager) {
+            window.stateManager.resetAllProgress();
+          }
+          if (window.leaderboardManager) {
+            try { localStorage.removeItem('aquasort_leaderboard'); } catch (e) {}
+          }
+          alert('Progreso reiniciado con éxito. ¡Comienza una nueva Gran Obra!');
+          window.location.reload();
         }
       });
     }
@@ -4568,7 +4633,7 @@ class GameController {
           </div>
           <div>
             <h4 class="text-sm font-black text-amber-300 uppercase tracking-wide">¡Supremo Gran Maestro Alquimista!</h4>
-            <p class="text-xs text-slate-200">Has conquistado los 100 niveles de la campaña principal.</p>
+            <p class="text-xs text-slate-200">Has conquistado todos los niveles de la campaña principal.</p>
           </div>
         </div>
         <button id="btn-reopen-completion-banner" class="px-4 py-2 rounded-xl bg-gradient-to-r from-amber-400 via-yellow-300 to-amber-500 hover:from-amber-300 hover:to-yellow-200 text-slate-950 font-black text-xs shadow-md transition-all whitespace-nowrap">
@@ -4592,6 +4657,13 @@ class GameController {
     const sections = window.HonorManager ? window.HonorManager.getSections() : [];
     sections.forEach(sec => {
       const [startLvl, endLvl] = sec.levelsRange;
+
+      // Sección 1 siempre visible. Sección K solo visible si el último nivel de la sección anterior está superado:
+      const isSectionVisible = (sec.id === 1) || this.isLevelUnlocked(startLvl);
+      if (!isSectionVisible) {
+        return; // Ocultar secciones futuras: permanecen secretas e invisibles hasta que se completen las anteriores
+      }
+
       const unlockStatus = window.HonorManager.checkSectionUnlockStatus(sec.id);
       const honorState = window.stateManager ? window.stateManager.getHonorChallengeState(sec.id) : { completed: false, lives: 3, canPlayToday: true };
 
@@ -4670,38 +4742,52 @@ class GameController {
       secGrid.className = 'grid grid-cols-5 sm:grid-cols-10 gap-2 mb-2';
 
       for (let i = startLvl; i <= endLvl; i++) {
+        const isUnlocked = this.isLevelUnlocked(i);
         const rec = window.leaderboardManager ? window.leaderboardManager.getRecord(i) : null;
         const chalRec = window.stateManager ? window.stateManager.getLevelChallenges(i) : null;
         const isCurrent = (i === this.currentLevel && !this.isHonorMode);
         const isDone = !!rec;
 
         const btn = document.createElement('button');
-        btn.className = `p-2 rounded-xl text-xs font-black transition-all flex flex-col items-center justify-center gap-0.5 relative ${
-          isCurrent
-            ? 'bg-gradient-to-r from-sky-500 to-indigo-600 text-white shadow-lg shadow-sky-500/40 ring-2 ring-sky-300 scale-105 z-10'
-            : isDone
-            ? 'bg-slate-800 text-emerald-400 border border-emerald-500/40 hover:bg-slate-700'
-            : 'bg-slate-800/60 text-slate-400 hover:bg-slate-700 border border-slate-700/60'
-        }`;
+        if (!isUnlocked) {
+          btn.className = 'p-2 rounded-xl text-xs font-bold bg-slate-900/60 text-slate-600 border border-slate-800/80 cursor-not-allowed opacity-50 flex flex-col items-center justify-center gap-0.5';
+          btn.innerHTML = `
+            <span class="text-xs font-bold text-slate-500">${i}</span>
+            <span class="text-[9px] text-slate-600">🔒</span>
+          `;
+          this.bindTapOrClick(btn, () => {
+            if (window.audio) window.audio.playFailSound();
+            alert(`El Nivel ${i} está bloqueado. Supera el Nivel ${i - 1} primero.`);
+          });
+        } else {
+          btn.className = `p-2 rounded-xl text-xs font-black transition-all flex flex-col items-center justify-center gap-0.5 relative ${
+            isCurrent
+              ? 'bg-gradient-to-r from-sky-500 to-indigo-600 text-white shadow-lg shadow-sky-500/40 ring-2 ring-sky-300 scale-105 z-10'
+              : isDone
+              ? 'bg-slate-800 text-emerald-400 border border-emerald-500/40 hover:bg-slate-700'
+              : 'bg-slate-800/60 text-slate-400 hover:bg-slate-700 border border-slate-700/60'
+          }`;
 
-        let starIcon = isDone ? '★'.repeat(rec.stars) : '•';
-        const hasAllChal = chalRec && chalRec.completedCount >= chalRec.totalCount;
+          let starIcon = isDone ? '★'.repeat(rec.stars) : '•';
+          const hasAllChal = chalRec && chalRec.completedCount >= chalRec.totalCount;
 
-        btn.innerHTML = `
-          <span class="text-xs font-black">${i}</span>
-          <span class="text-[9px] text-amber-400 leading-none">${starIcon}</span>
-          ${hasAllChal ? '<span class="absolute top-1 right-1 w-1.5 h-1.5 rounded-full bg-purple-400 shadow-sm" title="Desafíos completados"></span>' : ''}
-        `;
+          btn.innerHTML = `
+            <span class="text-xs font-black">${i}</span>
+            <span class="text-[9px] text-amber-400 leading-none">${starIcon}</span>
+            ${hasAllChal ? '<span class="absolute top-1 right-1 w-1.5 h-1.5 rounded-full bg-purple-400 shadow-sm" title="Desafíos completados"></span>' : ''}
+          `;
 
-        this.bindTapOrClick(btn, () => {
-          if (this.modalMap) this.hideModal(this.modalMap);
-          if (window.audio) window.audio.playMusic('level');
-          this.isHonorMode = false;
-          this.loadLevel(i);
-        });
+          this.bindTapOrClick(btn, () => {
+            if (this.modalMap) this.hideModal(this.modalMap);
+            if (window.audio) window.audio.playMusic('level');
+            this.isHonorMode = false;
+            this.loadLevel(i);
+          });
+        }
 
         secGrid.appendChild(btn);
       }
+      card.appendChild(secGrid);
       card.appendChild(secGrid);
 
       // Tarjeta de Desafío de Honor de la sección
@@ -4806,14 +4892,24 @@ class GameController {
       window.stateManager.saveState();
     }
 
+    const hasAllStars = this.hasAllLevelsAtLeastOneStar();
+    const endingTheater = document.getElementById('completion-ending-theater');
+    const lockedNotice = document.getElementById('completion-epilogue-locked-notice');
+
     // Calcular estadísticas totales de la campaña
     const stats = (window.leaderboardManager && typeof window.leaderboardManager.getStats === 'function')
       ? window.leaderboardManager.getStats()
       : ((window.leaderboardManager && typeof window.leaderboardManager.getGlobalStats === 'function')
           ? window.leaderboardManager.getGlobalStats()
           : { totalStars: 0, totalScore: 0 });
+    
+    const totalStars = stats.totalStars || 0;
+    const totalPossibleStars = 300;
+    const starRatio = totalStars / totalPossibleStars;
+    const starPct = (starRatio * 100).toFixed(1);
+
     const starsEl = document.getElementById('completion-total-stars');
-    if (starsEl) starsEl.textContent = `${stats.totalStars || 0} / 300 ⭐`;
+    if (starsEl) starsEl.textContent = `${totalStars} / ${totalPossibleStars} ⭐ (${starPct}%)`;
 
     // Contar medallas de honor ganadas
     let honorMedalsCount = 0;
@@ -4826,17 +4922,27 @@ class GameController {
     const honorEl = document.getElementById('completion-honor-medals');
     if (honorEl) honorEl.textContent = `${honorMedalsCount} / 10 🏅`;
 
-    // Render de la cinemática de final según el puntaje final
-    const finalScore = stats.totalScore || 0;
-    let autoEnding = 'bad';
-    if (finalScore >= 220000 || stats.totalStars >= 270) {
-      autoEnding = 'good';
-    } else if (finalScore >= 140000 || stats.totalStars >= 180) {
-      autoEnding = 'regular';
+    if (!hasAllStars) {
+      if (endingTheater) endingTheater.classList.add('hidden');
+      if (lockedNotice) lockedNotice.classList.remove('hidden');
     } else {
-      autoEnding = 'bad';
+      if (lockedNotice) lockedNotice.classList.add('hidden');
+      if (endingTheater) endingTheater.classList.remove('hidden');
+
+      // Regla de Epílogo:
+      // < 50% estrellas: Final Malo
+      // 50% a 99% estrellas: Final Normal / Regular
+      // 100% estrellas (300/300): Final Bueno
+      let autoEnding = 'bad';
+      if (totalStars >= 300) {
+        autoEnding = 'good';
+      } else if (starRatio >= 0.50) {
+        autoEnding = 'regular';
+      } else {
+        autoEnding = 'bad';
+      }
+      this.renderEndingCinematic(autoEnding, stats.totalScore || 0);
     }
-    this.renderEndingCinematic(autoEnding, finalScore);
 
     // Gran torrente de fuegos artificiales de confeti
     if (typeof confetti === 'function') {

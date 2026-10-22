@@ -271,6 +271,8 @@ class MinigameEngine {
       this.windSpeed = 0.0;
       this.windAngle = 0;
       this.updateBreezeVisual();
+    } else if (cardId === 'trajectorySight') {
+      this.resetDianaTarget();
     }
 
     this.updateCardsUI();
@@ -321,6 +323,9 @@ class MinigameEngine {
       } else if (this.activeCard === 'calmAtmosphere') {
         pill.textContent = '✨ Calma Viento (0.0 m/s)';
         pill.className = 'text-[10px] text-emerald-300 font-bold px-2 py-0.5 rounded-full bg-emerald-500/20 border border-emerald-400';
+      } else if (this.activeCard === 'trajectorySight') {
+        pill.textContent = '👁️ Trayectoria Activa (Sin viento)';
+        pill.className = 'text-[10px] text-purple-300 font-bold px-2 py-0.5 rounded-full bg-purple-500/20 border border-purple-400';
       } else {
         pill.textContent = '🃏 Toca para activar';
         pill.className = 'text-[10px] text-amber-300 font-semibold px-2 py-0.5 rounded-full bg-amber-500/10 border border-amber-500/30';
@@ -335,16 +340,16 @@ class MinigameEngine {
       pool = [
         { id: 'mult2_4', label: 'x2.4', value: 2.4, hex: '#38bdf8', isWin: true },
         { id: 'mult4_0', label: 'x4.0', value: 4.0, hex: '#f59e0b', isWin: true },
-        { id: 'mult0_0a', label: 'x0 ✕', value: 0.0, hex: '#475569', isWin: false },
+        { id: 'mult_neg1_0', label: '-1.0 💀', value: -1.0, hex: '#be123c', isWin: false, isNegative: true },
         { id: 'mult3_0', label: 'x3.0', value: 3.0, hex: '#10b981', isWin: true },
         { id: 'mult6_0', label: 'x6.0 ★', value: 6.0, hex: '#c084fc', isWin: true },
-        { id: 'mult0_0b', label: 'x0 ✕', value: 0.0, hex: '#475569', isWin: false }
+        { id: 'mult0_0', label: 'x0 ✕', value: 0.0, hex: '#475569', isWin: false }
       ];
     } else {
       pool = [
         { id: 'mult1_2', label: 'x1.2', value: 1.2, hex: '#38bdf8', isWin: true },
         { id: 'mult2_0', label: 'x2.0', value: 2.0, hex: '#f59e0b', isWin: true },
-        { id: 'mult0_5', label: 'x0.5', value: 0.5, hex: '#ef4444', isWin: false },
+        { id: 'mult_neg0_5', label: '-0.5 💀', value: -0.5, hex: '#be123c', isWin: false, isNegative: true },
         { id: 'mult1_5', label: 'x1.5', value: 1.5, hex: '#10b981', isWin: true },
         { id: 'mult3_0', label: 'x3.0 ★', value: 3.0, hex: '#8b5cf6', isWin: true },
         { id: 'mult0_0', label: 'x0 ✕', value: 0.0, hex: '#475569', isWin: false }
@@ -370,19 +375,42 @@ class MinigameEngine {
     if (tabMoving) tabMoving.addEventListener('click', () => this.setMode('moving_targets', false));
   }
 
+  getWindDirectionArrow(deg) {
+    if (deg >= 337.5 || deg < 22.5) return '➡️ Este';
+    if (deg >= 22.5 && deg < 67.5) return '↘️ Sureste';
+    if (deg >= 67.5 && deg < 112.5) return '⬇️ Sur';
+    if (deg >= 112.5 && deg < 157.5) return '↙️ Suroeste';
+    if (deg >= 157.5 && deg < 202.5) return '⬅️ Oeste';
+    if (deg >= 202.5 && deg < 247.5) return '↖️ Noroeste';
+    if (deg >= 247.5 && deg < 292.5) return '⬆️ Norte';
+    return '↗️ Noreste';
+  }
+
   updateRulesText() {
     const subLbl = document.getElementById('lbl-roulette-odds');
     if (!subLbl) return;
 
     if (this.currentMode === 'roulette') {
-      subLbl.innerHTML = `🎡 Clava la aguja en la <strong>Zona Dorada</strong> para asegurar premio • ¡Toca en cualquier parte para girar!`;
+      subLbl.innerHTML = `🎡 Clava la aguja en la <strong>Zona Dorada</strong> para eliminar el sector negativo • ¡Toca en cualquier parte para girar!`;
     } else if (this.currentMode === 'moving_targets') {
       subLbl.innerHTML = `🎪 <strong>Dianas Móviles:</strong> Acierta las 3 dianas flotantes para llevarte el Gran Bono <strong>x3.5</strong>.`;
     } else {
+      const currentLvl = window.game ? (window.game.currentLevel || 1) : 1;
+      const isSec1 = currentLvl <= 10;
+      const hasCard = (this.activeCard === 'trajectorySight');
+
       let windNote = this.windSpeed <= 0.1
         ? ' • <span class="text-emerald-400 font-bold">¡Viento en calma total!</span>'
-        : ` • <span class="text-sky-300 font-bold">Viento: ${this.windSpeed} m/s (Compensa apuntando)</span>`;
-      subLbl.innerHTML = `🎯 <strong>Diana Slingshot:</strong> Toca y arrastra hacia atrás • Centro: <strong>x3.0</strong>${windNote}`;
+        : ` • <span class="text-sky-300 font-bold">Viento: ${this.windSpeed} m/s (${this.getWindDirectionArrow(this.windAngle)})</span>`;
+      
+      let trajNote = '';
+      if (!isSec1) {
+        trajNote = hasCard
+          ? ' • <span class="text-purple-300 font-bold">👁️ Parábola activa *(Sin viento)*</span>'
+          : ' • <span class="text-amber-300/80 font-bold">⚠️ Guía oculta (Tiro a ciegas)</span>';
+      }
+
+      subLbl.innerHTML = `🎯 <strong>Diana:</strong> Arrastra en cualquier parte • Centro: <strong>x3.0</strong>${windNote}${trajNote}`;
     }
   }
 
@@ -574,14 +602,14 @@ class MinigameEngine {
     if (timingResult === 'perfect') {
       if (this.timingNeedle) this.timingNeedle.classList.add('locked-gold');
       if (this.timingFeedbackLbl) {
-        this.timingFeedbackLbl.innerHTML = '⭐ <strong class="text-amber-300">¡TIRO PERFECTO!</strong> Eliminando sectores de quiebra x0 ⭐';
+        this.timingFeedbackLbl.innerHTML = '⭐ <strong class="text-amber-300">¡TIRO PERFECTO!</strong> Se eliminó el sector negativo y quiebras x0 ⭐';
         this.timingFeedbackLbl.className = 'text-center text-[11px] font-black text-amber-300 mt-1 min-h-[16px] animate-pulse';
       }
       if (window.audio) window.audio.playWinFanfare();
 
-      // Ventaja inmediata: convertir x0 y x0.5 en sectores ganadores de x2.0 y x3.0
+      // Ventaja inmediata: convertir sector negativo y x0 en sectores ganadores de x2.0
       this.sliceValues = this.sliceValues.map(s => {
-        if (!s.isWin) {
+        if (!s.isWin || s.isNegative) {
           return { id: 'mult2_0_gold', label: 'x2.0 ★', value: 2.0, hex: '#f59e0b', isWin: true };
         }
         return s;
@@ -723,13 +751,18 @@ class MinigameEngine {
 
       const hasBoost = window.stateManager && window.stateManager.state.upgrades.rouletteBoost;
       if (!hasBoost && window.game) {
-        window.game.multiplyCoins(mult); // Aplica x0.5 o x0
+        window.game.multiplyCoins(mult); // Aplica pérdida de monedas si mult < 0 o reduce
       }
 
       if (this.timingFeedbackLbl) {
-        const msg = hasBoost
-          ? `Cayó en ${landedSector.label}. ¡Seguro activo! Conservas tus monedas.`
-          : `Cayó en ${landedSector.label}. Se reduce el bono.`;
+        let msg = '';
+        if (hasBoost) {
+          msg = `Cayó en ${landedSector.label}. ¡Seguro activo! Conservas tus monedas.`;
+        } else if (landedSector.isNegative) {
+          msg = `💀 Cayó en ${landedSector.label}. ¡Penalización del 50% de monedas!`;
+        } else {
+          msg = `Cayó en ${landedSector.label}. Se reduce el bono.`;
+        }
         this.timingFeedbackLbl.innerHTML = `❌ ${msg}`;
         this.timingFeedbackLbl.className = 'text-center text-xs font-black text-rose-400 mt-1';
       }
@@ -744,10 +777,8 @@ class MinigameEngine {
       this.windSpeed = 0.0;
       this.windAngle = 0;
     } else {
-      this.windSpeed = +(Math.random() * 2.8 + 1.8).toFixed(1); // 1.8 a 4.6 m/s
-      // Ángulos principales: horizontal izquierda/derecha
-      const angles = [0, 15, 345, 180, 165, 195];
-      this.windAngle = angles[Math.floor(Math.random() * angles.length)];
+      this.windSpeed = +(Math.random() * 4.5 + 1.5).toFixed(1); // 1.5 a 6.0 m/s
+      this.windAngle = Math.floor(Math.random() * 360); // Cualquier dirección de 0° a 359°
     }
     this.updateBreezeVisual();
   }
@@ -760,9 +791,14 @@ class MinigameEngine {
       breezeGroup.style.display = 'none';
     } else {
       breezeGroup.style.display = 'block';
-      const isBlowingLeft = (this.windAngle >= 90 && this.windAngle <= 270);
-      breezeGroup.style.transform = isBlowingLeft ? 'scaleX(-1)' : 'scaleX(1)';
+      breezeGroup.style.transform = `rotate(${this.windAngle}deg)`;
       breezeGroup.style.transformOrigin = '150px 140px';
+
+      // Variar la velocidad de la animación según la intensidad del viento
+      const animDuration = Math.max(0.45, (3.2 / this.windSpeed) * 1.5).toFixed(2);
+      document.querySelectorAll('.breeze-streak').forEach(streak => {
+        streak.style.animationDuration = `${animDuration}s`;
+      });
     }
   }
 
@@ -779,7 +815,7 @@ class MinigameEngine {
 
     const hintEl = document.getElementById('diana-gesture-hint');
     if (hintEl) {
-      hintEl.textContent = '🏹 Toca en cualquier parte, arrastra hacia abajo y suelta para lanzar';
+      hintEl.textContent = '🎯 ¡Apunta y dispara arrastrando en cualquier parte!';
       hintEl.className = 'text-center text-[11px] font-bold text-sky-300 mt-1 mb-2 animate-pulse';
     }
   }
@@ -869,10 +905,10 @@ class MinigameEngine {
     const aimTargetX = 150 - (pullX * tensionX);
     const aimTargetY = 140 - ((pullY - nominalPullY) * tensionY);
 
-    // Desvío por viento en tiempo real (empuje real sobre el dardo)
+    // Desvío por viento en tiempo real (empuje real reforzado sobre el dardo)
     const windRad = (this.windAngle * Math.PI) / 180;
-    const windPushX = Math.cos(windRad) * (this.windSpeed * 8.5);
-    const windPushY = Math.sin(windRad) * (this.windSpeed * 4.2);
+    const windPushX = Math.cos(windRad) * (this.windSpeed * 14.0);
+    const windPushY = Math.sin(windRad) * (this.windSpeed * 9.5);
 
     // El punto de impacto real sufre la desviación del viento
     const impactX = Math.round(Math.max(20, Math.min(280, aimTargetX + windPushX)));
@@ -882,15 +918,43 @@ class MinigameEngine {
     // Punto de control de la curva para que la trayectoria se combe visiblemente con el viento
     const ctrlX = (dartX + impactX) / 2 + (windPushX * 0.8);
     const ctrlY = (dartY + impactY) / 2 + (windPushY * 0.8);
+    this.currentCtrlPoint = { x: ctrlX, y: ctrlY };
+
+    // Comprobar visibilidad de la trayectoria:
+    // Sección 1 (niveles 1-10): siempre visible.
+    // Sección 2+ (niveles > 10): oculta por defecto, visible SOLO con carta trajectorySight (sin viento)
+    const currentLvl = window.game ? (window.game.currentLevel || 1) : 1;
+    const isSection1 = currentLvl <= 10;
+    const hasTrajectoryCard = (this.activeCard === 'trajectorySight');
+
+    if (!isStretched || (!isSection1 && !hasTrajectoryCard)) {
+      if (this.slingshotTrajectory) this.slingshotTrajectory.setAttribute('opacity', '0');
+      if (this.trajectoryAimDot) this.trajectoryAimDot.setAttribute('opacity', '0');
+      return;
+    }
+
+    // Si tiene la carta de trayectoria y está en sección > 1, la predicción NO contempla el viento:
+    let lineEndX = impactX;
+    let lineEndY = impactY;
+    let lineCtrlX = ctrlX;
+    let lineCtrlY = ctrlY;
+    if (!isSection1 && hasTrajectoryCard) {
+      lineEndX = Math.round(Math.max(20, Math.min(280, aimTargetX)));
+      lineEndY = Math.round(Math.max(20, Math.min(265, aimTargetY)));
+      lineCtrlX = (dartX + lineEndX) / 2;
+      lineCtrlY = (dartY + lineEndY) / 2;
+    }
 
     if (this.slingshotTrajectory) {
-      this.slingshotTrajectory.setAttribute('d', `M ${dartX} ${dartY} Q ${ctrlX} ${ctrlY} ${impactX} ${impactY}`);
+      this.slingshotTrajectory.setAttribute('d', `M ${dartX} ${dartY} Q ${lineCtrlX} ${lineCtrlY} ${lineEndX} ${lineEndY}`);
       this.slingshotTrajectory.setAttribute('opacity', '0.9');
+      this.slingshotTrajectory.setAttribute('stroke', (!isSection1 && hasTrajectoryCard) ? '#c084fc' : '#fde047');
     }
     if (this.trajectoryAimDot) {
-      this.trajectoryAimDot.setAttribute('cx', impactX);
-      this.trajectoryAimDot.setAttribute('cy', impactY);
+      this.trajectoryAimDot.setAttribute('cx', lineEndX);
+      this.trajectoryAimDot.setAttribute('cy', lineEndY);
       this.trajectoryAimDot.setAttribute('opacity', '0.85');
+      this.trajectoryAimDot.setAttribute('fill', (!isSection1 && hasTrajectoryCard) ? '#c084fc' : '#fde047');
     }
   }
 
@@ -904,53 +968,64 @@ class MinigameEngine {
     const startY = this.currentDartPos.y;
     const hitX = this.currentImpactPoint.x;
     const hitY = this.currentImpactPoint.y;
+    const ctrlX = this.currentCtrlPoint ? this.currentCtrlPoint.x : ((startX + hitX) / 2);
+    const ctrlY = this.currentCtrlPoint ? this.currentCtrlPoint.y : ((startY + hitY) / 2);
 
     this.updateSlingshotVisuals(150, 315, 0, 0, false);
 
     const dartsGroup = document.getElementById('diana-darts-group');
-    if (dartsGroup) {
-      dartsGroup.innerHTML = `
-        <g id="flying-slingshot-dart" transform="translate(${startX}, ${startY})">
-          <circle cx="0" cy="0" r="5" fill="#fde047" stroke="#ffffff" stroke-width="1.5"/>
-        </g>
-      `;
+    const startTime = performance.now();
+    const duration = 340; // ms de vuelo
 
-      const flyingEl = document.getElementById('flying-slingshot-dart');
-      if (flyingEl && flyingEl.animate) {
-        flyingEl.animate([
-          { transform: `translate(${startX}px, ${startY}px) scale(1.3)`, opacity: 1 },
-          { transform: `translate(${hitX}px, ${hitY}px) scale(0.85)`, opacity: 1 }
-        ], {
-          duration: 320,
-          easing: 'ease-out',
-          fill: 'forwards'
-        });
-      }
-    }
+    const animateBall = (now) => {
+      const elapsed = now - startTime;
+      const t = Math.min(1, elapsed / duration);
+      const invT = 1 - t;
+      // Curva cuadrática Bézier que sigue la trayectoria combada por el viento
+      const curX = (invT * invT * startX) + (2 * invT * t * ctrlX) + (t * t * hitX);
+      const curY = (invT * invT * startY) + (2 * invT * t * ctrlY) + (t * t * hitY);
+      const scale = 1.3 - (t * 0.45);
 
-    setTimeout(() => {
-      if (window.audio) window.audio.playDartHit();
-      if (dartsGroup) dartsGroup.innerHTML = '';
-
-      // Dejar la marca 'X' en el lugar del impacto
-      const impactsGroup = document.getElementById('diana-impacts-group');
-      if (impactsGroup) {
-        const xMark = document.createElementNS('http://www.w3.org/2000/svg', 'g');
-        xMark.setAttribute('transform', `translate(${hitX}, ${hitY})`);
-        xMark.innerHTML = `
-          <ellipse cx="2" cy="4" rx="7" ry="3.5" fill="rgba(0,0,0,0.7)"/>
-          <line x1="-8" y1="-8" x2="8" y2="8" stroke="#ffffff" stroke-width="4.5" stroke-linecap="round"/>
-          <line x1="8" y1="-8" x2="-8" y2="8" stroke="#ffffff" stroke-width="4.5" stroke-linecap="round"/>
-          <line x1="-8" y1="-8" x2="8" y2="8" stroke="#ef4444" stroke-width="2.5" stroke-linecap="round"/>
-          <line x1="8" y1="-8" x2="-8" y2="8" stroke="#ef4444" stroke-width="2.5" stroke-linecap="round"/>
-          <circle cx="0" cy="0" r="3" fill="#fde047" stroke="#000000" stroke-width="1"/>
+      if (dartsGroup) {
+        dartsGroup.innerHTML = `
+          <g transform="translate(${curX}, ${curY}) scale(${scale})">
+            <!-- Estela difuminada -->
+            <circle cx="0" cy="0" r="9" fill="rgba(253, 224, 71, 0.35)" filter="blur(2px)"/>
+            <!-- Esfera proyectil de tiro -->
+            <circle cx="0" cy="0" r="6" fill="#fde047" stroke="#ffffff" stroke-width="2"/>
+            <circle cx="-1.5" cy="-1.5" r="2" fill="#ffffff"/>
+          </g>
         `;
-        impactsGroup.appendChild(xMark);
       }
 
-      this.isDartFlying = false;
-      this.evaluateDianaImpact(hitX, hitY);
-    }, 330);
+      if (t < 1) {
+        requestAnimationFrame(animateBall);
+      } else {
+        if (window.audio) window.audio.playDartHit();
+        if (dartsGroup) dartsGroup.innerHTML = '';
+
+        // Dejar la marca 'X' en el lugar del impacto
+        const impactsGroup = document.getElementById('diana-impacts-group');
+        if (impactsGroup) {
+          const xMark = document.createElementNS('http://www.w3.org/2000/svg', 'g');
+          xMark.setAttribute('transform', `translate(${hitX}, ${hitY})`);
+          xMark.innerHTML = `
+            <ellipse cx="2" cy="4" rx="7" ry="3.5" fill="rgba(0,0,0,0.7)"/>
+            <line x1="-8" y1="-8" x2="8" y2="8" stroke="#ffffff" stroke-width="4.5" stroke-linecap="round"/>
+            <line x1="8" y1="-8" x2="-8" y2="8" stroke="#ffffff" stroke-width="4.5" stroke-linecap="round"/>
+            <line x1="-8" y1="-8" x2="8" y2="8" stroke="#ef4444" stroke-width="2.5" stroke-linecap="round"/>
+            <line x1="8" y1="-8" x2="-8" y2="8" stroke="#ef4444" stroke-width="2.5" stroke-linecap="round"/>
+            <circle cx="0" cy="0" r="3" fill="#fde047" stroke="#000000" stroke-width="1"/>
+          `;
+          impactsGroup.appendChild(xMark);
+        }
+
+        this.isDartFlying = false;
+        this.evaluateDianaImpact(hitX, hitY);
+      }
+    };
+
+    requestAnimationFrame(animateBall);
   }
 
   evaluateDianaImpact(x, y) {

@@ -24,7 +24,8 @@ const DEFAULT_STATE = {
     dianaFavor: 2,       // +80% prob de Diana
     rouletteFavor: 2,    // +80% prob de Ruleta
     doubleOrNothing: 2,  // Ruleta: 2 colores, x2.0, todo o nada
-    calmAtmosphere: 2    // Diana: Viento 0, Medidor Lento o Tiro Extra
+    calmAtmosphere: 2,   // Diana: Viento 0, Medidor Lento o Tiro Extra
+    trajectorySight: 2   // Diana: Predicción de parábola (sin viento)
   },
   progress: {
     unlockedLevel: 1,
@@ -764,6 +765,22 @@ class StateManager {
     if (!this.state.minigameBag) return;
     this.state.minigameBag.activeCard = null;
     this.state.minigameBag.cardUsesRemaining = 0;
+    this.saveState();
+  }
+
+  // --- REINICIAR TODO EL PROGRESO DEL JUGADOR ---
+  resetAllProgress() {
+    try {
+      localStorage.removeItem(STORAGE_KEY);
+    } catch (e) {
+      console.warn('Error borrando localStorage:', e);
+    }
+    try {
+      setCookie(STORAGE_KEY, '', -1);
+    } catch (e) {
+      console.warn('Error borrando cookie:', e);
+    }
+    this.state = JSON.parse(JSON.stringify(DEFAULT_STATE));
     this.saveState();
   }
 }

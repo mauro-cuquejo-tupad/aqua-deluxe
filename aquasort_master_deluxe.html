@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-  <title>AquaSort Master Deluxe - 100 Niveles</title>
+  <title>AquaSort Master Deluxe</title>
   
   <!-- Silenciar advertencia informativa de Tailwind Play CDN en consola -->
   <script>
@@ -41,10 +41,10 @@
   <link rel="icon" type="image/svg+xml" href="icons/icon.svg">
 
   <!-- Modular Stylesheets -->
-  <link rel="stylesheet" href="css/main.css?v=23">
-  <link rel="stylesheet" href="css/tubes.css?v=23">
-  <link rel="stylesheet" href="css/roulette.css?v=23">
-  <link rel="stylesheet" href="css/accessibility.css?v=23">
+  <link rel="stylesheet" href="css/main.css?v=24">
+  <link rel="stylesheet" href="css/tubes.css?v=24">
+  <link rel="stylesheet" href="css/roulette.css?v=24">
+  <link rel="stylesheet" href="css/accessibility.css?v=24">
 </head>
 <body class="min-h-screen flex flex-col justify-between select-none relative">
 
@@ -414,6 +414,21 @@
             <!-- Renderizado dinámico por PaletteManager -->
           </div>
         </div>
+
+        <!-- Gestión y Reinicio de Partida -->
+        <div class="bg-rose-950/30 border border-rose-500/40 rounded-2xl p-3.5 space-y-2 text-left">
+          <div class="flex items-center gap-2">
+            <i data-lucide="alert-triangle" class="w-4 h-4 text-rose-400"></i>
+            <span class="text-xs font-black text-rose-300 uppercase tracking-wider">Gestión de Partida</span>
+          </div>
+          <p class="text-[11px] text-slate-300 leading-tight">
+            ¿Deseas comenzar la aventura desde cero? Esto borrará tus niveles desbloqueados, estrellas y récords para reiniciar la campaña.
+          </p>
+          <button id="btn-reset-all-progress" class="w-full py-2 px-3 rounded-xl bg-rose-600/30 hover:bg-rose-600/50 border border-rose-500/50 text-rose-200 hover:text-white font-bold text-xs flex items-center justify-center gap-1.5 transition-all">
+            <i data-lucide="trash-2" class="w-3.5 h-3.5"></i>
+            <span>Reiniciar Todo el Progreso</span>
+          </button>
+        </div>
       </div>
     </div>
   </div>
@@ -433,9 +448,9 @@
       <h2 id="vic-modal-title" class="text-2xl font-black text-white mb-1">¡Nivel Completado!</h2>
       <p id="vic-modal-subtitle" class="text-xs text-slate-400 mb-3">Todos los colores han sido clasificados con maestría.</p>
 
-      <!-- Badge de los 100 Niveles Superados -->
+      <!-- Badge de Campaña Superada -->
       <div id="lbl-vic-completion-badge" class="hidden mb-3 inline-flex items-center gap-1.5 bg-gradient-to-r from-amber-500 via-yellow-400 to-amber-500 text-slate-950 text-xs font-black px-3.5 py-1.5 rounded-full shadow-lg shadow-amber-500/30 animate-bounce">
-        <span>👑 ¡SUPREMO GRAN MAESTRO! 100/100 NIVELES 👑</span>
+        <span>👑 ¡SUPREMO GRAN MAESTRO! CAMPAÑA COMPLETADA 👑</span>
       </div>
 
       <!-- Badge de nuevo récord personal si aplica -->
@@ -585,30 +600,31 @@
           </div>
         </button>
         <div id="alchemy-cards-drawer-body" class="drawer-collapsed p-2 border-t border-slate-800">
-          <div class="grid grid-cols-4 gap-1.5">
-            <button id="card-diana-favor" data-card="dianaFavor" class="btn-alchemy-card flex flex-col items-center justify-center p-1.5 rounded-xl bg-slate-800 border border-slate-700 hover:border-sky-400 transition-all text-center">
-              <span class="text-base mb-0.5">🎯</span>
-              <span class="text-[9px] font-black text-sky-300 leading-tight">Tiro Extra</span>
-              <span class="text-[8px] text-slate-400 font-bold">(Respaldo)</span>
-              <span class="card-count text-[9px] text-amber-300 font-black mt-0.5">x2</span>
+          <div class="grid grid-cols-5 gap-1">
+            <button id="card-diana-favor" data-card="dianaFavor" class="btn-alchemy-card flex flex-col items-center justify-center p-1 rounded-xl bg-slate-800 border border-slate-700 hover:border-sky-400 transition-all text-center">
+              <span class="text-sm mb-0.5">🎯</span>
+              <span class="text-[8px] font-black text-sky-300 leading-tight">Tiro Extra</span>
+              <span class="card-count text-[8px] text-amber-300 font-black mt-0.5">x2</span>
             </button>
-            <button id="card-roulette-favor" data-card="rouletteFavor" class="btn-alchemy-card flex flex-col items-center justify-center p-1.5 rounded-xl bg-slate-800 border border-slate-700 hover:border-amber-400 transition-all text-center">
-              <span class="text-base mb-0.5">👁️</span>
-              <span class="text-[9px] font-black text-amber-300 leading-tight">Ojo Dorado</span>
-              <span class="text-[8px] text-slate-400 font-bold">(Margen x2)</span>
-              <span class="card-count text-[9px] text-amber-300 font-black mt-0.5">x2</span>
+            <button id="card-roulette-favor" data-card="rouletteFavor" class="btn-alchemy-card flex flex-col items-center justify-center p-1 rounded-xl bg-slate-800 border border-slate-700 hover:border-amber-400 transition-all text-center">
+              <span class="text-sm mb-0.5">👁️</span>
+              <span class="text-[8px] font-black text-amber-300 leading-tight">Ojo Oro</span>
+              <span class="card-count text-[8px] text-amber-300 font-black mt-0.5">x2</span>
             </button>
-            <button id="card-double-or-nothing" data-card="doubleOrNothing" class="btn-alchemy-card flex flex-col items-center justify-center p-1.5 rounded-xl bg-slate-800 border border-slate-700 hover:border-rose-400 transition-all text-center">
-              <span class="text-base mb-0.5">⚖️</span>
-              <span class="text-[9px] font-black text-rose-300 leading-tight">Doble o Nada</span>
-              <span class="text-[8px] text-slate-400 font-bold">(Premios x2)</span>
-              <span class="card-count text-[9px] text-amber-300 font-black mt-0.5">x2</span>
+            <button id="card-double-or-nothing" data-card="doubleOrNothing" class="btn-alchemy-card flex flex-col items-center justify-center p-1 rounded-xl bg-slate-800 border border-slate-700 hover:border-rose-400 transition-all text-center">
+              <span class="text-sm mb-0.5">⚖️</span>
+              <span class="text-[8px] font-black text-rose-300 leading-tight">Doble</span>
+              <span class="card-count text-[8px] text-amber-300 font-black mt-0.5">x2</span>
             </button>
-            <button id="card-calm-atmosphere" data-card="calmAtmosphere" class="btn-alchemy-card flex flex-col items-center justify-center p-1.5 rounded-xl bg-slate-800 border border-slate-700 hover:border-emerald-400 transition-all text-center">
-              <span class="text-base mb-0.5">🌬️</span>
-              <span class="text-[9px] font-black text-emerald-300 leading-tight">Calma Viento</span>
-              <span class="text-[8px] text-slate-400 font-bold">(0.0 m/s)</span>
-              <span class="card-count text-[9px] text-amber-300 font-black mt-0.5">x2</span>
+            <button id="card-calm-atmosphere" data-card="calmAtmosphere" class="btn-alchemy-card flex flex-col items-center justify-center p-1 rounded-xl bg-slate-800 border border-slate-700 hover:border-emerald-400 transition-all text-center">
+              <span class="text-sm mb-0.5">🌬️</span>
+              <span class="text-[8px] font-black text-emerald-300 leading-tight">Sin Viento</span>
+              <span class="card-count text-[8px] text-amber-300 font-black mt-0.5">x2</span>
+            </button>
+            <button id="card-trajectory-sight" data-card="trajectorySight" class="btn-alchemy-card flex flex-col items-center justify-center p-1 rounded-xl bg-slate-800 border border-slate-700 hover:border-purple-400 transition-all text-center" title="Predice la trayectoria base sin contemplar el viento">
+              <span class="text-sm mb-0.5">🔮</span>
+              <span class="text-[8px] font-black text-purple-300 leading-tight">Trayectoria</span>
+              <span class="card-count text-[8px] text-amber-300 font-black mt-0.5">x2</span>
             </button>
           </div>
         </div>
@@ -817,7 +833,7 @@
           <div class="grid grid-cols-6 gap-1 text-center font-black text-[11px]">
             <span class="py-1 px-1 rounded-lg bg-sky-500/20 text-sky-300 border border-sky-500/30">x1.2</span>
             <span class="py-1 px-1 rounded-lg bg-amber-500/20 text-amber-300 border border-amber-500/30">x2.0</span>
-            <span class="py-1 px-1 rounded-lg bg-rose-500/20 text-rose-300 border border-rose-500/30">x0.5</span>
+            <span class="py-1 px-1 rounded-lg bg-rose-600/30 text-rose-300 border border-rose-500/40">-0.5💀</span>
             <span class="py-1 px-1 rounded-lg bg-emerald-500/20 text-emerald-300 border border-emerald-500/30">x1.5</span>
             <span class="py-1 px-1 rounded-lg bg-purple-500/20 text-purple-300 border border-purple-500/30">x3.0★</span>
             <span class="py-1 px-1 rounded-lg bg-slate-700/40 text-slate-400 border border-slate-600/30">x0 ✕</span>
@@ -860,15 +876,11 @@
           </div>
         </div>
 
-        <!-- HINT: TOCAR EN CUALQUIER PARTE -->
-        <div class="tap-anywhere-hint text-[10px] text-amber-300 font-bold text-center mb-2 animate-pulse">
-          👆 ¡Puedes tocar en cualquier lugar de la pantalla para girar!
+        <!-- HINT TÁCTIL EN LUGAR DE BOTÓN DE PRESIONAR -->
+        <div class="w-full mb-3 py-3 px-3 bg-gradient-to-r from-amber-500/20 via-yellow-500/25 to-amber-500/20 border-2 border-amber-400/60 text-amber-200 font-black rounded-2xl text-center text-xs sm:text-sm tracking-wide shadow-lg shadow-amber-500/10 flex items-center justify-center gap-2 animate-pulse select-none">
+          <span>👆</span>
+          <span>¡Toca en cualquier parte para girar!</span>
         </div>
-
-        <!-- BOTÓN DIRECTO DE ACCIÓN EN RULETA -->
-        <button id="btn-spin-wheel" class="w-full mb-2.5 py-3.5 bg-gradient-to-r from-amber-400 via-amber-500 to-orange-500 hover:from-amber-300 hover:to-orange-400 active:scale-95 text-slate-950 font-black rounded-2xl shadow-lg shadow-amber-500/30 text-base tracking-wider transition-all select-none">
-          ¡GIRAR!
-        </button>
       </div>
 
       <!-- BOTÓN SECUNDARIO DE RETIRADA SEGURA (VISIBLE EN AMBOS MODOS) -->
@@ -901,7 +913,7 @@
       <h2 class="brand-font text-2xl sm:text-3xl font-black text-transparent bg-clip-text bg-gradient-to-r from-sky-300 via-cyan-200 to-amber-200 mb-1">
         AquaSort <span class="text-xs px-2 py-0.5 rounded-full bg-sky-500/20 text-sky-300 border border-sky-400/40 font-mono align-middle">DELUXE</span>
       </h2>
-      <p class="text-xs text-slate-400 mb-5">Desafío Alquímico de Clasificación de Fluidos • 100 Niveles</p>
+      <p class="text-xs text-slate-400 mb-5">Desafío Alquímico de Clasificación de Fluidos</p>
 
       <!-- Resumen del Estado del Jugador -->
       <div class="grid grid-cols-3 gap-2.5 bg-slate-800/70 border border-slate-700/60 rounded-2xl p-3 mb-5">
@@ -1353,7 +1365,7 @@
         ¡FELICITACIONES, SUPREMO GRAN MAESTRO!
       </h2>
       <p class="text-xs sm:text-sm text-sky-200 font-bold mb-4">
-        ¡Has completado con éxito los 100 Niveles de AquaSort Master Deluxe!
+        ¡Has completado con éxito la Gran Campaña de AquaSort Master Deluxe!
       </p>
 
       <!-- Pergamino de Consagración Alquímica -->
@@ -1370,12 +1382,12 @@
         </p>
       </div>
 
-      <!-- Panel de Estadísticas Finales de los 100 Niveles -->
+      <!-- Panel de Estadísticas Finales de Campaña -->
       <div class="grid grid-cols-3 gap-2 mb-4 text-center">
         <div class="bg-slate-800/80 border border-slate-700/80 rounded-xl p-2.5 shadow-sm">
-          <span class="block text-[10px] text-slate-400 font-semibold">Niveles</span>
-          <strong class="text-base sm:text-lg font-black text-emerald-400">100 / 100</strong>
-          <span class="text-[9px] text-emerald-300/80 block font-bold">100% Superado</span>
+          <span class="block text-[10px] text-slate-400 font-semibold">Campaña</span>
+          <strong class="text-base sm:text-lg font-black text-emerald-400">Superada ✓</strong>
+          <span class="text-[9px] text-emerald-300/80 block font-bold">100% Finalizada</span>
         </div>
         <div class="bg-slate-800/80 border border-slate-700/80 rounded-xl p-2.5 shadow-sm">
           <span class="block text-[10px] text-slate-400 font-semibold">Estrellas</span>
@@ -1395,6 +1407,16 @@
           <span>🎁 Recompensa de Gran Maestro:</span>
         </span>
         <span id="completion-coins-award-lbl" class="text-amber-300 font-black font-mono text-sm">+500 🪙 Monedas</span>
+      </div>
+
+      <!-- AVISO DE EPÍLOGO BLOQUEADO HASTA COMPLETAR CADA NIVEL CON AL MENOS 1 ESTRELLA -->
+      <div id="completion-epilogue-locked-notice" class="hidden mb-4 bg-amber-950/40 border-2 border-amber-500/60 rounded-2xl p-4 text-center">
+        <div class="text-2xl mb-1">📜🔒</div>
+        <h4 class="text-sm font-black text-amber-300 uppercase tracking-wide mb-1">Epílogo de Campaña Bloqueado</h4>
+        <p class="text-xs text-amber-100/90 leading-relaxed">
+          Para presenciar el desenlace alquímico de la historia, debes obtener al menos <strong>1 estrella en cada uno de los niveles</strong> de la campaña.
+        </p>
+        <div class="mt-2 text-[11px] text-amber-400 font-bold">¡Revisa el mapa para superar los niveles pendientes!</div>
       </div>
 
       <!-- SECCIÓN CINEMÁTICA: EL FINAL ALQUÍMICO (MALO / REGULAR / BUENO CON GIRO) -->
@@ -1458,7 +1480,7 @@
         </button>
 
         <button id="btn-completion-replay" class="text-xs text-amber-400 hover:text-amber-300 font-bold py-1 underline">
-          Rejugar Nivel 100 (La Gran Obra Magna)
+          Rejugar Nivel Final (La Gran Obra Magna)
         </button>
       </div>
 
@@ -1607,15 +1629,15 @@
   <input type="file" id="input-save-file" accept=".json" class="hidden">
 
   <!-- Scripts modulares -->
-  <script src="js/audio.js?v=23"></script>
-  <script src="js/palette.js?v=23"></script>
-  <script src="js/levels.js?v=23"></script>
-  <script src="js/challenges.js?v=23"></script>
-  <script src="js/honor.js?v=23"></script>
-  <script src="js/state.js?v=23"></script>
-  <script src="js/leaderboard.js?v=23"></script>
-  <script src="js/roulette.js?v=23"></script>
-  <script src="js/game.js?v=23"></script>
+  <script src="js/audio.js?v=24"></script>
+  <script src="js/palette.js?v=24"></script>
+  <script src="js/levels.js?v=24"></script>
+  <script src="js/challenges.js?v=24"></script>
+  <script src="js/honor.js?v=24"></script>
+  <script src="js/state.js?v=24"></script>
+  <script src="js/leaderboard.js?v=24"></script>
+  <script src="js/roulette.js?v=24"></script>
+  <script src="js/game.js?v=24"></script>
 
   <!-- Registro de Service Worker PWA -->
   <script>

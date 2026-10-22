@@ -1,7 +1,7 @@
 {
   "name": "AquaSort Master Deluxe",
   "short_name": "AquaSort",
-  "description": "Desafío Alquímico de Clasificación de Fluidos - 100 Niveles, Desafíos y Modo Honor",
+  "description": "Desafío Alquímico de Clasificación de Fluidos - Desafíos y Modo Honor",
   "start_url": "./index.html",
   "scope": "./",
   "display": "standalone",
