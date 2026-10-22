@@ -42,6 +42,7 @@ class MinigameEngine {
     this.dragStartPos = { x: 0, y: 0 };
     this.currentDartPos = { x: 150, y: 315 };
     this.currentImpactPoint = { x: 150, y: 140 };
+    this.isReverseShot = false;
 
     // --- DIANAS MÓVILES (3 DIANAS FLOTANTES EN MOVIMIENTO) ---
     this.movingTargets = [];
@@ -805,13 +806,17 @@ class MinigameEngine {
   resetDianaTarget() {
     this.isDartFlying = false;
     this.isDraggingSlingshot = false;
+    this.isReverseShot = false;
     this.currentDartPos = { x: 150, y: 315 };
-    this.updateSlingshotVisuals(150, 315, 0, 0, false);
+    this.updateSlingshotVisuals(150, 315, 0, 0, false, false);
 
     const impactsGroup = document.getElementById('diana-impacts-group');
     if (impactsGroup) impactsGroup.innerHTML = '';
     const dartsGroup = document.getElementById('diana-darts-group');
     if (dartsGroup) dartsGroup.innerHTML = '';
+
+    const splatOverlay = document.getElementById('diana-face-splat-overlay');
+    if (splatOverlay) splatOverlay.remove();
 
     const hintEl = document.getElementById('diana-gesture-hint');
     if (hintEl) {
@@ -833,6 +838,7 @@ class MinigameEngine {
 
       // Permitir iniciar el swipe desde CUALQUIER posición de la pantalla
       this.isDraggingSlingshot = true;
+      this.isReverseShot = false;
       this.dragStartPos = { x: e.clientX, y: e.clientY };
       container.setPointerCapture?.(e.pointerId);
     };
@@ -846,15 +852,19 @@ class MinigameEngine {
       const dx = (e.clientX - this.dragStartPos.x) * scaleX;
       const dy = (e.clientY - this.dragStartPos.y) * scaleY;
 
-      // Restricción de estiramiento del resorte
+      // Restricción de estiramiento del resorte: permite estirar hacia abajo (>0) o hacia arriba (<0 al revés)
       const clampedDx = Math.max(-70, Math.min(70, dx));
-      const clampedDy = Math.max(12, Math.min(85, dy)); // Arrastre hacia abajo para tensar
+      const clampedDy = Math.max(-65, Math.min(85, dy));
 
       const dartX = 150 + clampedDx;
       const dartY = 315 + (clampedDy * 0.45);
       this.currentDartPos = { x: dartX, y: dartY };
 
-      this.updateSlingshotVisuals(dartX, dartY, clampedDx, clampedDy, true);
+      // Si el usuario arrastra hacia arriba (dy < -16), está estirando el resorte al revés
+      const isReverse = (clampedDy < -16);
+      this.isReverseShot = isReverse;
+
+      this.updateSlingshotVisuals(dartX, dartY, clampedDx, clampedDy, true, isReverse);
     };
 
     const onPointerUp = (e) => {
@@ -863,10 +873,15 @@ class MinigameEngine {
       try { container.releasePointerCapture?.(e.pointerId); } catch (_) {}
 
       const pullDistance = Math.hypot(this.currentDartPos.x - 150, this.currentDartPos.y - 315);
-      if (pullDistance > 6) {
-        this.launchSlingshotDart();
+      if (pullDistance > 10) {
+        if (this.isReverseShot) {
+          this.launchReverseSlingshotDart();
+        } else {
+          this.launchSlingshotDart();
+        }
       } else {
-        this.updateSlingshotVisuals(150, 315, 0, 0, false);
+        this.isReverseShot = false;
+        this.updateSlingshotVisuals(150, 315, 0, 0, false, false);
       }
     };
 
@@ -876,9 +891,11 @@ class MinigameEngine {
     container.addEventListener('pointercancel', onPointerUp);
   }
 
-  updateSlingshotVisuals(dartX, dartY, pullX, pullY, isStretched) {
+  updateSlingshotVisuals(dartX, dartY, pullX, pullY, isStretched, isReverse = false) {
     if (this.slingshotDart) {
-      this.slingshotDart.setAttribute('transform', `translate(${dartX}, ${dartY})`);
+      // Invertir rotación visual del dardo 180° si apunta al revés (hacia la cara del usuario)
+      const dartRot = isReverse ? 'rotate(180)' : '';
+      this.slingshotDart.setAttribute('transform', `translate(${dartX}, ${dartY}) ${dartRot}`);
     }
 
     if (this.slingshotBandLeft) {
@@ -893,6 +910,30 @@ class MinigameEngine {
     if (!isStretched) {
       if (this.slingshotTrajectory) this.slingshotTrajectory.setAttribute('opacity', '0');
       if (this.trajectoryAimDot) this.trajectoryAimDot.setAttribute('opacity', '0');
+      if (this.slingshotDart) this.slingshotDart.setAttribute('transform', `translate(150, 315)`);
+      return;
+    }
+
+    // SI ES TIRO AL REVÉS (AUTODISPARO A LA CARA)
+    if (isReverse) {
+      const downEndX = Math.round(150 + (pullX * 0.4));
+      const downEndY = 368;
+      if (this.slingshotTrajectory) {
+        this.slingshotTrajectory.setAttribute('d', `M ${dartX} ${dartY} Q ${dartX} 340 ${downEndX} ${downEndY}`);
+        this.slingshotTrajectory.setAttribute('opacity', '0.95');
+        this.slingshotTrajectory.setAttribute('stroke', '#f43f5e');
+      }
+      if (this.trajectoryAimDot) {
+        this.trajectoryAimDot.setAttribute('cx', downEndX);
+        this.trajectoryAimDot.setAttribute('cy', 360);
+        this.trajectoryAimDot.setAttribute('opacity', '0.95');
+        this.trajectoryAimDot.setAttribute('fill', '#f43f5e');
+      }
+      const hintEl = document.getElementById('diana-gesture-hint');
+      if (hintEl) {
+        hintEl.innerHTML = '⚠️ <span class="text-rose-400 font-black">¡CUIDADO!</span> Estás apuntando directo a tu cara...';
+        hintEl.className = 'text-center text-[11px] font-black text-rose-300 mt-1 mb-2 animate-bounce';
+      }
       return;
     }
 
@@ -901,7 +942,7 @@ class MinigameEngine {
     const tensionY = 1.85;
     const nominalPullY = 48; // Pull nominal que apunta directamente a Y=140 (centro)
 
-    // Apuntado base (la fuerza y ángulo de tiro)
+    // Apuntado base (la fuerza y ángulo de tiro hacia adelante)
     const aimTargetX = 150 - (pullX * tensionX);
     const aimTargetY = 140 - ((pullY - nominalPullY) * tensionY);
 
@@ -919,6 +960,13 @@ class MinigameEngine {
     const ctrlX = (dartX + impactX) / 2 + (windPushX * 0.8);
     const ctrlY = (dartY + impactY) / 2 + (windPushY * 0.8);
     this.currentCtrlPoint = { x: ctrlX, y: ctrlY };
+
+    // Texto guía normal
+    const hintEl = document.getElementById('diana-gesture-hint');
+    if (hintEl && !this.isDartFlying) {
+      hintEl.textContent = '🏹 Suelta para disparar a la diana';
+      hintEl.className = 'text-center text-[11px] font-bold text-sky-300 mt-1 mb-2';
+    }
 
     // Comprobar visibilidad de la trayectoria:
     // Sección 1 (niveles 1-10): siempre visible.
@@ -958,6 +1006,7 @@ class MinigameEngine {
     }
   }
 
+  // Lanzamiento normal hacia adelante (diana)
   launchSlingshotDart() {
     if (this.isDartFlying) return;
     this.isDartFlying = true;
@@ -971,7 +1020,7 @@ class MinigameEngine {
     const ctrlX = this.currentCtrlPoint ? this.currentCtrlPoint.x : ((startX + hitX) / 2);
     const ctrlY = this.currentCtrlPoint ? this.currentCtrlPoint.y : ((startY + hitY) / 2);
 
-    this.updateSlingshotVisuals(150, 315, 0, 0, false);
+    this.updateSlingshotVisuals(150, 315, 0, 0, false, false);
 
     const dartsGroup = document.getElementById('diana-darts-group');
     const startTime = performance.now();
@@ -1026,6 +1075,226 @@ class MinigameEngine {
     };
 
     requestAnimationFrame(animateBall);
+  }
+
+  // --- EASTER EGG: LANZAMIENTO AL REVÉS (DISPARO DIRECTO A LA CARA) ---
+  launchReverseSlingshotDart() {
+    if (this.isDartFlying) return;
+    this.isDartFlying = true;
+
+    if (window.audio) window.audio.playDartThrow();
+
+    const startX = this.currentDartPos.x;
+    const startY = this.currentDartPos.y;
+    // Vuela hacia abajo directamente hacia la cámara y la cara del jugador
+    const targetX = 150;
+    const targetY = 380;
+
+    this.updateSlingshotVisuals(150, 315, 0, 0, false, false);
+
+    const dartsGroup = document.getElementById('diana-darts-group');
+    const startTime = performance.now();
+    const duration = 250; // ms de vuelo rápido hacia la cámara
+
+    const animateReverseDart = (now) => {
+      const elapsed = now - startTime;
+      const t = Math.min(1, elapsed / duration);
+      const curX = startX + (targetX - startX) * t;
+      const curY = startY + (targetY - startY) * t;
+      // Crece dramáticamente simulando aproximación 3D directa al usuario
+      const scale = 1.0 + (t * 5.2);
+
+      if (dartsGroup) {
+        dartsGroup.innerHTML = `
+          <g transform="translate(${curX}, ${curY}) scale(${scale})">
+            <!-- Estela de peligro -->
+            <circle cx="0" cy="0" r="14" fill="rgba(239, 68, 68, 0.45)" filter="blur(3px)"/>
+            <!-- Dardo invertido apuntando a la cara -->
+            <polygon points="0,16 -6,-6 0,-2 6,-6" fill="#ef4444" stroke="#ffffff" stroke-width="1.5"/>
+            <polygon points="-6,-6 -10,-14 -3,-11" fill="#38bdf8"/>
+            <polygon points="6,-6 10,-14 3,-11" fill="#38bdf8"/>
+            <polygon points="0,16 -3,8 3,8" fill="#fde047"/>
+          </g>
+        `;
+      }
+
+      if (t < 1) {
+        requestAnimationFrame(animateReverseDart);
+      } else {
+        if (dartsGroup) dartsGroup.innerHTML = '';
+        this.triggerFaceSplatEasterEgg();
+      }
+    };
+
+    requestAnimationFrame(animateReverseDart);
+  }
+
+  // Animación cómica de mancha en la cara ("La próxima apuntá para el otro lado")
+  triggerFaceSplatEasterEgg() {
+    // Sonidos cómicos: explosión de laboratorio (final malo) y decepción cómica
+    if (window.audio && typeof window.audio.playLabExplosion === 'function') {
+      window.audio.playLabExplosion();
+    } else if (window.audio && typeof window.audio.playFailSound === 'function') {
+      window.audio.playFailSound();
+    }
+    setTimeout(() => {
+      if (window.audio && typeof window.audio.playDisappointedCrowd === 'function') {
+        window.audio.playDisappointedCrowd();
+      }
+    }, 450);
+
+    const container = document.getElementById('diana-target-container');
+    if (!container) return;
+
+    // Sacudida de pantalla de impacto
+    container.classList.add('face-splat-shake');
+    setTimeout(() => container.classList.remove('face-splat-shake'), 600);
+
+    // Remover overlay previo si existiera
+    const prevOverlay = document.getElementById('diana-face-splat-overlay');
+    if (prevOverlay) prevOverlay.remove();
+
+    // Crear el overlay cómico de mancha en la cara
+    const overlay = document.createElement('div');
+    overlay.id = 'diana-face-splat-overlay';
+    overlay.className = 'face-splat-overlay';
+    overlay.innerHTML = `
+      <div class="relative w-full h-full flex flex-col items-center justify-between p-2 select-none">
+        <!-- SVG Mancha de Hollín / Slime en la Pantalla -->
+        <svg class="w-full h-full absolute inset-0 pointer-events-none" viewBox="0 0 300 360">
+          <defs>
+            <radialGradient id="splat-ink-grad" cx="45%" cy="40%" r="60%">
+              <stop offset="0%" stop-color="#38184c"/>
+              <stop offset="45%" stop-color="#18181b"/>
+              <stop offset="100%" stop-color="#09090b"/>
+            </radialGradient>
+          </defs>
+
+          <!-- Salpicaduras coloridas de alquimia y hollín -->
+          <circle cx="35" cy="115" r="14" fill="#09090b"/>
+          <circle cx="58" cy="72" r="10" fill="#a855f7" opacity="0.8"/>
+          <circle cx="245" cy="88" r="16" fill="#09090b"/>
+          <circle cx="265" cy="135" r="11" fill="#06b6d4" opacity="0.8"/>
+          <circle cx="48" cy="225" r="13" fill="#09090b"/>
+          <circle cx="250" cy="235" r="15" fill="#09090b"/>
+          <circle cx="150" cy="35" r="12" fill="#09090b"/>
+          <circle cx="185" cy="48" r="8" fill="#10b981" opacity="0.8"/>
+
+          <!-- Mancha Gigante Central de Hollín / Tinta -->
+          <path d="M 150 55
+                   C 210 50, 260 85, 265 140
+                   C 270 195, 235 220, 245 255
+                   C 230 275, 195 270, 150 280
+                   C 105 270, 70 275, 55 255
+                   C 65 220, 30 195, 35 140
+                   C 40 85, 90 50, 150 55 Z"
+                fill="url(#splat-ink-grad)" stroke="#27272a" stroke-width="3"/>
+
+          <!-- Gotas chorreando por el cristal -->
+          <path class="splat-drip" d="M 95 260 Q 97 295 93 318 Q 91 326 95 329 Q 99 326 97 318 Z" fill="#09090b"/>
+          <path class="splat-drip" d="M 150 275 Q 153 305 148 335 Q 146 342 150 346 Q 154 342 152 335 Z" fill="#09090b" style="animation-delay: 0.3s;"/>
+          <path class="splat-drip" d="M 205 255 Q 207 290 203 312 Q 201 320 205 324 Q 209 320 207 312 Z" fill="#09090b" style="animation-delay: 0.6s;"/>
+
+          <!-- Cara Cómica del Alquimista Manchado (Centrada en 150, 140) -->
+          <g id="soot-face-group">
+            <!-- Gorro chamuscado torcido con humo saliendo -->
+            <polygon points="120,105 150,60 175,105" fill="#1e1b4b" stroke="#09090b" stroke-width="2"/>
+            <polygon points="112,106 182,106 178,112 116,112" fill="#312e81"/>
+            <text x="175" y="68" font-size="20">💨</text>
+            <text x="110" y="78" font-size="14">💨</text>
+
+            <!-- Cabeza negra tiznada de hollín -->
+            <circle cx="150" cy="140" r="34" fill="#09090b" stroke="#27272a" stroke-width="2"/>
+
+            <!-- Ojos grandes de dibujo animado con parpadeo -->
+            <g class="splat-blink-eyes">
+              <ellipse cx="136" cy="132" rx="10" ry="12" fill="#ffffff" stroke="#000000" stroke-width="1.5"/>
+              <circle cx="138" cy="134" r="5" fill="#000000"/>
+              <circle cx="136" cy="131" r="2" fill="#ffffff"/>
+              <ellipse cx="164" cy="132" rx="10" ry="12" fill="#ffffff" stroke="#000000" stroke-width="1.5"/>
+              <circle cx="162" cy="134" r="5" fill="#000000"/>
+              <circle cx="160" cy="131" r="2" fill="#ffffff"/>
+            </g>
+
+            <!-- Cejas inclinadas de desconcierto -->
+            <line x1="126" y1="116" x2="144" y2="120" stroke="#ffffff" stroke-width="2.5" stroke-linecap="round"/>
+            <line x1="174" y1="116" x2="156" y2="120" stroke="#ffffff" stroke-width="2.5" stroke-linecap="round"/>
+
+            <!-- Boca de sorpresa abierta "O" -->
+            <ellipse cx="150" cy="158" rx="8" ry="10" fill="#000000" stroke="#3f3f46" stroke-width="1.5"/>
+            <ellipse cx="150" cy="160" rx="5" ry="5.5" fill="#ef4444"/>
+          </g>
+        </svg>
+
+        <!-- Cartel Bocadillo Cómico con el texto solicitado -->
+        <div class="relative z-10 w-full max-w-[280px] bg-slate-900/95 border-2 border-amber-400 rounded-2xl p-2.5 shadow-2xl text-center transform -rotate-1 mb-2 mt-auto">
+          <div class="text-[11px] font-black text-rose-400 tracking-wider uppercase flex items-center justify-center gap-1">
+            <span>🎯💥 ¡¡SPLASH EN LA CARA!! 💥🎯</span>
+          </div>
+          <div class="text-xs sm:text-sm font-black text-white mt-0.5 leading-snug">
+            "La próxima apuntá para el otro lado..."
+          </div>
+          <div id="splat-subtext" class="text-[10px] text-amber-300 font-semibold mt-0.5">
+            (Te disparaste a vos mismo con la tirachinas)
+          </div>
+        </div>
+      </div>
+    `;
+
+    container.appendChild(overlay);
+
+    const hintEl = document.getElementById('diana-gesture-hint');
+    if (hintEl) {
+      hintEl.innerHTML = '💥 <strong class="text-rose-400">¡AUCH!</strong> "La próxima apuntá para el otro lado..."';
+      hintEl.className = 'text-center text-xs font-black text-rose-300 mt-1 mb-2 animate-pulse';
+    }
+
+    // Gestionar si tiene carta de Tiro Extra
+    if (this.extraShotAvailable) {
+      this.extraShotAvailable = false;
+      this.updateCardsUI();
+      const subtext = overlay.querySelector('#splat-subtext');
+      if (subtext) {
+        subtext.innerHTML = '✨ ¡Menos mal tenías <strong>Tiro Extra</strong>! Limpiate la cara y dispará hacia la diana...';
+      }
+
+      setTimeout(() => {
+        overlay.classList.add('fade-out');
+        setTimeout(() => {
+          overlay.remove();
+          this.isDartFlying = false;
+          this.isReverseShot = false;
+          if (hintEl) {
+            hintEl.textContent = '🏹 ¡Ahora sí! Estira hacia abajo para lanzar a la diana';
+            hintEl.className = 'text-center text-[11px] font-bold text-amber-300 mt-1 mb-2 animate-bounce';
+          }
+        }, 500);
+      }, 3000);
+    } else {
+      // Sin tiro extra: finaliza la ronda con penalización normal
+      const modalBox = document.querySelector('#modal-roulette .modal-content');
+      if (modalBox) modalBox.classList.add('roulette-lose-glow');
+
+      const hasBoost = window.stateManager && window.stateManager.state.upgrades.rouletteBoost;
+      if (!hasBoost && window.game) {
+        window.game.multiplyCoins(0.5); // reducción por tiro fallido
+      }
+
+      setTimeout(() => {
+        overlay.classList.add('fade-out');
+        setTimeout(() => {
+          overlay.remove();
+          this.isDartFlying = false;
+          this.isReverseShot = false;
+          if (hintEl) {
+            const msg = hasBoost ? '¡Autogolpe! Seguro activo: sin pérdida.' : '¡Autogolpe! Pierdes el 50% de las monedas.';
+            hintEl.innerHTML = `❌ "La próxima apuntá para el otro lado..." • ${msg}`;
+            hintEl.className = 'text-center text-xs font-black text-rose-400 mt-1 mb-2';
+          }
+          this.finalizeRound(null, modalBox);
+        }, 500);
+      }, 3400);
+    }
   }
 
   evaluateDianaImpact(x, y) {

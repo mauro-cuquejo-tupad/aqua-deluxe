@@ -230,3 +230,64 @@
   pointer-events: none !important;
 }
 
+/* ==========================================================================
+   EASTER EGG: DISPARO AL REVÉS / MANCHA EN LA CARA ("LA PRÓXIMA APUNTÁ PARA EL OTRO LADO")
+   ========================================================================== */
+@keyframes faceSplatShake {
+  0% { transform: translate(0, 0) scale(1); }
+  15% { transform: translate(-10px, 8px) scale(1.04); }
+  30% { transform: translate(10px, -8px) scale(1.02); }
+  45% { transform: translate(-6px, -4px) scale(1.01); }
+  60% { transform: translate(6px, 4px) scale(1); }
+  75% { transform: translate(-3px, 2px) scale(1); }
+  100% { transform: translate(0, 0) scale(1); }
+}
+.face-splat-shake {
+  animation: faceSplatShake 0.55s cubic-bezier(0.36, 0.07, 0.19, 0.97) both;
+}
+
+.face-splat-overlay {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  z-index: 60;
+  pointer-events: none;
+  animation: splatBurst 0.38s cubic-bezier(0.175, 0.885, 0.32, 1.275) both;
+}
+
+@keyframes splatBurst {
+  0% { transform: scale(0.15); opacity: 0; }
+  65% { transform: scale(1.12); opacity: 1; filter: drop-shadow(0 0 25px rgba(0, 0, 0, 0.9)); }
+  100% { transform: scale(1); opacity: 1; }
+}
+
+.face-splat-overlay.fade-out {
+  transition: opacity 0.5s ease-out, transform 0.5s ease-out;
+  opacity: 0 !important;
+  transform: translateY(20px) scale(0.95) !important;
+}
+
+@keyframes dripSlide {
+  0% { transform: translateY(0); opacity: 1; }
+  60% { transform: translateY(22px); opacity: 0.95; }
+  100% { transform: translateY(42px); opacity: 0; }
+}
+.splat-drip {
+  animation: dripSlide 2.6s ease-in infinite;
+}
+
+@keyframes splatEyeBlink {
+  0%, 45% { transform: scaleY(1); }
+  50%, 54% { transform: scaleY(0.1); }
+  58%, 75% { transform: scaleY(1); }
+  80%, 84% { transform: scaleY(0.1); }
+  88%, 100% { transform: scaleY(1); }
+}
+.splat-blink-eyes {
+  transform-origin: 120px 85px;
+  animation: splatEyeBlink 2.6s infinite ease-in-out;
+}
+
