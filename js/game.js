@@ -149,6 +149,7 @@ class GameController {
     this.vicHonorUnlockedBanner = document.getElementById('vic-honor-unlocked-banner');
     this.btnVicLaunchHonor = document.getElementById('btn-vic-launch-honor');
     this.modalApocalypse = document.getElementById('modal-apocalypse-easter-egg');
+    this.modalCloudSync = document.getElementById('modal-cloud-sync');
 
     // Catálogo de Mecánicas y Guía de Tutoriales (Espaciadas cada 10 niveles)
     this.mechanicsCatalog = [
@@ -3214,6 +3215,75 @@ class GameController {
       this.bindTapOrClick(btnCloseMap, () => {
         this.hideModal(this.modalMap);
         if (window.audio) window.audio.playMusic('level');
+      });
+    }
+
+    // Modal Sincronización en la Nube con Google
+    const btnOpenCloud = document.getElementById('btn-open-cloud-sync');
+    const btnCloseCloud = document.getElementById('btn-close-cloud-sync');
+    const btnSettingsOpenCloud = document.getElementById('btn-settings-open-cloud');
+    const homeCloudPill = document.getElementById('home-cloud-status-pill');
+    const btnCloudLogin = document.getElementById('btn-cloud-login-google');
+    const btnCloudLogout = document.getElementById('btn-cloud-logout');
+    const btnCloudSyncNow = document.getElementById('btn-cloud-sync-now');
+    const btnToggleConfig = document.getElementById('btn-toggle-firebase-config');
+    const btnSaveConfig = document.getElementById('btn-save-firebase-config');
+    const btnResetConfig = document.getElementById('btn-reset-firebase-config');
+
+    if (btnOpenCloud) {
+      this.bindTapOrClick(btnOpenCloud, () => {
+        if (window.cloudSyncManager) window.cloudSyncManager.openCloudModal();
+      });
+    }
+    if (btnCloseCloud) {
+      this.bindTapOrClick(btnCloseCloud, () => {
+        if (window.cloudSyncManager) window.cloudSyncManager.closeCloudModal();
+      });
+    }
+    if (btnSettingsOpenCloud) {
+      this.bindTapOrClick(btnSettingsOpenCloud, () => {
+        if (this.modalSettings) this.hideModal(this.modalSettings);
+        if (window.cloudSyncManager) window.cloudSyncManager.openCloudModal();
+      });
+    }
+    if (homeCloudPill) {
+      this.bindTapOrClick(homeCloudPill, () => {
+        if (this.modalHome) this.hideModal(this.modalHome);
+        if (window.cloudSyncManager) window.cloudSyncManager.openCloudModal();
+      });
+    }
+    if (btnCloudLogin) {
+      this.bindTapOrClick(btnCloudLogin, () => {
+        if (window.cloudSyncManager) window.cloudSyncManager.loginWithGoogle();
+      });
+    }
+    if (btnCloudLogout) {
+      this.bindTapOrClick(btnCloudLogout, () => {
+        if (window.cloudSyncManager) window.cloudSyncManager.logout();
+      });
+    }
+    if (btnCloudSyncNow) {
+      this.bindTapOrClick(btnCloudSyncNow, () => {
+        if (window.cloudSyncManager) window.cloudSyncManager.syncWithCloud(true);
+      });
+    }
+    if (btnToggleConfig) {
+      this.bindTapOrClick(btnToggleConfig, () => {
+        const box = document.getElementById('cloud-config-box');
+        if (box) box.classList.toggle('hidden');
+      });
+    }
+    if (btnSaveConfig) {
+      this.bindTapOrClick(btnSaveConfig, () => {
+        const txt = document.getElementById('txt-firebase-config');
+        if (txt && window.cloudSyncManager) {
+          window.cloudSyncManager.reconfigure(txt.value.trim());
+        }
+      });
+    }
+    if (btnResetConfig) {
+      this.bindTapOrClick(btnResetConfig, () => {
+        if (window.cloudSyncManager) window.cloudSyncManager.resetConfiguration();
       });
     }
 

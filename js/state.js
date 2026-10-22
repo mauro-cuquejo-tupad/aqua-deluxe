@@ -169,6 +169,11 @@ class StateManager {
     } catch (e) {
       console.warn('Error guardando respaldo en cookie:', e);
     }
+
+    // Auto-sincronización con Google Cloud Firestore si hay sesión activa
+    if (window.cloudSyncManager && typeof window.cloudSyncManager.triggerAutoSave === 'function') {
+      window.cloudSyncManager.triggerAutoSave();
+    }
   }
 
   // --- MONEDAS Y ECONOMÍA REBALANCEADA ---
