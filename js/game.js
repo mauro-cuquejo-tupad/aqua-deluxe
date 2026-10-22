@@ -35,6 +35,7 @@ class GameController {
     // Accesibilidad y personalización
     this.isLowVision = false;
     this.isHighContrast = false;
+    this.showAccessibilityPatterns = window.stateManager?.state?.settings?.showAccessibilityPatterns || false;
 
     // Editor de Niveles
     this.editorLevel = {
@@ -602,7 +603,7 @@ class GameController {
             segment.classList.add('liquid-chameleon');
           } else {
             segment.style.backgroundColor = liq.color;
-            if (liq.pattern) segment.classList.add(liq.pattern);
+            if (this.showAccessibilityPatterns && liq.pattern) segment.classList.add(liq.pattern);
           }
 
           // Burbujas ascendentes decorativas
@@ -610,14 +611,17 @@ class GameController {
           bubble.className = 'bubble w-1.5 h-1.5 left-3';
           segment.appendChild(bubble);
 
-          segment.innerHTML += `
-            <span class="shape-icon" style="color: ${liq.textHex || '#fff'}; font-size: 1.15rem;">
-              ${liq.shape}
-            </span>
-            <span class="color-text-label hidden font-mono">
-              ${liq.name}
-            </span>
-          `;
+          // Símbolos y etiquetas de color (desactivados por defecto para líquidos limpios y puros)
+          if (this.showAccessibilityPatterns && liq.shape) {
+            segment.innerHTML += `
+              <span class="shape-icon" style="color: ${liq.textHex || '#fff'}; font-size: 1.15rem;">
+                ${liq.shape}
+              </span>
+              <span class="color-text-label hidden font-mono">
+                ${liq.name}
+              </span>
+            `;
+          }
         }
         glassEl.appendChild(segment);
       });
@@ -2737,6 +2741,18 @@ class GameController {
     if (cb) cb.checked = this.isHighContrast;
   }
 
+  toggleAccessibilityPatterns(forceValue = null) {
+    this.showAccessibilityPatterns = (forceValue !== null) ? !!forceValue : !this.showAccessibilityPatterns;
+    if (window.stateManager) {
+      if (!window.stateManager.state.settings) window.stateManager.state.settings = {};
+      window.stateManager.state.settings.showAccessibilityPatterns = this.showAccessibilityPatterns;
+      window.stateManager.saveState();
+    }
+    const cb = document.getElementById('toggle-accessibility-patterns');
+    if (cb) cb.checked = this.showAccessibilityPatterns;
+    this.renderTubes();
+  }
+
   isModalOpen() {
     const modals = [this.modalMap, this.modalVictory, this.modalRoulette, this.modalLeaderboard, this.modalSettings, this.modalHome, this.modalShop];
     return modals.some(m => m && !m.classList.contains('hidden'));
@@ -2943,6 +2959,18 @@ class GameController {
       });
     }
 
+    const btnHomeMinigame = document.getElementById('btn-home-minigame');
+    if (btnHomeMinigame) {
+      this.bindTapOrClick(btnHomeMinigame, () => {
+        this.closeHomeModal();
+        if (window.rouletteEngine) {
+          window.rouletteEngine.openModal();
+        } else {
+          this.showModal(this.modalRoulette);
+        }
+      });
+    }
+
     // Guardado y Carga de Partida en Archivo (.json)
     const btnExportFile = document.getElementById('btn-export-file');
     if (btnExportFile) {
@@ -3092,19 +3120,17 @@ class GameController {
       });
     });
 
-    // Modal Opciones y Personalización de Colores
     const btnOpenSettings = document.getElementById('btn-open-settings');
     const btnCloseSettings = document.getElementById('btn-close-settings');
-    if (btnOpenSettings) {
-      this.bindTapOrClick(btnOpenSettings, () => {
-        if (window.paletteManager) {
-          window.paletteManager.renderColorSettingsUI('color-pickers-list', () => {
-            this.renderTubes();
-          });
-        }
-        this.showModal(this.modalSettings);
-      });
-    }
+    const openSettingsAction = () => {
+      if (window.paletteManager) {
+        window.paletteManager.renderColorSettingsUI('color-pickers-list', () => {
+          this.renderTubes();
+        });
+      }
+      this.showModal(this.modalSettings);
+    };
+    if (btnOpenSettings) this.bindTapOrClick(btnOpenSettings, openSettingsAction);
     if (btnCloseSettings) {
       this.bindTapOrClick(btnCloseSettings, () => {
         this.hideModal(this.modalSettings);
@@ -3131,6 +3157,11 @@ class GameController {
     const cbHighContrast = document.getElementById('toggle-high-contrast');
     if (cbHighContrast) {
       cbHighContrast.addEventListener('change', () => this.toggleHighContrastMode());
+    }
+    const cbPatterns = document.getElementById('toggle-accessibility-patterns');
+    if (cbPatterns) {
+      cbPatterns.checked = this.showAccessibilityPatterns;
+      cbPatterns.addEventListener('change', (e) => this.toggleAccessibilityPatterns(e.target.checked));
     }
 
     // Modal Victoria: Siguiente Nivel y Ruleta

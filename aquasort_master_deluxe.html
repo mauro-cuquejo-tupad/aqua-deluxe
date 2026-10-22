@@ -41,44 +41,44 @@
   <link rel="icon" type="image/svg+xml" href="icons/icon.svg">
 
   <!-- Modular Stylesheets -->
-  <link rel="stylesheet" href="css/main.css?v=21">
-  <link rel="stylesheet" href="css/tubes.css?v=21">
-  <link rel="stylesheet" href="css/roulette.css?v=21">
-  <link rel="stylesheet" href="css/accessibility.css?v=21">
+  <link rel="stylesheet" href="css/main.css?v=22">
+  <link rel="stylesheet" href="css/tubes.css?v=22">
+  <link rel="stylesheet" href="css/roulette.css?v=22">
+  <link rel="stylesheet" href="css/accessibility.css?v=22">
 </head>
 <body class="min-h-screen flex flex-col justify-between select-none relative">
 
   <!-- CABECERA PRINCIPAL / NAVEGACIÓN -->
-  <header class="w-full bg-slate-900/80 backdrop-blur-md border-b border-slate-700/60 px-3 sm:px-6 py-2.5 flex items-center justify-between z-40 sticky top-0 shadow-lg">
+  <header class="w-full bg-slate-900/85 backdrop-blur-md border-b border-slate-700/60 px-2.5 sm:px-6 py-2 sm:py-2.5 flex items-center justify-between z-40 sticky top-0 shadow-lg">
     <!-- Logo e Info del Nivel -->
-    <div class="flex items-center gap-2.5 sm:gap-3">
-      <div class="w-10 h-10 rounded-2xl bg-gradient-to-tr from-sky-400 via-cyan-500 to-indigo-600 flex items-center justify-center shadow-lg shadow-sky-500/30">
-        <i data-lucide="flask-conical" class="w-6 h-6 text-white"></i>
+    <div class="flex items-center gap-2 sm:gap-3">
+      <div class="w-9 h-9 sm:w-10 sm:h-10 rounded-2xl bg-gradient-to-tr from-sky-400 via-cyan-500 to-indigo-600 flex items-center justify-center shadow-lg shadow-sky-500/30 flex-shrink-0">
+        <i data-lucide="flask-conical" class="w-5 h-5 sm:w-6 sm:h-6 text-white"></i>
       </div>
       <div>
-        <h1 class="brand-font text-lg sm:text-xl font-bold tracking-wide text-transparent bg-clip-text bg-gradient-to-r from-sky-300 via-cyan-200 to-amber-200 leading-tight">
-          AquaSort <span class="text-[10px] px-2 py-0.5 rounded-full bg-sky-500/20 text-sky-300 border border-sky-400/40 font-mono">DELUXE</span>
+        <h1 class="brand-font text-base sm:text-xl font-bold tracking-wide text-transparent bg-clip-text bg-gradient-to-r from-sky-300 via-cyan-200 to-amber-200 leading-tight">
+          AquaSort <span class="text-[9px] sm:text-[10px] px-1.5 sm:px-2 py-0.5 rounded-full bg-sky-500/20 text-sky-300 border border-sky-400/40 font-mono">DELUXE</span>
         </h1>
-        <div class="text-[11px] text-slate-400 flex items-center gap-1.5 font-medium">
+        <div class="text-[11px] text-slate-400 flex items-center gap-1 font-medium">
           <span>Nivel <strong id="lbl-level" class="text-sky-300 font-bold">1</strong>/100</span>
-          <span class="text-slate-600">•</span>
-          <span id="lbl-mechanic-tag" class="text-emerald-400 font-semibold truncate max-w-[150px] sm:max-w-none">Básico</span>
-          <button id="btn-quick-help" class="p-0.5 text-slate-400 hover:text-sky-300 transition-colors" title="Ver tutorial/guía de esta mecánica">
+          <span class="text-slate-600 hidden sm:inline">•</span>
+          <span id="lbl-mechanic-tag" class="text-emerald-400 font-semibold truncate max-w-[100px] sm:max-w-none hidden sm:inline">Básico</span>
+          <button id="btn-quick-help" class="p-0.5 text-slate-400 hover:text-sky-300 transition-colors hidden sm:inline" title="Ver tutorial/guía de esta mecánica">
             <i data-lucide="help-circle" class="w-3.5 h-3.5"></i>
           </button>
         </div>
       </div>
     </div>
 
-    <!-- Controles Rápidos del Header -->
-    <div class="flex items-center gap-1.5 sm:gap-3">
-      <!-- Selector Rápido de Nivel -->
-      <select id="sel-level-quick" class="hidden md:block bg-slate-800 text-xs text-sky-200 border border-slate-700 rounded-xl px-2.5 py-1.5 focus:outline-none focus:border-sky-500 cursor-pointer">
+    <!-- Controles del Header (Optimizados y sin ruido para pantallas reducidas de móvil) -->
+    <div class="flex items-center gap-1 sm:gap-2.5">
+      <!-- Selector Rápido de Nivel (Solo escritorio) -->
+      <select id="sel-level-quick" class="hidden lg:block bg-slate-800 text-xs text-sky-200 border border-slate-700 rounded-xl px-2.5 py-1.5 focus:outline-none focus:border-sky-500 cursor-pointer">
         <!-- Opciones generadas por JS -->
       </select>
 
-      <!-- Contador de Vidas / Regeneración (10 min por vida) -->
-      <button id="lives-hud" class="lives-hud-pill cursor-pointer" title="Vidas Alquímicas (Recuperas 1 cada 10 min o compra en la Tienda)">
+      <!-- Contador de Vidas / Regeneración -->
+      <button id="lives-hud" class="lives-hud-pill cursor-pointer px-2 py-1.5" title="Vidas Alquímicas (Recuperas 1 cada 10 min o compra en la Tienda)">
         <span id="lives-hearts-display" class="flex gap-0.5 items-center">
           <i data-lucide="heart" class="w-3.5 h-3.5 fill-rose-500 text-rose-500 heart-icon-full"></i>
           <i data-lucide="heart" class="w-3.5 h-3.5 fill-rose-500 text-rose-500 heart-icon-full"></i>
@@ -88,55 +88,55 @@
         <span id="lives-timer-text" class="text-[10px] text-rose-300 font-mono hidden">10:00</span>
       </button>
 
-      <!-- Botón Pantalla de Inicio -->
-      <button id="btn-open-home" class="p-2 bg-slate-800/90 hover:bg-slate-700 active:scale-95 border border-slate-700 rounded-xl text-sky-300 transition-all shadow-sm" title="Pantalla de Inicio / Menú Principal">
-        <i data-lucide="home" class="w-5 h-5"></i>
-      </button>
-
       <!-- Contador de Monedas / Acceso a Tienda -->
-      <button id="btn-open-shop" class="flex items-center gap-1.5 bg-amber-500/10 hover:bg-amber-500/25 border border-amber-500/30 px-2.5 sm:px-3 py-1.5 rounded-xl shadow-inner text-amber-300 font-black text-xs sm:text-sm transition-all" title="Abrir Tienda de Mejoras">
+      <button id="btn-open-shop" class="flex items-center gap-1 sm:gap-1.5 bg-amber-500/10 hover:bg-amber-500/25 border border-amber-500/30 px-2 sm:px-3 py-1.5 rounded-xl shadow-inner text-amber-300 font-black text-xs sm:text-sm transition-all" title="Abrir Tienda de Mejoras">
         <i data-lucide="shopping-bag" class="w-4 h-4 text-amber-400"></i>
         <span id="lbl-coins">0</span>
       </button>
 
-      <!-- Botón Minijuego Bonus (Diana o Ruleta de la Fortuna) -->
-      <button id="btn-open-minigame" class="p-2 bg-gradient-to-r from-rose-500/20 to-amber-500/20 hover:from-rose-500/30 hover:to-amber-500/30 border border-amber-500/30 rounded-xl text-amber-300 active:scale-95 transition-all shadow-sm" title="Minijuego de Fortuna (Diana de Dardos / Ruleta)">
+      <!-- Botón Minijuego Bonus (En móvil accesible al ganar nivel o en menú) -->
+      <button id="btn-open-minigame" class="hidden md:flex p-2 bg-gradient-to-r from-rose-500/20 to-amber-500/20 hover:from-rose-500/30 hover:to-amber-500/30 border border-amber-500/30 rounded-xl text-amber-300 active:scale-95 transition-all shadow-sm" title="Minijuego de Fortuna (Diana de Dardos / Ruleta)">
         <i data-lucide="target" class="w-5 h-5 text-rose-400"></i>
       </button>
 
-      <!-- Botón Taller de Creación de Niveles -->
-      <button id="btn-open-editor" class="p-2 bg-purple-600/25 hover:bg-purple-600/40 border border-purple-400/40 rounded-xl text-purple-300 active:scale-95 transition-all shadow-sm" title="Taller de Creación de Niveles (Diseña, Prueba y Publica)">
+      <!-- Botón Taller de Creación (En móvil disponible en Inicio) -->
+      <button id="btn-open-editor" class="hidden md:flex p-2 bg-purple-600/25 hover:bg-purple-600/40 border border-purple-400/40 rounded-xl text-purple-300 active:scale-95 transition-all shadow-sm" title="Taller de Creación de Niveles">
         <i data-lucide="pen-tool" class="w-5 h-5"></i>
       </button>
 
       <!-- Botón Tabla de Clasificaciones -->
-      <button id="btn-open-leaderboard" class="p-2 bg-slate-800/90 hover:bg-slate-700 active:scale-95 border border-slate-700 rounded-xl text-amber-300 transition-all shadow-sm" title="Tabla de Clasificaciones (Tiempos y Movimientos)">
+      <button id="btn-open-leaderboard" class="hidden md:flex p-2 bg-slate-800/90 hover:bg-slate-700 active:scale-95 border border-slate-700 rounded-xl text-amber-300 transition-all shadow-sm" title="Tabla de Clasificaciones">
         <i data-lucide="trophy" class="w-5 h-5"></i>
       </button>
 
       <!-- Botón Opciones y Accesibilidad -->
-      <button id="btn-open-settings" class="p-2 bg-slate-800/90 hover:bg-slate-700 active:scale-95 border border-slate-700 rounded-xl text-sky-300 transition-all shadow-sm" title="Opciones y Personalización de Colores">
+      <button id="btn-open-settings" class="hidden md:flex p-2 bg-slate-800/90 hover:bg-slate-700 active:scale-95 border border-slate-700 rounded-xl text-sky-300 transition-all shadow-sm" title="Opciones y Accesibilidad">
         <i data-lucide="sliders-horizontal" class="w-5 h-5"></i>
       </button>
 
-      <!-- Botón Ayuda y Guía de Tubos / Tutoriales -->
-      <button id="btn-open-help" class="p-2 bg-sky-500/20 hover:bg-sky-500/35 border border-sky-400/40 rounded-xl text-sky-300 active:scale-95 transition-all shadow-sm" title="Guía y Tutoriales de Mecánicas Desbloqueadas">
+      <!-- Botón Ayuda y Tutoriales -->
+      <button id="btn-open-help" class="hidden md:flex p-2 bg-sky-500/20 hover:bg-sky-500/35 border border-sky-400/40 rounded-xl text-sky-300 active:scale-95 transition-all shadow-sm" title="Guía de Tubos">
         <i data-lucide="help-circle" class="w-5 h-5 text-sky-300"></i>
       </button>
 
       <!-- Botón Audio / Mute -->
-      <button id="btn-toggle-sound" class="p-2 bg-slate-800/90 hover:bg-slate-700 active:scale-95 border border-slate-700 rounded-xl text-slate-300 transition-all shadow-sm" title="Música y Efectos">
+      <button id="btn-toggle-sound" class="hidden md:flex p-2 bg-slate-800/90 hover:bg-slate-700 active:scale-95 border border-slate-700 rounded-xl text-slate-300 transition-all shadow-sm" title="Música y Efectos">
         <i data-lucide="volume-2" id="icon-sound" class="w-5 h-5"></i>
       </button>
 
-      <!-- Botón Pantalla Completa -->
-      <button id="btn-fullscreen" class="hidden sm:block p-2 bg-slate-800/90 hover:bg-slate-700 active:scale-95 border border-slate-700 rounded-xl text-slate-300 transition-all shadow-sm" title="Pantalla Completa">
+      <!-- Botón Pantalla Completa (Solo pantallas grandes) -->
+      <button id="btn-fullscreen" class="hidden xl:block p-2 bg-slate-800/90 hover:bg-slate-700 active:scale-95 border border-slate-700 rounded-xl text-slate-300 transition-all shadow-sm" title="Pantalla Completa">
         <i data-lucide="maximize" class="w-5 h-5"></i>
       </button>
 
-      <!-- Botón Mapa de Niveles -->
+      <!-- Botón Mapa de Niveles (Siempre visible) -->
       <button id="btn-open-map" class="p-2 bg-gradient-to-r from-sky-500 to-indigo-600 hover:from-sky-400 hover:to-indigo-500 active:scale-95 rounded-xl text-white font-bold transition-all shadow-md shadow-sky-500/30" title="Ver Mapa de Niveles">
-        <i data-lucide="map" class="w-5 h-5"></i>
+        <i data-lucide="map" class="w-4 h-4 sm:w-5 sm:h-5"></i>
+      </button>
+
+      <!-- Botón Pantalla de Inicio / Menú (Siempre visible a la derecha) -->
+      <button id="btn-open-home" class="p-2 bg-slate-800/90 hover:bg-slate-700 active:scale-95 border border-slate-700 rounded-xl text-sky-300 transition-all shadow-sm" title="Pantalla de Inicio / Menú Principal">
+        <i data-lucide="home" class="w-4 h-4 sm:w-5 sm:h-5"></i>
       </button>
     </div>
   </header>
@@ -375,6 +375,20 @@
               <div class="w-11 h-6 bg-slate-700 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-slate-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-amber-500"></div>
             </label>
           </div>
+
+          <div class="flex items-center justify-between pt-2 border-t border-slate-700/60">
+            <div>
+              <div class="text-sm font-bold text-white flex items-center gap-1.5">
+                <i data-lucide="sparkles" class="w-4 h-4 text-emerald-400"></i>
+                Símbolos y Texturas en Líquidos
+              </div>
+              <p class="text-[11px] text-slate-400">Iconos y tramas en fluidos (Desactivado por defecto para líquidos puros y limpios).</p>
+            </div>
+            <label class="relative inline-flex items-center cursor-pointer">
+              <input type="checkbox" id="toggle-accessibility-patterns" class="sr-only peer">
+              <div class="w-11 h-6 bg-slate-700 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-slate-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-emerald-500"></div>
+            </label>
+          </div>
         </div>
 
         <!-- Personalización Completa de Colores de Líquidos -->
@@ -517,14 +531,14 @@
        MODAL 5: MINIJUEGO DE FORTUNA: DIANA ALQUÍMICA Y RULETA ALEATORIZADA
        ========================================================================== -->
   <div id="modal-roulette" class="fixed inset-0 bg-slate-950/90 backdrop-blur-md z-50 hidden flex items-center justify-center p-3 sm:p-5 modal-overlay">
-    <div class="bg-slate-900 border border-slate-700 rounded-3xl max-w-md w-full p-5 sm:p-6 shadow-2xl text-center relative modal-content">
+    <div class="bg-slate-900 border border-slate-700 rounded-3xl max-w-md w-full p-4 sm:p-5 shadow-2xl text-center relative modal-content max-h-[94vh] overflow-y-auto">
       <!-- Selector de Modo de Minijuego y Banner de Asignación Aleatoria -->
       <div id="minigame-assigned-banner" class="mb-1.5 py-1 px-3 rounded-xl text-[11px] font-black bg-slate-800 text-amber-300 border border-amber-500/30 flex items-center justify-center gap-1.5 shadow-sm">
         🎲 ¡Minijuego Asignado desde la Bolsa Alquímica!
       </div>
 
       <!-- Indicador visual de la Bolsa Alquímica -->
-      <div id="minigame-bag-indicator" class="mb-2.5 flex items-center justify-center gap-2.5 text-[11px] font-bold text-slate-300 bg-slate-950/70 py-1.5 px-3 rounded-xl border border-slate-800 shadow-inner">
+      <div id="minigame-bag-indicator" class="mb-2 flex items-center justify-center gap-2.5 text-[11px] font-bold text-slate-300 bg-slate-950/70 py-1 px-3 rounded-xl border border-slate-800 shadow-inner">
         <span class="flex items-center gap-1 text-slate-400 font-semibold">🎒 En Bolsa:</span>
         <span id="bag-count-diana" class="text-sky-300 font-mono font-bold">🎯 3 Diana</span>
         <span class="text-slate-600 font-bold">•</span>
@@ -532,11 +546,11 @@
       </div>
 
       <!-- CAJÓN DE CARTAS ALQUÍMICAS DE FORTUNA -->
-      <div id="alchemy-cards-drawer" class="w-full mb-3 p-2.5 rounded-2xl bg-slate-950/80 border border-slate-700/70 text-left">
-        <div class="flex items-center justify-between text-[11px] font-bold text-slate-300 mb-1.5">
+      <div id="alchemy-cards-drawer" class="w-full mb-2.5 p-2 rounded-2xl bg-slate-950/80 border border-slate-700/70 text-left">
+        <div class="flex items-center justify-between text-[11px] font-bold text-slate-300 mb-1">
           <span class="flex items-center gap-1.5">
             <i data-lucide="sparkles" class="w-3.5 h-3.5 text-amber-400"></i>
-            Cartas Alquímicas de Fortuna
+            Cartas Alquímicas
           </span>
           <span id="active-card-pill" class="text-[10px] text-amber-300 font-semibold px-2 py-0.5 rounded-full bg-amber-500/10 border border-amber-500/30">
             Toca una para activarla
@@ -564,84 +578,113 @@
           <button id="card-calm-atmosphere" data-card="calmAtmosphere" class="btn-alchemy-card flex flex-col items-center justify-center p-1.5 rounded-xl bg-slate-800 border border-slate-700 hover:border-emerald-400 transition-all text-center">
             <span class="text-base mb-0.5">🌬️</span>
             <span class="text-[9px] font-black text-emerald-300 leading-tight">Calma Viento</span>
-            <span class="text-[8px] text-slate-400 font-bold">(Bonus Diana)</span>
+            <span class="text-[8px] text-slate-400 font-bold">(Diana Sin Viento)</span>
             <span class="card-count text-[9px] text-amber-300 font-black mt-0.5">x2</span>
           </button>
         </div>
       </div>
 
-      <h3 id="minigame-title" class="text-xl font-black text-white flex items-center justify-center gap-2 mb-1">
+      <h3 id="minigame-title" class="text-lg sm:text-xl font-black text-white flex items-center justify-center gap-2 mb-0.5">
         <i data-lucide="crosshair" class="w-5 h-5 text-sky-400"></i>
         Diana de Dardos Alquímica
       </h3>
       <p id="lbl-roulette-odds" class="text-xs text-slate-300 font-semibold mb-2">
-        Apunta horizontalmente y mantén presionado para regular altura • Multiplicadores hasta x3.0
+        Toca el dardo y arrástralo hacia atrás para disparar
       </p>
 
-      <!-- VISTA 1: DIANA DE DARDOS (ESTILO MAGIC DARTS CON APUNTADO HORIZONTAL Y FUERZA ASCENDENTE) -->
-      <div id="diana-view" class="flex flex-col items-center">
-        <!-- Indicador de Viento Dinámico con 0, 1, 2 o 3 Flechitas Animadas -->
-        <div id="wind-hud" class="wind-indicator-pill mb-2">
-          <i data-lucide="wind" class="w-4 h-4 text-sky-400"></i>
-          <span id="wind-speed-lbl">Viento: 3.2 m/s</span>
-          <div id="wind-arrows-stream" class="wind-arrows-stream">
-            <span class="wind-chevron">➤</span>
-            <span class="wind-chevron">➤</span>
-          </div>
-        </div>
+      <!-- VISTA 1: DIANA DE DARDOS (MECÁNICA SLINGSHOT / RESORTE TÁCTIL) -->
+      <div id="diana-view" class="flex flex-col items-center w-full">
+        <!-- Contenedor Diana y Zona Táctil de Slingshot -->
+        <div id="diana-target-container" class="diana-wrapper relative">
+          <svg id="diana-svg" class="w-full h-full select-none" viewBox="0 0 300 360">
+            <defs>
+              <!-- Gradiente Anillo Bronce -->
+              <radialGradient id="grad-bronze" cx="40%" cy="40%" r="60%">
+                <stop offset="0%" stop-color="#b45309"/>
+                <stop offset="60%" stop-color="#92400e"/>
+                <stop offset="100%" stop-color="#78350f"/>
+              </radialGradient>
+              <!-- Gradiente Anillo Plata -->
+              <radialGradient id="grad-silver" cx="35%" cy="35%" r="65%">
+                <stop offset="0%" stop-color="#e2e8f0"/>
+                <stop offset="45%" stop-color="#94a3b8"/>
+                <stop offset="100%" stop-color="#475569"/>
+              </radialGradient>
+              <!-- Gradiente Centro Oro -->
+              <radialGradient id="grad-gold" cx="30%" cy="30%" r="70%">
+                <stop offset="0%" stop-color="#ffffff"/>
+                <stop offset="25%" stop-color="#fef08a"/>
+                <stop offset="60%" stop-color="#f59e0b"/>
+                <stop offset="100%" stop-color="#b45309"/>
+              </radialGradient>
+            </defs>
 
-        <!-- Control de Posición Horizontal (Magic Darts) -->
-        <div class="w-[280px] mb-2 px-2.5 py-1.5 rounded-xl bg-slate-800/80 border border-slate-700 flex flex-col gap-1">
-          <div class="flex items-center justify-between text-[10px] text-slate-300 font-bold">
-            <span>⇦ Posición Horizontal (X) ⇨</span>
-            <span id="diana-x-lbl" class="text-sky-400 font-black">X: 150 (Centro)</span>
-          </div>
-          <input id="diana-x-slider" type="range" min="40" max="260" value="150" class="w-full accent-sky-400 cursor-ew-resize">
-        </div>
+            <!-- 1. TRES AROS SÓLIDOS Y CLARAMENTE DIFERENCIADOS -->
+            <!-- Anillo Exterior: Bronce x1.2 (Radio 130) -->
+            <circle cx="150" cy="140" r="130" fill="url(#grad-bronze)" stroke="#d97706" stroke-width="3"/>
+            <!-- Anillo Medio: Plata x1.5 (Radio 75) -->
+            <circle cx="150" cy="140" r="75" fill="url(#grad-silver)" stroke="#ffffff" stroke-width="2.5"/>
+            <!-- Centro: Oro Brillante x3.0 (Radio 28) -->
+            <circle cx="150" cy="140" r="28" fill="url(#grad-gold)" stroke="#fef08a" stroke-width="3"/>
+            <circle cx="150" cy="140" r="8" fill="#ef4444" stroke="#ffffff" stroke-width="1.5"/>
 
-        <!-- Contenedor Diana con retícula vertical/horizontal -->
-        <div id="diana-target-container" class="diana-wrapper">
-          <div id="diana-crosshair" class="diana-crosshair hidden" style="left: 150px; top: 150px;"></div>
-          <svg id="diana-svg" class="w-full h-full" viewBox="0 0 300 300">
-            <!-- Círculos concéntricos de multiplicador -->
-            <circle cx="150" cy="150" r="130" fill="#0f172a" stroke="#475569" stroke-width="3"/>
-            <circle cx="150" cy="150" r="125" fill="#1e293b" stroke="#38bdf8" stroke-dasharray="4,4" stroke-width="1.5"/>
-            <circle cx="150" cy="150" r="95" fill="#1e1b4b" stroke="#818cf8" stroke-width="2"/>
-            <circle cx="150" cy="150" r="65" fill="#312e81" stroke="#a855f7" stroke-width="2.5"/>
-            <circle cx="150" cy="150" r="18" fill="#eab308" stroke="#fef08a" stroke-width="3"/>
-            <circle cx="150" cy="150" r="7" fill="#ef4444"/>
+            <!-- Etiquetas Grandes y Legibles de Multiplicadores -->
+            <text x="150" y="45" text-anchor="middle" fill="#fde68a" font-size="12" font-weight="900" letter-spacing="1">BRONCE x1.2</text>
+            <text x="150" y="92" text-anchor="middle" fill="#ffffff" font-size="11" font-weight="900" letter-spacing="1">PLATA x1.5</text>
+            <text x="150" y="144" text-anchor="middle" fill="#000000" font-size="10" font-weight="900">x3.0</text>
 
-            <!-- Etiquetas de Multiplicadores -->
-            <text x="150" y="42" text-anchor="middle" fill="#94a3b8" font-size="10" font-weight="bold">1.2x</text>
-            <text x="150" y="74" text-anchor="middle" fill="#a5b4fc" font-size="10" font-weight="bold">1.5x</text>
-            <text x="150" y="104" text-anchor="middle" fill="#c084fc" font-size="11" font-weight="black">2.0x</text>
-            <text x="150" y="154" text-anchor="middle" fill="#000000" font-size="10" font-weight="900">3x</text>
-
-            <!-- Guía Vertical de Apuntado X -->
-            <line id="diana-x-guide" x1="150" y1="20" x2="150" y2="280" stroke="#38bdf8" stroke-width="1.5" stroke-dasharray="4,3" opacity="0.8"/>
-            
-            <!-- Retícula Horizontal de Fuerza Ascendente Y -->
-            <line id="diana-y-guide" x1="30" y1="270" x2="270" y2="270" stroke="#f43f5e" stroke-width="2.5" opacity="0.9"/>
-            
-            <!-- Retícula Central Móvil -->
-            <g id="diana-crosshair-svg" transform="translate(150, 270)">
-              <circle cx="0" cy="0" r="8" fill="none" stroke="#38bdf8" stroke-width="2"/>
-              <line x1="-12" y1="0" x2="12" y2="0" stroke="#38bdf8" stroke-width="2"/>
-              <line x1="0" y1="-12" x2="0" y2="12" stroke="#38bdf8" stroke-width="2"/>
-              <circle cx="0" cy="0" r="2.5" fill="#ef4444"/>
+            <!-- 2. BRISA Y VIENTO ANIMADO VISUAL -->
+            <g id="diana-breeze-group" class="pointer-events-none" opacity="0.8">
+              <path id="breeze-line-1" class="breeze-streak" d="M 30 70 Q 150 50 270 70" stroke="#38bdf8" stroke-width="2" fill="none"/>
+              <path id="breeze-line-2" class="breeze-streak" d="M 20 140 Q 140 120 280 140" stroke="#7dd3fc" stroke-width="2.5" fill="none"/>
+              <path id="breeze-line-3" class="breeze-streak" d="M 40 210 Q 160 190 260 210" stroke="#38bdf8" stroke-width="2" fill="none"/>
             </g>
 
-            <!-- Grupo dinámico para renderizar marcas 'X' de impacto de dardos -->
+            <!-- 3. LÍNEA PUNTEADA DE TRAYECTORIA CURVA (RESPONDE AL VIENTO) -->
+            <path id="slingshot-trajectory" d="" stroke="#38bdf8" stroke-width="3.5" stroke-dasharray="6,5" stroke-linecap="round" fill="none" opacity="0"/>
+            <circle id="trajectory-aim-dot" cx="150" cy="140" r="5" fill="#38bdf8" stroke="#ffffff" stroke-width="1.5" opacity="0"/>
+
+            <!-- 4. SOPORTE DE LA HONDA / RESORTE (BASE INFERIOR) -->
+            <g id="slingshot-base" class="pointer-events-none">
+              <!-- Postes de anclaje de la honda -->
+              <circle cx="100" cy="295" r="5" fill="#ca8a04" stroke="#fde047" stroke-width="1.5"/>
+              <circle cx="200" cy="295" r="5" fill="#ca8a04" stroke="#fde047" stroke-width="1.5"/>
+              <!-- Bandas elásticas / resorte -->
+              <line id="slingshot-band-left" x1="100" y1="295" x2="150" y2="315" stroke="#f59e0b" stroke-width="3.5" stroke-linecap="round"/>
+              <line id="slingshot-band-right" x1="200" y1="295" x2="150" y2="315" stroke="#f59e0b" stroke-width="3.5" stroke-linecap="round"/>
+            </g>
+
+            <!-- 5. DARDO LISTO EN LA BASE (MANIPULABLE CON TOUCH) -->
+            <g id="slingshot-dart" class="slingshot-dart-ready" transform="translate(150, 315)">
+              <!-- Sombra -->
+              <circle cx="0" cy="2" r="14" fill="rgba(0,0,0,0.5)"/>
+              <!-- Halo táctil -->
+              <circle cx="0" cy="0" r="16" fill="rgba(56, 189, 248, 0.25)" stroke="#38bdf8" stroke-width="2" stroke-dasharray="3,3"/>
+              <!-- Cuerpo del dardo -->
+              <polygon points="0,-16 -7,6 0,2 7,6" fill="#ef4444" stroke="#ffffff" stroke-width="1.5"/>
+              <!-- Aletas -->
+              <polygon points="-7,6 -11,14 -4,11" fill="#38bdf8"/>
+              <polygon points="7,6 11,14 4,11" fill="#38bdf8"/>
+              <!-- Punta dorada -->
+              <polygon points="0,-16 -3,-8 3,-8" fill="#fde047"/>
+            </g>
+
+            <!-- Grupo para impactos 'X' -->
             <g id="diana-impacts-group"></g>
+            <!-- Grupo para animación de dardo en vuelo -->
             <g id="diana-darts-group"></g>
           </svg>
         </div>
+
+        <div id="diana-gesture-hint" class="text-center text-[11px] font-bold text-sky-300 mt-1 mb-2 animate-pulse">
+          🏹 Toca el dardo, arrastra hacia abajo y suelta para lanzar
+        </div>
       </div>
 
-      <!-- VISTA 2: RULETA DE LA FORTUNA CON SECTORES ALEATORIZADOS -->
-      <div id="roulette-view" class="hidden flex flex-col items-center">
+      <!-- VISTA 2: RULETA DE LA FORTUNA CON BARRA DE TIMING ACTIVO -->
+      <div id="roulette-view" class="hidden flex flex-col items-center w-full">
         <!-- CONTENEDOR VISUAL DE LA RULETA -->
-        <div class="wheel-container mb-3">
+        <div class="wheel-container mb-2.5">
           <!-- CURSOR / AGUJA CON PIVOTE FÍSICO DE DEFLEXIÓN POR CLAVIJAS -->
           <div id="roulette-needle" class="needle-wrapper">
             <div class="needle-pivot"></div>
@@ -670,11 +713,11 @@
           </svg>
         </div>
 
-        <!-- SELECTOR DE COLOR APOSTADO (HASTA 2 COLORES) -->
-        <div class="w-full mb-3">
-          <div class="text-[11px] text-slate-300 font-semibold mb-1.5 flex items-center justify-between">
-            <span>Elige hasta 2 colores:</span>
-            <span id="roulette-bet-mode-lbl" class="text-amber-300 text-[10px]">1 color: x2.0 (-50%) • 2 colores: x1.5 (-100%)</span>
+        <!-- SELECTOR DE COLOR APOSTADO -->
+        <div class="w-full mb-2">
+          <div class="text-[11px] text-slate-300 font-bold mb-1.5 flex items-center justify-between">
+            <span>Elige tu color:</span>
+            <span id="roulette-bet-mode-lbl" class="text-amber-300 text-[10px] font-mono">1 color: x2.0 • 2 colores: x1.5</span>
           </div>
           <div id="roulette-colors-selector" class="grid grid-cols-3 gap-2">
             <button data-color="red" class="btn-color-pick py-2 rounded-xl font-black text-xs border-2 border-rose-500/50 bg-rose-500/20 text-rose-300">
@@ -688,28 +731,54 @@
             </button>
           </div>
         </div>
+
+        <!-- BARRA DE TIMING ACTIVO (RIESGO VS. RECOMPENSA) -->
+        <div id="roulette-timing-section" class="w-full mb-3">
+          <div class="flex items-center justify-between text-[10px] font-black uppercase tracking-wider mb-1 px-1">
+            <span class="text-rose-400">⚠️ Fallo</span>
+            <span class="text-sky-300">Estándar</span>
+            <span class="text-amber-300 animate-pulse">⭐ PERFECTO ⭐</span>
+            <span class="text-sky-300">Estándar</span>
+            <span class="text-rose-400">⚠️ Fallo</span>
+          </div>
+
+          <div id="timing-meter-container" class="timing-meter-container relative w-full h-7 rounded-xl overflow-hidden border border-slate-600/80 shadow-inner flex">
+            <!-- 1. Zona Roja Izquierda (17.5%) -->
+            <div class="h-full bg-gradient-to-r from-rose-700 to-rose-600 border-r border-rose-900/60" style="width: 17.5%;"></div>
+            <!-- 2. Zona Azul Izquierda (25%) -->
+            <div class="h-full bg-gradient-to-r from-sky-600 to-blue-500 border-r border-sky-800/60" style="width: 25%;"></div>
+            <!-- 3. Zona Dorada Centro (15%) -->
+            <div class="h-full bg-gradient-to-r from-amber-400 via-yellow-300 to-amber-400 shadow-[0_0_15px_#fde047] z-10 flex items-center justify-center border-x-2 border-yellow-200" style="width: 15%;">
+              <span class="text-[9px] font-black text-slate-950 uppercase tracking-tighter">PERFECTO</span>
+            </div>
+            <!-- 4. Zona Azul Derecha (25%) -->
+            <div class="h-full bg-gradient-to-r from-blue-500 to-sky-600 border-l border-sky-800/60" style="width: 25%;"></div>
+            <!-- 5. Zona Roja Derecha (17.5%) -->
+            <div class="h-full bg-gradient-to-r from-rose-600 to-rose-700 border-l border-rose-900/60" style="width: 17.5%;"></div>
+
+            <!-- Aguja oscilante marcadora -->
+            <div id="timing-needle" class="absolute top-0 bottom-0 w-1.5 bg-white rounded-full shadow-[0_0_10px_#ffffff,0_0_16px_#38bdf8] pointer-events-none transform -translate-x-1/2 z-20" style="left: 50%;">
+              <div class="absolute -top-1 left-1/2 -translate-x-1/2 w-3 h-2 bg-white rounded-sm shadow-[0_0_6px_#fff]"></div>
+              <div class="absolute -bottom-1 left-1/2 -translate-x-1/2 w-3 h-2 bg-white rounded-sm shadow-[0_0_6px_#fff]"></div>
+            </div>
+          </div>
+
+          <div id="timing-feedback-lbl" class="text-center text-[11px] font-black text-slate-400 mt-1 min-h-[16px]">
+            ¡Toca "¡GIRAR!" para clavar la aguja en el centro dorado!
+          </div>
+        </div>
+
+        <!-- BOTÓN DIRECTO DE ACCIÓN EN RULETA -->
+        <button id="btn-spin-wheel" class="w-full mb-2.5 py-3.5 bg-gradient-to-r from-amber-400 via-amber-500 to-orange-500 hover:from-amber-300 hover:to-orange-400 active:scale-95 text-slate-950 font-black rounded-2xl shadow-lg shadow-amber-500/30 text-base tracking-wider transition-all select-none">
+          ¡GIRAR!
+        </button>
       </div>
 
-      <!-- MEDIDOR DE FUERZA (SIN CARTEL DE FUERZA ÓPTIMA) -->
-      <div class="power-meter-container mb-1">
-        <div id="power-bar" class="power-bar-fill"></div>
-        <div class="absolute right-[8%] top-0 bottom-0 w-0.5 bg-rose-400 shadow-[0_0_6px_#f43f5e]" title="Límite máximo"></div>
-      </div>
-      <div class="flex justify-between text-[10px] text-slate-400 font-bold mb-3 uppercase">
-        <span>Fuerza Mínima (Abajo)</span>
-        <span class="text-rose-400">Aceleración / Límite (Arriba)</span>
-      </div>
-
-      <!-- BOTONES DE ACCIÓN: DISPARAR Y COBRAR SEGURO DESTACADO EN ROJO -->
-      <div class="flex flex-col gap-2.5">
-        <button id="btn-spin-wheel" class="w-full py-3.5 bg-gradient-to-r from-amber-500 to-orange-500 hover:from-amber-400 hover:to-orange-400 text-slate-950 font-black rounded-2xl shadow-lg shadow-amber-500/30 text-xs sm:text-sm tracking-wide transition-all select-none">
-          MANTÉN PRESIONADO PARA REGULAR FUERZA
-        </button>
-        <button id="btn-cashout-roulette" class="w-full py-3 bg-gradient-to-r from-rose-600 to-red-600 hover:from-rose-500 hover:to-red-500 text-white font-black rounded-2xl shadow-lg shadow-rose-600/30 text-xs sm:text-sm tracking-wide transition-all uppercase flex items-center justify-center gap-2">
-          <i data-lucide="shield-check" class="w-4 h-4 text-rose-200"></i>
-          Cobrar Seguro y Continuar (Sin Riesgo)
-        </button>
-      </div>
+      <!-- BOTÓN SECUNDARIO DE RETIRADA SEGURA (VISIBLE EN AMBOS MODOS) -->
+      <button id="btn-cashout-roulette" class="w-full py-2.5 bg-gradient-to-r from-rose-600 to-red-600 hover:from-rose-500 hover:to-red-500 active:scale-95 text-white font-bold rounded-2xl shadow-md text-xs sm:text-sm tracking-wide transition-all uppercase flex items-center justify-center gap-2">
+        <i data-lucide="shield-check" class="w-4 h-4 text-rose-200"></i>
+        Cobrar Seguro y Continuar (Sin Riesgo)
+      </button>
     </div>
   </div>
 
@@ -771,14 +840,18 @@
           </button>
         </div>
 
-        <div class="grid grid-cols-2 gap-2.5">
-          <button id="btn-home-leaderboard" class="btn-interactive py-2.5 bg-slate-800/80 hover:bg-slate-700 border border-slate-700/80 text-slate-300 font-semibold text-xs rounded-2xl flex items-center justify-center gap-2">
+        <div class="grid grid-cols-3 gap-2">
+          <button id="btn-home-leaderboard" class="btn-interactive py-2.5 bg-slate-800/80 hover:bg-slate-700 border border-slate-700/80 text-slate-300 font-semibold text-xs rounded-2xl flex items-center justify-center gap-1.5">
             <i data-lucide="trophy" class="w-4 h-4 text-amber-400"></i>
-            <span>Clasificaciones</span>
+            <span>Récords</span>
           </button>
-          <button id="btn-home-tutorials" class="btn-interactive py-2.5 bg-sky-500/15 hover:bg-sky-500/25 border border-sky-500/40 text-sky-300 font-semibold text-xs rounded-2xl flex items-center justify-center gap-2" title="Guía y tutoriales de tubos desbloqueados">
+          <button id="btn-home-tutorials" class="btn-interactive py-2.5 bg-sky-500/15 hover:bg-sky-500/25 border border-sky-500/40 text-sky-300 font-semibold text-xs rounded-2xl flex items-center justify-center gap-1.5" title="Guía y tutoriales de tubos desbloqueados">
             <i data-lucide="help-circle" class="w-4 h-4 text-sky-400"></i>
-            <span>Guía de Tubos</span>
+            <span>Guía Tubos</span>
+          </button>
+          <button id="btn-home-settings" class="btn-interactive py-2.5 bg-slate-800/80 hover:bg-slate-700 border border-slate-700/80 text-sky-300 font-semibold text-xs rounded-2xl flex items-center justify-center gap-1.5" title="Opciones, Accesibilidad y Sonido">
+            <i data-lucide="sliders-horizontal" class="w-4 h-4 text-sky-400"></i>
+            <span>Ajustes</span>
           </button>
         </div>
 
@@ -786,6 +859,12 @@
         <button id="btn-home-editor" class="btn-interactive w-full py-2.5 bg-gradient-to-r from-purple-600/30 to-indigo-600/30 hover:from-purple-600/50 hover:to-indigo-600/50 border border-purple-400/40 text-purple-200 font-bold text-xs rounded-2xl flex items-center justify-center gap-2">
           <i data-lucide="pen-tool" class="w-4 h-4 text-purple-400"></i>
           <span>Taller de Creación de Niveles</span>
+        </button>
+
+        <!-- Botón Minijuego de Fortuna en Home Screen -->
+        <button id="btn-home-minigame" class="btn-interactive w-full py-2.5 bg-gradient-to-r from-rose-500/25 via-amber-500/30 to-yellow-500/25 hover:from-rose-500/40 hover:to-yellow-500/40 border border-amber-400/40 text-amber-300 font-bold text-xs rounded-2xl flex items-center justify-center gap-2">
+          <i data-lucide="target" class="w-4 h-4 text-rose-400"></i>
+          <span>Minijuego de Fortuna (Diana / Ruleta) 🎯</span>
         </button>
 
         <!-- Botón Epílogos Alquímicos (Finales) en Home Screen -->
@@ -1419,15 +1498,15 @@
   <input type="file" id="input-save-file" accept=".json" class="hidden">
 
   <!-- Scripts modulares -->
-  <script src="js/audio.js?v=21"></script>
-  <script src="js/palette.js?v=21"></script>
-  <script src="js/levels.js?v=21"></script>
-  <script src="js/challenges.js?v=21"></script>
-  <script src="js/honor.js?v=21"></script>
-  <script src="js/state.js?v=21"></script>
-  <script src="js/leaderboard.js?v=21"></script>
-  <script src="js/roulette.js?v=21"></script>
-  <script src="js/game.js?v=21"></script>
+  <script src="js/audio.js?v=22"></script>
+  <script src="js/palette.js?v=22"></script>
+  <script src="js/levels.js?v=22"></script>
+  <script src="js/challenges.js?v=22"></script>
+  <script src="js/honor.js?v=22"></script>
+  <script src="js/state.js?v=22"></script>
+  <script src="js/leaderboard.js?v=22"></script>
+  <script src="js/roulette.js?v=22"></script>
+  <script src="js/game.js?v=22"></script>
 
   <!-- Registro de Service Worker PWA -->
   <script>

@@ -38,9 +38,41 @@ const DEFAULT_STATE = {
     activeCard: null,         // 'dianaFavor' | 'rouletteFavor' | null
     cardUsesRemaining: 0     // Cantidad de minijuegos restantes con beneficio activo
   },
+  settings: {
+    showAccessibilityPatterns: false // Por defecto desactivado: líquidos puros y limpios
+  },
   customLevels: [],            // Niveles creados por el usuario [{ id, name, author, tubes, verified: true }]
   auxiliaryCooldownRemaining: 0 // Movimientos restantes para usar botella extra (persistente)
 };
+
+// Funciones auxiliares para persistencia en Cookies
+function setCookie(name, value, days = 365) {
+  try {
+    const d = new Date();
+    d.setTime(d.getTime() + (days * 24 * 60 * 60 * 1000));
+    const expires = "expires=" + d.toUTCString();
+    document.cookie = `${name}=${encodeURIComponent(value)};${expires};path=/;SameSite=Lax`;
+  } catch (e) {
+    console.warn('No se pudo guardar cookie:', e);
+  }
+}
+
+function getCookie(name) {
+  try {
+    const cname = name + "=";
+    const decodedCookie = decodeURIComponent(document.cookie);
+    const ca = decodedCookie.split(';');
+    for (let i = 0; i < ca.length; i++) {
+      let c = ca[i].trim();
+      if (c.indexOf(cname) === 0) {
+        return c.substring(cname.length, c.length);
+      }
+    }
+  } catch (e) {
+    console.warn('No se pudo leer cookie:', e);
+  }
+  return "";
+}
 
 class StateManager {
   constructor() {
@@ -49,9 +81,26 @@ class StateManager {
   }
 
   loadState() {
+    let saved = null;
     try {
-      const saved = localStorage.getItem(STORAGE_KEY);
-      if (saved) {
+      saved = localStorage.getItem(STORAGE_KEY);
+    } catch (e) {
+      console.warn('LocalStorage inaccesible, intentando cookie:', e);
+    }
+
+    // Si localStorage estaba vacío o falló (ej. Safari privado/iOS), recurrir a Cookie
+    if (!saved) {
+      const fromCookie = getCookie(STORAGE_KEY);
+      if (fromCookie) {
+        saved = fromCookie;
+        try {
+          localStorage.setItem(STORAGE_KEY, fromCookie);
+        } catch (e) {}
+      }
+    }
+
+    if (saved) {
+      try {
         const parsed = JSON.parse(saved);
         return {
           ...DEFAULT_STATE,
@@ -59,6 +108,7 @@ class StateManager {
           player: { ...DEFAULT_STATE.player, ...parsed.player },
           upgrades: { ...DEFAULT_STATE.upgrades, ...parsed.upgrades },
           cards: { ...DEFAULT_STATE.cards, ...(parsed.cards || {}) },
+          settings: { ...DEFAULT_STATE.settings, ...(parsed.settings || {}) },
           minigameBag: {
             tokens: (parsed.minigameBag && Array.isArray(parsed.minigameBag.tokens) && parsed.minigameBag.tokens.length > 0)
               ? parsed.minigameBag.tokens
@@ -74,18 +124,49 @@ class StateManager {
           },
           customLevels: Array.isArray(parsed.customLevels) ? parsed.customLevels : []
         };
+      } catch (e) {
+        console.warn('Error parseando estado guardado:', e);
       }
-    } catch (e) {
-      console.warn('Error cargando estado:', e);
     }
     return JSON.parse(JSON.stringify(DEFAULT_STATE));
   }
 
   saveState() {
+    const json = JSON.stringify(this.state);
     try {
-      localStorage.setItem(STORAGE_KEY, JSON.stringify(this.state));
+      localStorage.setItem(STORAGE_KEY, json);
     } catch (e) {
-      console.warn('Error guardando estado:', e);
+      console.warn('Error guardando en localStorage:', e);
+    }
+
+    // Persistencia de respaldo en cookies (garantiza progreso en celulares/iOS Safari)
+    try {
+      const backupState = {
+        player: this.state.player,
+        upgrades: this.state.upgrades,
+        cards: this.state.cards,
+        progress: {
+          unlockedLevel: this.state.progress.unlockedLevel,
+          completedLevels: this.state.progress.completedLevels,
+          honorMastery: this.state.progress.honorMastery,
+          seenTutorials: this.state.progress.seenTutorials
+        },
+        settings: this.state.settings
+      };
+      const backupJson = JSON.stringify(backupState);
+      if (backupJson.length < 3800) {
+        setCookie(STORAGE_KEY, backupJson, 365);
+      } else {
+        const compactBackup = {
+          player: this.state.player,
+          upgrades: this.state.upgrades,
+          progress: { unlockedLevel: this.state.progress.unlockedLevel },
+          settings: this.state.settings
+        };
+        setCookie(STORAGE_KEY, JSON.stringify(compactBackup), 365);
+      }
+    } catch (e) {
+      console.warn('Error guardando respaldo en cookie:', e);
     }
   }
 

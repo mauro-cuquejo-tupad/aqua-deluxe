@@ -100,25 +100,77 @@
   filter: drop-shadow(0 0 8px #fde047);
 }
 
-/* Barra de Medidor de Fuerza */
-.power-meter-container {
+/* Barra de Timing Activo (Riesgo vs. Recompensa) */
+.timing-meter-container {
   position: relative;
   width: 100%;
-  height: 16px;
-  background: rgba(15, 23, 42, 0.9);
-  border: 1.5px solid rgba(255, 255, 255, 0.2);
-  border-radius: 9999px;
+  height: 28px;
+  background: #0f172a;
+  border: 2px solid rgba(255, 255, 255, 0.25);
+  border-radius: 12px;
   overflow: hidden;
-  box-shadow: inset 0 2px 5px rgba(0, 0, 0, 0.6);
+  box-shadow: inset 0 2px 8px rgba(0, 0, 0, 0.8), 0 0 15px rgba(0, 0, 0, 0.5);
 }
 
-.power-bar-fill {
-  height: 100%;
-  width: 0%;
-  background: linear-gradient(90deg, #10b981 0%, #3b82f6 40%, #f59e0b 70%, #ef4444 100%);
-  border-radius: 9999px;
-  transition: width 0.04s linear;
-  box-shadow: 0 0 12px rgba(245, 158, 11, 0.6);
+.timing-needle {
+  transition: transform 0.05s ease;
+}
+
+.timing-needle.locked-gold {
+  box-shadow: 0 0 25px #fde047, 0 0 40px #f59e0b !important;
+  background-color: #ffffff !important;
+  animation: goldPulse 0.4s ease-in-out infinite alternate;
+}
+
+.timing-needle.locked-red {
+  box-shadow: 0 0 20px #ef4444 !important;
+  background-color: #fca5a5 !important;
+}
+
+@keyframes goldPulse {
+  0% { transform: translateX(-50%) scale(1); }
+  100% { transform: translateX(-50%) scale(1.25); }
+}
+
+/* Diana Wrapper y Controles Táctiles Slingshot */
+.diana-wrapper {
+  position: relative;
+  width: 100%;
+  max-width: 320px;
+  height: 350px;
+  margin: 0 auto;
+  user-select: none;
+  touch-action: none;
+}
+
+/* Brisa y Viento Animado */
+@keyframes breezeDrift {
+  0% {
+    stroke-dashoffset: 80;
+    opacity: 0.2;
+  }
+  50% {
+    opacity: 0.85;
+  }
+  100% {
+    stroke-dashoffset: -80;
+    opacity: 0.1;
+  }
+}
+
+.breeze-streak {
+  stroke-dasharray: 25 35;
+  animation: breezeDrift 2.2s linear infinite;
+}
+
+/* Estilo para el dardo y honda táctil */
+.slingshot-dart-ready {
+  cursor: grab;
+  filter: drop-shadow(0 4px 10px rgba(0, 0, 0, 0.85));
+  transition: transform 0.08s ease-out;
+}
+.slingshot-dart-ready:active {
+  cursor: grabbing;
 }
 
 /* Botones de apuesta en ruleta */
