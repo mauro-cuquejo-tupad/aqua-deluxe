@@ -332,7 +332,52 @@ class LeaderboardManager {
       `;
     });
 
+    const dailyRec = window.stateManager ? window.stateManager.getDailyChallengeRecord() : null;
+    const todayStr = new Date().toISOString().slice(0, 10);
+    let dailyBannerHTML = '';
+
+    if (dailyRec && dailyRec.completed) {
+      dailyBannerHTML = `
+        <div class="mb-3.5 p-3 rounded-2xl bg-gradient-to-r from-amber-500/25 via-yellow-400/20 to-amber-500/25 border-2 border-amber-400/80 shadow-lg shadow-amber-500/20 flex items-center justify-between">
+          <div class="flex items-center gap-3">
+            <div class="w-10 h-10 rounded-xl bg-gradient-to-br from-amber-300 to-amber-500 text-slate-950 flex items-center justify-center font-black text-xl shadow-md border border-yellow-200">
+              👑
+            </div>
+            <div>
+              <div class="flex items-center gap-2">
+                <span class="text-xs font-black text-amber-200 uppercase tracking-wide">Desafío Diario • ${todayStr}</span>
+                <span class="text-[9px] px-2 py-0.5 rounded-full bg-amber-400 text-slate-950 font-black">MEDALLA DEL DÍA</span>
+              </div>
+              <div class="text-[11px] text-emerald-300 font-bold">¡Completado con Éxito! Medalla Diaria Activa en la Tabla 🎖️</div>
+            </div>
+          </div>
+          <div class="text-right">
+            <div class="text-sm font-black text-amber-300 font-mono">${(dailyRec.score || 0).toLocaleString()} pts</div>
+            <div class="text-[10px] text-slate-300 font-mono">⏱️ ${this.formatTime(dailyRec.time || 0)} • 👣 ${dailyRec.moves || 0} movs</div>
+          </div>
+        </div>
+      `;
+    } else {
+      dailyBannerHTML = `
+        <div class="mb-3.5 p-3 rounded-2xl bg-slate-800/80 border border-amber-500/40 flex items-center justify-between">
+          <div class="flex items-center gap-2.5">
+            <div class="w-8 h-8 rounded-lg bg-amber-500/20 text-amber-300 flex items-center justify-center font-black text-base border border-amber-500/30">
+              👑
+            </div>
+            <div>
+              <div class="text-xs font-black text-white">Desafío Diario • ${todayStr}</div>
+              <div class="text-[10px] text-amber-300/90 font-semibold">¡Gana la medalla dorada de hoy completando el puzzle aleatorio!</div>
+            </div>
+          </div>
+          <button id="btn-leaderboard-play-daily" class="btn-interactive px-3 py-1.5 bg-gradient-to-r from-amber-500 to-yellow-500 hover:from-amber-400 hover:to-yellow-400 text-slate-950 text-xs font-black rounded-xl shadow-md transition-all">
+            Jugar Reto
+          </button>
+        </div>
+      `;
+    }
+
     container.innerHTML = `
+      ${dailyBannerHTML}
       <table class="w-full text-left border-collapse">
         <thead>
           <tr class="text-[11px] uppercase tracking-wider text-slate-400 border-b border-slate-700/80 bg-slate-900/50">
@@ -350,6 +395,17 @@ class LeaderboardManager {
         </tbody>
       </table>
     `;
+
+    const btnPlayDaily = container.querySelector('#btn-leaderboard-play-daily');
+    if (btnPlayDaily) {
+      btnPlayDaily.addEventListener('click', () => {
+        const modalLeaderboard = document.getElementById('modal-leaderboard');
+        if (modalLeaderboard) modalLeaderboard.classList.add('hidden');
+        if (window.game && typeof window.game.launchDailyChallenge === 'function') {
+          window.game.launchDailyChallenge();
+        }
+      });
+    }
 
     if (window.lucide) lucide.createIcons();
   }

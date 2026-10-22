@@ -496,6 +496,31 @@ class LevelGenerator {
   static shuffleDeterministically(tubes, seed) {
     this.distributeAndShuffle(tubes, seed);
   }
+
+  /**
+   * Genera el nivel único del Desafío Diario basado en la fecha YYYY-MM-DD.
+   * Determinista para todos los jugadores el mismo día.
+   */
+  static generateDailyLevel(dateStr = null) {
+    const now = new Date();
+    const dStr = dateStr || `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')}`;
+
+    let hash = 0;
+    for (let i = 0; i < dStr.length; i++) {
+      hash = (hash << 5) - hash + dStr.charCodeAt(i);
+      hash |= 0;
+    }
+    const absHash = Math.abs(hash);
+    const pseudoLevel = (absHash % 75) + 15; // Entre nivel 15 y 90 (mecánicas interesantes)
+    const seedVariation = (absHash % 9999) + 100;
+
+    const data = this.generate(pseudoLevel, seedVariation);
+    data.level = 'daily';
+    data.dateStr = dStr;
+    data.title = `Desafío Diario • ${dStr}`;
+    data.isDaily = true;
+    return data;
+  }
 }
 
 window.LevelGenerator = LevelGenerator;

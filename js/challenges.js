@@ -118,7 +118,7 @@ class ChallengeManager {
     }
 
     // ------------------------------------------------------------------------
-    // TIPO 4: Llenar Tubos Pares ("Llenar tubos pares")
+    // TIPO 4A: Llenar Tubos Pares ("Llenar tubos pares")
     // ------------------------------------------------------------------------
     // Índices pares en 1-based: tubos 2, 4, 6... (índices 0-based: 1, 3, 5...)
     const evenTubeIndices = tubes.map((_, i) => i).filter(i => (i + 1) % 2 === 0);
@@ -145,6 +145,95 @@ class ChallengeManager {
           return `${filledCount}/${evenTubeIndices.length}`;
         },
         isFailedLive: () => false
+      });
+    }
+
+    // ------------------------------------------------------------------------
+    // TIPO 4B: Llenar Tubos Impares ("Llenar tubos impares")
+    // ------------------------------------------------------------------------
+    // Índices impares en 1-based: tubos 1, 3, 5... (índices 0-based: 0, 2, 4...)
+    const oddTubeIndices = tubes.map((_, i) => i).filter(i => (i + 1) % 2 === 1);
+    if (oddTubeIndices.length >= 1 && colorCount >= oddTubeIndices.length) {
+      const oddStr = oddTubeIndices.map(i => `${i + 1}º`).join(', ');
+      candidates.push({
+        type: 'odd_tubes_filled',
+        id: 'odd_tubes',
+        icon: 'hash',
+        title: `Llenar todos los tubos impares (${oddStr})`,
+        shortTitle: `Tubos impares llenos`,
+        coins: 5,
+        check: (game) => {
+          return oddTubeIndices.every(idx => {
+            const t = game.tubes[idx];
+            return t && t.liquids.length === t.capacity;
+          });
+        },
+        getCurrentText: (game) => {
+          const filledCount = oddTubeIndices.filter(idx => {
+            const t = game.tubes[idx];
+            return t && t.liquids.length === t.capacity;
+          }).length;
+          return `${filledCount}/${oddTubeIndices.length}`;
+        },
+        isFailedLive: () => false
+      });
+    }
+
+    // ------------------------------------------------------------------------
+    // TIPO 4C: Astucia Numérica: Movimientos Impares
+    // ------------------------------------------------------------------------
+    candidates.push({
+      type: 'odd_moves_count',
+      id: 'odd_moves',
+      icon: 'zap',
+      title: 'Completar en un número impar de movimientos',
+      shortTitle: 'Movs impares',
+      coins: 4,
+      check: (game) => (game.moves || 0) % 2 !== 0 && (game.moves || 0) > 0,
+      getCurrentText: (game) => `${game.moves || 0} movs (${(game.moves || 0) % 2 !== 0 ? 'Impar ✓' : 'Par ✕'})`,
+      isFailedLive: () => false
+    });
+
+    // ------------------------------------------------------------------------
+    // TIPO 4D: Precisión Alquímica: Sin Deshacer
+    // ------------------------------------------------------------------------
+    candidates.push({
+      type: 'no_undo_used',
+      id: 'no_undo',
+      icon: 'rotate-ccw',
+      title: 'Superar sin deshacer movimientos (precisión total)',
+      shortTitle: 'Sin deshacer',
+      coins: 4,
+      check: (game) => (game.undoCountInLevel || 0) === 0,
+      getCurrentText: (game) => ((game.undoCountInLevel || 0) === 0 ? 'Puro ✓' : `${game.undoCountInLevel} ✕`),
+      isFailedLive: (game) => (game.undoCountInLevel || 0) > 0
+    });
+
+    // ------------------------------------------------------------------------
+    // TIPO 4E: Frasco de Reserva: Preservar el último tubo intacto
+    // ------------------------------------------------------------------------
+    // Solo en niveles con 2+ tubos vacíos iniciales y hasta 5 colores
+    const emptyCount = tubes.filter(t => (t.liquids || []).length === 0).length;
+    if (emptyCount >= 2 && colorCount <= 5 && tubes.length >= 5) {
+      const targetReserveIdx = tubes.length - 1;
+      const humanReservePos = targetReserveIdx + 1;
+      candidates.push({
+        type: 'preserve_empty_tube',
+        id: `preserve_empty_${targetReserveIdx}`,
+        icon: 'flask-conical',
+        title: `Preservar el ${humanReservePos}º tubo vacío (sin tocar)`,
+        shortTitle: `Tubo ${humanReservePos} intacto`,
+        coins: 5,
+        targetTubeIdx: targetReserveIdx,
+        check: (game) => {
+          if (!game.touchedTubeIndices) return true;
+          return !game.touchedTubeIndices.has(targetReserveIdx);
+        },
+        getCurrentText: (game) => {
+          const touched = game.touchedTubeIndices && game.touchedTubeIndices.has(targetReserveIdx);
+          return touched ? 'Usado ✕' : 'Intacto ✓';
+        },
+        isFailedLive: (game) => game.touchedTubeIndices && game.touchedTubeIndices.has(targetReserveIdx)
       });
     }
 
@@ -242,10 +331,10 @@ class ChallengeManager {
       return [c1, c2];
     }
 
-    // Nivel 4: Tubo específico + Sin pistas
+    // Nivel 4: Tubo específico + Movimientos impares
     if (level === 4) {
       const c1 = candidates.find(c => c.type === 'specific_tube_color') || candidates[0];
-      const c2 = candidates.find(c => c.type === 'no_hints') || candidates[1];
+      const c2 = candidates.find(c => c.type === 'odd_moves_count') || candidates[1];
       return [c1, c2];
     }
 

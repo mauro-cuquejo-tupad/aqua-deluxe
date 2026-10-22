@@ -15,6 +15,9 @@ class GameController {
     this.coins = window.stateManager ? window.stateManager.getCoins() : 0;
     this.hintsRemaining = 3;
     this.hintsUsedInLevel = 0;
+    this.undoCountInLevel = 0;
+    this.touchedTubeIndices = new Set();
+    this.isDailyChallenge = false;
     this.extraTubesUsed = 0;
     this.moveHistory = [];
     this.activeHint = null;
@@ -275,7 +278,10 @@ class GameController {
 
   // --- CARGA Y GENERACIÓN DE NIVELES ---
   loadLevel(lvl, seedVariation = 0, customLevelData = null) {
-    this.currentLevel = Math.max(1, Math.min(lvl, this.maxLevels));
+    if (lvl !== 'daily') {
+      this.currentLevel = Math.max(1, Math.min(lvl, this.maxLevels));
+      this.isDailyChallenge = false;
+    }
     this.moves = 0;
     this.moveHistory = [];
     this.selectedTubeIndex = null;
@@ -283,6 +289,8 @@ class GameController {
     this.extraTubesUsed = 0;
     this.activeHint = null;
     this.hintsUsedInLevel = 0;
+    this.undoCountInLevel = 0;
+    this.touchedTubeIndices = new Set();
     this.isPouringAnimation = false;
     this.seedVariation = seedVariation;
 
@@ -362,11 +370,25 @@ class GameController {
       this.updateCoinsUI();
       return;
     }
+    if (this.isDailyChallenge) {
+      if (this.lblLevel) this.lblLevel.textContent = '👑 DIARIO';
+      if (this.lblMechanicTag) this.lblMechanicTag.textContent = 'Desafío del Día';
+      this.updateCoinsUI();
+      return;
+    }
     if (this.lblLevel) this.lblLevel.textContent = this.currentLevel;
     if (this.selLevelQuick) this.selLevelQuick.value = this.currentLevel;
     if (this.lblOptimalMoves) this.lblOptimalMoves.textContent = this.levelData.optimalMoves;
     if (this.lblMechanicTag) this.lblMechanicTag.textContent = this.levelData.mechanicTag;
     this.updateCoinsUI();
+  }
+
+  launchDailyChallenge() {
+    this.isDailyChallenge = true;
+    const dailyData = window.LevelGenerator ? window.LevelGenerator.generateDailyLevel() : null;
+    if (!dailyData) return;
+    this.loadLevel('daily', 0, dailyData);
+    if (window.audio) window.audio.playWinFanfare();
   }
 
   updateMovesUI() {
@@ -1051,6 +1073,11 @@ class GameController {
   executePour(fromIdx, toIdx) {
     this.saveStateForUndo();
     this.isPouringAnimation = true;
+
+    if (this.touchedTubeIndices) {
+      this.touchedTubeIndices.add(fromIdx);
+      this.touchedTubeIndices.add(toIdx);
+    }
 
     const fromTube = this.tubes[fromIdx];
     const toTube = this.tubes[toIdx];
@@ -1964,7 +1991,30 @@ class GameController {
     const btnVicNext = document.getElementById('btn-vic-next');
     const completionBadge = document.getElementById('lbl-vic-completion-badge');
 
-    if (this.currentLevel === 100) {
+    if (this.isDailyChallenge) {
+      if (vicTitle) {
+        vicTitle.innerHTML = '👑 ¡DESAFÍO DIARIO SUPERADO!';
+        vicTitle.className = 'text-2xl font-black text-transparent bg-clip-text bg-gradient-to-r from-amber-300 via-yellow-300 to-amber-400 mb-1 animate-pulse';
+      }
+      if (vicSubtitle) {
+        vicSubtitle.innerHTML = '✨ ¡Medalla dorada del día conseguida en la Tabla de Clasificaciones!';
+        vicSubtitle.className = 'text-xs text-amber-200 font-bold mb-3';
+      }
+      if (completionBadge) completionBadge.classList.add('hidden');
+      if (btnVicNext) {
+        btnVicNext.className = 'btn-interactive w-full py-3 bg-gradient-to-r from-amber-500 to-yellow-500 hover:from-amber-400 hover:to-yellow-400 text-slate-950 font-black rounded-2xl transition-all flex items-center justify-center gap-2 shadow-md';
+        btnVicNext.innerHTML = '<span>👑 Ver Tabla de Clasificaciones</span><i data-lucide="award" class="w-4 h-4"></i>';
+      }
+      if (window.stateManager) {
+        const dateStr = this.levelData?.dateStr || new Date().toISOString().slice(0, 10);
+        window.stateManager.recordDailyChallenge(dateStr, {
+          score: this.lastLevelScore || 1000,
+          moves: this.moves,
+          time: elapsedSecs,
+          stars: 3
+        });
+      }
+    } else if (this.currentLevel === 100) {
       if (window.stateManager) {
         window.stateManager.state.progress.hasCompletedAll100 = true;
         window.stateManager.saveState();
@@ -2044,10 +2094,16 @@ class GameController {
     list.innerHTML = '';
     if (bonusLbl) bonusLbl.textContent = 'Evaluando...';
 
-    // Evaluar cada desafío del nivel
+    // Evaluar cada desafío del nivel preservando los previamente completados en intentos anteriores
+    const savedChallenges = (window.stateManager && !this.customLevelTesting && !this.isDailyChallenge)
+      ? window.stateManager.getLevelChallenges(this.currentLevel)
+      : null;
+    const prevCompletedIds = savedChallenges?.completedIds || [];
+
     const results = this.levelChallenges.map(c => {
-      const isCompleted = typeof c.check === 'function' ? c.check(this, elapsedSecs) : false;
-      return { challenge: c, completed: isCompleted };
+      const wasAlreadyCompleted = prevCompletedIds.includes(c.id);
+      const isCompleted = wasAlreadyCompleted || (typeof c.check === 'function' ? c.check(this, elapsedSecs) : false);
+      return { challenge: c, completed: isCompleted, wasAlreadyCompleted };
     });
 
     const bonusData = window.ChallengeManager
@@ -2302,6 +2358,7 @@ class GameController {
   undo() {
     if (this.isHonorMode) return;
     if (this.moveHistory.length === 0 || this.isPouringAnimation) return;
+    this.undoCountInLevel = (this.undoCountInLevel || 0) + 1;
     const prev = this.moveHistory.pop();
     this.tubes = prev.tubes;
     this.moves = prev.moves;
@@ -2794,6 +2851,11 @@ class GameController {
       this.bindTapOrClick(btnOpenShop, () => this.openShopModal());
     }
 
+    const btnOpenDaily = document.getElementById('btn-open-daily');
+    if (btnOpenDaily) {
+      this.bindTapOrClick(btnOpenDaily, () => this.launchDailyChallenge());
+    }
+
     const btnOpenMinigame = document.getElementById('btn-open-minigame');
     if (btnOpenMinigame) {
       this.bindTapOrClick(btnOpenMinigame, () => {
@@ -3164,12 +3226,27 @@ class GameController {
       cbPatterns.addEventListener('change', (e) => this.toggleAccessibilityPatterns(e.target.checked));
     }
 
+    // Modal Victoria: Rehacer Nivel (Replay para mejorar tiempos manteniendo desafíos)
+    const btnVicReplay = document.getElementById('btn-vic-replay');
+    if (btnVicReplay) {
+      this.bindTapOrClick(btnVicReplay, () => {
+        this.hideModal(this.modalVictory);
+        if (this.isDailyChallenge) {
+          this.launchDailyChallenge();
+        } else {
+          this.loadLevel(this.currentLevel);
+        }
+      });
+    }
+
     // Modal Victoria: Siguiente Nivel y Ruleta
     const btnVicNext = document.getElementById('btn-vic-next');
     if (btnVicNext) {
       this.bindTapOrClick(btnVicNext, () => {
         this.hideModal(this.modalVictory);
-        if (this.currentLevel >= 100) {
+        if (this.isDailyChallenge) {
+          this.showLeaderboardModal();
+        } else if (this.currentLevel >= 100) {
           this.showGameCompletionModal();
         } else {
           this.loadLevel(this.currentLevel + 1);
@@ -3575,7 +3652,6 @@ class GameController {
               <rect x="45" y="102" width="30" height="28" rx="8" class="demo-anim-mystery-block"/>
               <g class="demo-anim-mystery-mark">
                 <text x="60" y="121" fill="#94a3b8" font-size="14" font-weight="900" text-anchor="middle" class="demo-mystery-q">?</text>
-                <text x="60" y="122" fill="#0f172a" font-size="14" font-weight="900" text-anchor="middle" class="demo-mystery-star">★</text>
               </g>
               <!-- Bloque azul superior que se vacía hacia Tubo B -->
               <rect x="45" y="72" width="30" height="28" rx="4" fill="#3b82f6" class="demo-anim-mystery-blue"/>
@@ -3683,7 +3759,6 @@ class GameController {
             <g>
               <rect x="45" y="25" width="36" height="110" rx="14" fill="rgba(255,255,255,0.06)" stroke="#ec4899" stroke-width="2"/>
               <rect x="48" y="103" width="30" height="28" rx="8" class="anim-chameleon-loop"/>
-              <text x="63" y="121" fill="#ffffff" font-size="12" font-weight="bold" text-anchor="middle">★</text>
             </g>
             <g>
               <rect x="140" y="25" width="36" height="110" rx="14" fill="rgba(255,255,255,0.06)" stroke="#a855f7" stroke-width="2"/>

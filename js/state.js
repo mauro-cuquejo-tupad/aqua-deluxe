@@ -370,6 +370,32 @@ class StateManager {
     };
   }
 
+  // --- REGISTRO DEL DESAFÍO DIARIO ALEATORIO ---
+  recordDailyChallenge(dateStr = null, stats = {}) {
+    if (!this.state.progress.dailyChallenges) {
+      this.state.progress.dailyChallenges = {};
+    }
+    const today = dateStr || new Date().toISOString().slice(0, 10);
+    const prev = this.state.progress.dailyChallenges[today] || {};
+    this.state.progress.dailyChallenges[today] = {
+      completed: true,
+      date: today,
+      score: Math.max(prev.score || 0, stats.score || 0),
+      moves: (prev.moves && prev.moves < stats.moves) ? prev.moves : (stats.moves || 0),
+      time: (prev.time && prev.time < stats.time) ? prev.time : (stats.time || 0),
+      stars: Math.max(prev.stars || 0, stats.stars || 3),
+      completedAll: true,
+      timestamp: Date.now()
+    };
+    this.saveState();
+  }
+
+  getDailyChallengeRecord(dateStr = null) {
+    if (!this.state.progress.dailyChallenges) return null;
+    const today = dateStr || new Date().toISOString().slice(0, 10);
+    return this.state.progress.dailyChallenges[today] || null;
+  }
+
   // --- DESAFÍOS DE HONOR Y MEDALLAS DE SECCIÓN (3 VIDAS, 5 MINUTOS, REINICIO DIARIO) ---
   getHonorChallengeState(sectionId) {
     if (!this.state.progress.honorMastery) {

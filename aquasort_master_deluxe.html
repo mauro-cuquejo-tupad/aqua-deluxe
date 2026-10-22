@@ -41,10 +41,10 @@
   <link rel="icon" type="image/svg+xml" href="icons/icon.svg">
 
   <!-- Modular Stylesheets -->
-  <link rel="stylesheet" href="css/main.css?v=22">
-  <link rel="stylesheet" href="css/tubes.css?v=22">
-  <link rel="stylesheet" href="css/roulette.css?v=22">
-  <link rel="stylesheet" href="css/accessibility.css?v=22">
+  <link rel="stylesheet" href="css/main.css?v=23">
+  <link rel="stylesheet" href="css/tubes.css?v=23">
+  <link rel="stylesheet" href="css/roulette.css?v=23">
+  <link rel="stylesheet" href="css/accessibility.css?v=23">
 </head>
 <body class="min-h-screen flex flex-col justify-between select-none relative">
 
@@ -92,6 +92,12 @@
       <button id="btn-open-shop" class="flex items-center gap-1 sm:gap-1.5 bg-amber-500/10 hover:bg-amber-500/25 border border-amber-500/30 px-2 sm:px-3 py-1.5 rounded-xl shadow-inner text-amber-300 font-black text-xs sm:text-sm transition-all" title="Abrir Tienda de Mejoras">
         <i data-lucide="shopping-bag" class="w-4 h-4 text-amber-400"></i>
         <span id="lbl-coins">0</span>
+      </button>
+
+      <!-- Botón Desafío Diario (Modo Random de Nivel del Día) -->
+      <button id="btn-open-daily" class="flex items-center gap-1 sm:gap-1.5 bg-gradient-to-r from-amber-500/20 to-yellow-500/20 hover:from-amber-500/30 hover:to-yellow-500/30 border border-amber-400/50 px-2 sm:px-2.5 py-1.5 rounded-xl text-amber-300 font-black text-xs transition-all shadow-sm" title="Jugar Desafío Diario Aleatorio">
+        <span class="text-sm">👑</span>
+        <span class="hidden sm:inline">Diario</span>
       </button>
 
       <!-- Botón Minijuego Bonus (En móvil accesible al ganar nivel o en menú) -->
@@ -519,10 +525,16 @@
           <span>Multiplicar en Minijuego de Fortuna (🎯 / 🎡)</span>
         </button>
 
-        <button id="btn-vic-next" class="btn-interactive w-full py-3 bg-sky-600 hover:bg-sky-500 text-white font-bold rounded-2xl transition-all flex items-center justify-center gap-2 shadow-md">
-          <span>Siguiente Nivel</span>
-          <i data-lucide="arrow-right" class="w-4 h-4"></i>
-        </button>
+        <div class="grid grid-cols-2 gap-2">
+          <button id="btn-vic-replay" class="btn-interactive py-3 bg-slate-800 hover:bg-slate-700 text-slate-200 border border-slate-600 font-bold rounded-2xl transition-all flex items-center justify-center gap-1.5 shadow-md text-xs sm:text-sm">
+            <i data-lucide="rotate-ccw" class="w-4 h-4 text-sky-400"></i>
+            <span>Rehacer Nivel</span>
+          </button>
+          <button id="btn-vic-next" class="btn-interactive py-3 bg-sky-600 hover:bg-sky-500 text-white font-bold rounded-2xl transition-all flex items-center justify-center gap-1.5 shadow-md text-xs sm:text-sm">
+            <span>Siguiente Nivel</span>
+            <i data-lucide="arrow-right" class="w-4 h-4"></i>
+          </button>
+        </div>
       </div>
     </div>
   </div>
@@ -532,12 +544,24 @@
        ========================================================================== -->
   <div id="modal-roulette" class="fixed inset-0 bg-slate-950/90 backdrop-blur-md z-50 hidden flex items-center justify-center p-3 sm:p-5 modal-overlay">
     <div class="bg-slate-900 border border-slate-700 rounded-3xl max-w-md w-full p-4 sm:p-5 shadow-2xl text-center relative modal-content max-h-[94vh] overflow-y-auto">
-      <!-- Selector de Modo de Minijuego y Banner de Asignación Aleatoria -->
-      <div id="minigame-assigned-banner" class="mb-1.5 py-1 px-3 rounded-xl text-[11px] font-black bg-slate-800 text-amber-300 border border-amber-500/30 flex items-center justify-center gap-1.5 shadow-sm">
+      <!-- Selector de Modo de Minijuego (3 Modos Alquímicos) -->
+      <div id="tab-minigame-selector" class="flex items-center gap-1.5 mb-2 p-1 rounded-2xl bg-slate-950/80 border border-slate-800">
+        <button id="tab-game-diana" type="button" class="flex-1 py-1.5 px-2 rounded-xl text-xs font-black bg-gradient-to-r from-sky-500 to-indigo-600 text-white shadow-md transition-all text-center">
+          🎯 Diana
+        </button>
+        <button id="tab-game-moving" type="button" class="flex-1 py-1.5 px-2 rounded-xl text-xs font-bold bg-slate-800 text-slate-300 hover:text-white transition-all text-center">
+          🎪 Móviles
+        </button>
+        <button id="tab-game-roulette" type="button" class="flex-1 py-1.5 px-2 rounded-xl text-xs font-bold bg-slate-800 text-slate-300 hover:text-white transition-all text-center">
+          🎡 Ruleta
+        </button>
+      </div>
+
+      <!-- Banner de Asignación y Bolsa Alquímica -->
+      <div id="minigame-assigned-banner" class="mb-1 py-1 px-3 rounded-xl text-[11px] font-black bg-slate-800 text-amber-300 border border-amber-500/30 flex items-center justify-center gap-1.5 shadow-sm">
         🎲 ¡Minijuego Asignado desde la Bolsa Alquímica!
       </div>
 
-      <!-- Indicador visual de la Bolsa Alquímica -->
       <div id="minigame-bag-indicator" class="mb-2 flex items-center justify-center gap-2.5 text-[11px] font-bold text-slate-300 bg-slate-950/70 py-1 px-3 rounded-xl border border-slate-800 shadow-inner">
         <span class="flex items-center gap-1 text-slate-400 font-semibold">🎒 En Bolsa:</span>
         <span id="bag-count-diana" class="text-sky-300 font-mono font-bold">🎯 3 Diana</span>
@@ -545,42 +569,48 @@
         <span id="bag-count-roulette" class="text-amber-300 font-mono font-bold">🎡 3 Ruleta</span>
       </div>
 
-      <!-- CAJÓN DE CARTAS ALQUÍMICAS DE FORTUNA -->
-      <div id="alchemy-cards-drawer" class="w-full mb-2.5 p-2 rounded-2xl bg-slate-950/80 border border-slate-700/70 text-left">
-        <div class="flex items-center justify-between text-[11px] font-bold text-slate-300 mb-1">
-          <span class="flex items-center gap-1.5">
-            <i data-lucide="sparkles" class="w-3.5 h-3.5 text-amber-400"></i>
-            Cartas Alquímicas
-          </span>
-          <span id="active-card-pill" class="text-[10px] text-amber-300 font-semibold px-2 py-0.5 rounded-full bg-amber-500/10 border border-amber-500/30">
-            Toca una para activarla
-          </span>
-        </div>
-        <div class="grid grid-cols-4 gap-1.5">
-          <button id="card-diana-favor" data-card="dianaFavor" class="btn-alchemy-card flex flex-col items-center justify-center p-1.5 rounded-xl bg-slate-800 border border-slate-700 hover:border-sky-400 transition-all text-center">
-            <span class="text-base mb-0.5">🎯</span>
-            <span class="text-[9px] font-black text-sky-300 leading-tight">Favor Diana</span>
-            <span class="text-[8px] text-slate-400 font-bold">(5 bonuses)</span>
-            <span class="card-count text-[9px] text-amber-300 font-black mt-0.5">x2</span>
-          </button>
-          <button id="card-roulette-favor" data-card="rouletteFavor" class="btn-alchemy-card flex flex-col items-center justify-center p-1.5 rounded-xl bg-slate-800 border border-slate-700 hover:border-amber-400 transition-all text-center">
-            <span class="text-base mb-0.5">🎡</span>
-            <span class="text-[9px] font-black text-amber-300 leading-tight">Giro Destino</span>
-            <span class="text-[8px] text-slate-400 font-bold">(5 bonuses)</span>
-            <span class="card-count text-[9px] text-amber-300 font-black mt-0.5">x2</span>
-          </button>
-          <button id="card-double-or-nothing" data-card="doubleOrNothing" class="btn-alchemy-card flex flex-col items-center justify-center p-1.5 rounded-xl bg-slate-800 border border-slate-700 hover:border-rose-400 transition-all text-center">
-            <span class="text-base mb-0.5">⚖️</span>
-            <span class="text-[9px] font-black text-rose-300 leading-tight">Doble o Nada</span>
-            <span class="text-[8px] text-slate-400 font-bold">(Ruleta 50% x2)</span>
-            <span class="card-count text-[9px] text-amber-300 font-black mt-0.5">x2</span>
-          </button>
-          <button id="card-calm-atmosphere" data-card="calmAtmosphere" class="btn-alchemy-card flex flex-col items-center justify-center p-1.5 rounded-xl bg-slate-800 border border-slate-700 hover:border-emerald-400 transition-all text-center">
-            <span class="text-base mb-0.5">🌬️</span>
-            <span class="text-[9px] font-black text-emerald-300 leading-tight">Calma Viento</span>
-            <span class="text-[8px] text-slate-400 font-bold">(Diana Sin Viento)</span>
-            <span class="card-count text-[9px] text-amber-300 font-black mt-0.5">x2</span>
-          </button>
+      <!-- CAJÓN COLAPSABLE DE CARTAS ALQUÍMICAS DE FORTUNA -->
+      <div id="alchemy-cards-drawer" class="w-full mb-2 rounded-2xl bg-slate-950/80 border border-slate-700/70 text-left overflow-hidden">
+        <button id="btn-toggle-cards-drawer" type="button" class="w-full py-1.5 px-3 bg-slate-900 hover:bg-slate-800 text-slate-300 font-bold text-xs flex items-center justify-between transition-all select-none">
+          <div class="flex items-center gap-1.5">
+            <span class="text-sm">🃏</span>
+            <span>Cartas de Fortuna</span>
+            <span id="lbl-cards-available-count" class="text-[10px] text-slate-400 font-mono font-normal"></span>
+          </div>
+          <div class="flex items-center gap-2">
+            <span id="active-card-pill" class="text-[10px] text-amber-300 font-semibold px-2 py-0.5 rounded-full bg-amber-500/10 border border-amber-500/30">
+              Toca para activar
+            </span>
+            <span id="cards-drawer-arrow" class="text-slate-400 text-xs">▼</span>
+          </div>
+        </button>
+        <div id="alchemy-cards-drawer-body" class="drawer-collapsed p-2 border-t border-slate-800">
+          <div class="grid grid-cols-4 gap-1.5">
+            <button id="card-diana-favor" data-card="dianaFavor" class="btn-alchemy-card flex flex-col items-center justify-center p-1.5 rounded-xl bg-slate-800 border border-slate-700 hover:border-sky-400 transition-all text-center">
+              <span class="text-base mb-0.5">🎯</span>
+              <span class="text-[9px] font-black text-sky-300 leading-tight">Tiro Extra</span>
+              <span class="text-[8px] text-slate-400 font-bold">(Respaldo)</span>
+              <span class="card-count text-[9px] text-amber-300 font-black mt-0.5">x2</span>
+            </button>
+            <button id="card-roulette-favor" data-card="rouletteFavor" class="btn-alchemy-card flex flex-col items-center justify-center p-1.5 rounded-xl bg-slate-800 border border-slate-700 hover:border-amber-400 transition-all text-center">
+              <span class="text-base mb-0.5">👁️</span>
+              <span class="text-[9px] font-black text-amber-300 leading-tight">Ojo Dorado</span>
+              <span class="text-[8px] text-slate-400 font-bold">(Margen x2)</span>
+              <span class="card-count text-[9px] text-amber-300 font-black mt-0.5">x2</span>
+            </button>
+            <button id="card-double-or-nothing" data-card="doubleOrNothing" class="btn-alchemy-card flex flex-col items-center justify-center p-1.5 rounded-xl bg-slate-800 border border-slate-700 hover:border-rose-400 transition-all text-center">
+              <span class="text-base mb-0.5">⚖️</span>
+              <span class="text-[9px] font-black text-rose-300 leading-tight">Doble o Nada</span>
+              <span class="text-[8px] text-slate-400 font-bold">(Premios x2)</span>
+              <span class="card-count text-[9px] text-amber-300 font-black mt-0.5">x2</span>
+            </button>
+            <button id="card-calm-atmosphere" data-card="calmAtmosphere" class="btn-alchemy-card flex flex-col items-center justify-center p-1.5 rounded-xl bg-slate-800 border border-slate-700 hover:border-emerald-400 transition-all text-center">
+              <span class="text-base mb-0.5">🌬️</span>
+              <span class="text-[9px] font-black text-emerald-300 leading-tight">Calma Viento</span>
+              <span class="text-[8px] text-slate-400 font-bold">(0.0 m/s)</span>
+              <span class="card-count text-[9px] text-amber-300 font-black mt-0.5">x2</span>
+            </button>
+          </div>
         </div>
       </div>
 
@@ -677,7 +707,72 @@
         </div>
 
         <div id="diana-gesture-hint" class="text-center text-[11px] font-bold text-sky-300 mt-1 mb-2 animate-pulse">
-          🏹 Toca el dardo, arrastra hacia abajo y suelta para lanzar
+          🏹 Toca en cualquier parte, arrastra hacia abajo y suelta para lanzar
+        </div>
+      </div>
+
+      <!-- VISTA 3: DIANAS ALQUÍMICAS MÓVILES (3 BLANCOS FLOTANTES) -->
+      <div id="moving-targets-view" class="hidden flex flex-col items-center w-full">
+        <!-- HUD DE ESTADO: DARDOS Y ACIERTOS -->
+        <div class="flex items-center justify-between w-full max-w-[290px] mb-1.5 px-1 text-xs font-black">
+          <span id="moving-darts-count-badge" class="px-2 py-0.5 rounded-full bg-purple-500/20 text-purple-300 border border-purple-500/30">
+            🏹 4 Dardos
+          </span>
+          <span id="moving-hits-count-badge" class="px-2 py-0.5 rounded-full bg-amber-500/20 text-amber-300 border border-amber-500/30">
+            🎯 0/3 Aciertos
+          </span>
+        </div>
+
+        <!-- CONTENEDOR VISUAL DE DIANAS MÓVILES -->
+        <div id="moving-targets-container" class="relative w-full max-w-[290px] aspect-[5/6] bg-slate-950/90 rounded-2xl border-2 border-purple-500/50 shadow-2xl overflow-hidden select-none touch-none cursor-crosshair">
+          <svg id="moving-targets-svg" class="w-full h-full" viewBox="0 0 300 360">
+            <!-- Cielo estrellado y guías sutiles -->
+            <defs>
+              <linearGradient id="moving-sky-grad" x1="0%" y1="0%" x2="0%" y2="100%">
+                <stop offset="0%" stop-color="#0f172a"/>
+                <stop offset="60%" stop-color="#1e1b4b"/>
+                <stop offset="100%" stop-color="#090d16"/>
+              </linearGradient>
+            </defs>
+            <rect width="300" height="360" fill="url(#moving-sky-grad)"/>
+
+            <!-- Rieles de movimiento sutiles -->
+            <line x1="30" y1="65" x2="270" y2="65" stroke="rgba(255,255,255,0.08)" stroke-width="2" stroke-dasharray="4,4"/>
+            <line x1="30" y1="125" x2="270" y2="125" stroke="rgba(255,255,255,0.08)" stroke-width="2" stroke-dasharray="4,4"/>
+            <line x1="30" y1="185" x2="270" y2="185" stroke="rgba(255,255,255,0.08)" stroke-width="2" stroke-dasharray="4,4"/>
+
+            <!-- Grupo de dianas flotantes en movimiento -->
+            <g id="moving-targets-group"></g>
+
+            <!-- Línea de trayectoria dinámica -->
+            <path id="moving-trajectory" d="M 150 315 L 150 125" fill="none" stroke="#fde047" stroke-width="3" stroke-dasharray="4,4" opacity="0"/>
+
+            <!-- Marco del resorte / tirachinas -->
+            <g id="moving-slingshot-frame">
+              <path d="M 90 340 L 100 295 L 150 330 L 200 295 L 210 340" fill="none" stroke="#78350f" stroke-width="7" stroke-linecap="round" stroke-linejoin="round"/>
+              <circle cx="100" cy="295" r="5" fill="#ca8a04" stroke="#fde047" stroke-width="1.5"/>
+              <circle cx="200" cy="295" r="5" fill="#ca8a04" stroke="#fde047" stroke-width="1.5"/>
+              <line id="moving-band-left" x1="100" y1="295" x2="150" y2="315" stroke="#f59e0b" stroke-width="3.5" stroke-linecap="round"/>
+              <line id="moving-band-right" x1="200" y1="295" x2="150" y2="315" stroke="#f59e0b" stroke-width="3.5" stroke-linecap="round"/>
+            </g>
+
+            <!-- Dardo en resorte -->
+            <g id="moving-slingshot-dart" class="slingshot-dart-ready" transform="translate(150, 315)">
+              <circle cx="0" cy="2" r="14" fill="rgba(0,0,0,0.5)"/>
+              <circle cx="0" cy="0" r="16" fill="rgba(192, 132, 252, 0.25)" stroke="#c084fc" stroke-width="2" stroke-dasharray="3,3"/>
+              <polygon points="0,-16 -7,6 0,2 7,6" fill="#ec4899" stroke="#ffffff" stroke-width="1.5"/>
+              <polygon points="-7,6 -11,14 -4,11" fill="#c084fc"/>
+              <polygon points="7,6 11,14 4,11" fill="#c084fc"/>
+              <polygon points="0,-16 -3,-8 3,-8" fill="#fde047"/>
+            </g>
+
+            <!-- Grupo de animación de dardos en vuelo -->
+            <g id="moving-darts-anim-group"></g>
+          </svg>
+        </div>
+
+        <div id="moving-gesture-hint" class="text-center text-[11px] font-bold text-purple-300 mt-1 mb-2 animate-pulse">
+          🎯 Toca en cualquier parte, arrastra hacia abajo y suelta para disparar
         </div>
       </div>
 
@@ -713,27 +808,24 @@
           </svg>
         </div>
 
-        <!-- SELECTOR DE COLOR APOSTADO -->
+        <!-- MULTIPLICADORES DIRECTOS EN LOS SECTORES -->
         <div class="w-full mb-2">
-          <div class="text-[11px] text-slate-300 font-bold mb-1.5 flex items-center justify-between">
-            <span>Elige tu color:</span>
-            <span id="roulette-bet-mode-lbl" class="text-amber-300 text-[10px] font-mono">1 color: x2.0 • 2 colores: x1.5</span>
+          <div class="text-[11px] text-slate-300 font-bold mb-1 flex items-center justify-between">
+            <span>Sectores de la Ruleta:</span>
+            <span class="text-amber-300 text-[10px] font-mono">¡Multiplicador directo según clavijas!</span>
           </div>
-          <div id="roulette-colors-selector" class="grid grid-cols-3 gap-2">
-            <button data-color="red" class="btn-color-pick py-2 rounded-xl font-black text-xs border-2 border-rose-500/50 bg-rose-500/20 text-rose-300">
-              ● Rojo
-            </button>
-            <button data-color="blue" class="btn-color-pick active-choice py-2 rounded-xl font-black text-xs border-2 border-sky-500/50 bg-sky-500/20 text-sky-300">
-              ▲ Azul
-            </button>
-            <button data-color="green" class="btn-color-pick py-2 rounded-xl font-black text-xs border-2 border-emerald-500/50 bg-emerald-500/20 text-emerald-300">
-              ■ Verde
-            </button>
+          <div class="grid grid-cols-6 gap-1 text-center font-black text-[11px]">
+            <span class="py-1 px-1 rounded-lg bg-sky-500/20 text-sky-300 border border-sky-500/30">x1.2</span>
+            <span class="py-1 px-1 rounded-lg bg-amber-500/20 text-amber-300 border border-amber-500/30">x2.0</span>
+            <span class="py-1 px-1 rounded-lg bg-rose-500/20 text-rose-300 border border-rose-500/30">x0.5</span>
+            <span class="py-1 px-1 rounded-lg bg-emerald-500/20 text-emerald-300 border border-emerald-500/30">x1.5</span>
+            <span class="py-1 px-1 rounded-lg bg-purple-500/20 text-purple-300 border border-purple-500/30">x3.0★</span>
+            <span class="py-1 px-1 rounded-lg bg-slate-700/40 text-slate-400 border border-slate-600/30">x0 ✕</span>
           </div>
         </div>
 
         <!-- BARRA DE TIMING ACTIVO (RIESGO VS. RECOMPENSA) -->
-        <div id="roulette-timing-section" class="w-full mb-3">
+        <div id="roulette-timing-section" class="w-full mb-2">
           <div class="flex items-center justify-between text-[10px] font-black uppercase tracking-wider mb-1 px-1">
             <span class="text-rose-400">⚠️ Fallo</span>
             <span class="text-sky-300">Estándar</span>
@@ -743,18 +835,18 @@
           </div>
 
           <div id="timing-meter-container" class="timing-meter-container relative w-full h-7 rounded-xl overflow-hidden border border-slate-600/80 shadow-inner flex">
-            <!-- 1. Zona Roja Izquierda (17.5%) -->
-            <div class="h-full bg-gradient-to-r from-rose-700 to-rose-600 border-r border-rose-900/60" style="width: 17.5%;"></div>
-            <!-- 2. Zona Azul Izquierda (25%) -->
-            <div class="h-full bg-gradient-to-r from-sky-600 to-blue-500 border-r border-sky-800/60" style="width: 25%;"></div>
-            <!-- 3. Zona Dorada Centro (15%) -->
-            <div class="h-full bg-gradient-to-r from-amber-400 via-yellow-300 to-amber-400 shadow-[0_0_15px_#fde047] z-10 flex items-center justify-center border-x-2 border-yellow-200" style="width: 15%;">
-              <span class="text-[9px] font-black text-slate-950 uppercase tracking-tighter">PERFECTO</span>
+            <!-- 1. Zona Roja Izquierda -->
+            <div id="timing-zone-red-left" class="h-full bg-gradient-to-r from-rose-700 to-rose-600 border-r border-rose-900/60" style="width: 21%;"></div>
+            <!-- 2. Zona Azul Izquierda -->
+            <div id="timing-zone-blue-left" class="h-full bg-gradient-to-r from-sky-600 to-blue-500 border-r border-sky-800/60" style="width: 25%;"></div>
+            <!-- 3. Zona Dorada Centro (8% con jitter dinámico +-5%) -->
+            <div id="timing-zone-gold" class="h-full bg-gradient-to-r from-amber-400 via-yellow-300 to-amber-400 shadow-[0_0_15px_#fde047] z-10 flex items-center justify-center border-x-2 border-yellow-200" style="width: 8%;">
+              <span class="text-[8px] font-black text-slate-950 uppercase tracking-tighter">ORO</span>
             </div>
-            <!-- 4. Zona Azul Derecha (25%) -->
-            <div class="h-full bg-gradient-to-r from-blue-500 to-sky-600 border-l border-sky-800/60" style="width: 25%;"></div>
-            <!-- 5. Zona Roja Derecha (17.5%) -->
-            <div class="h-full bg-gradient-to-r from-rose-600 to-rose-700 border-l border-rose-900/60" style="width: 17.5%;"></div>
+            <!-- 4. Zona Azul Derecha -->
+            <div id="timing-zone-blue-right" class="h-full bg-gradient-to-r from-blue-500 to-sky-600 border-l border-sky-800/60" style="width: 25%;"></div>
+            <!-- 5. Zona Roja Derecha -->
+            <div id="timing-zone-red-right" class="h-full bg-gradient-to-r from-rose-600 to-rose-700 border-l border-rose-900/60" style="width: 21%;"></div>
 
             <!-- Aguja oscilante marcadora -->
             <div id="timing-needle" class="absolute top-0 bottom-0 w-1.5 bg-white rounded-full shadow-[0_0_10px_#ffffff,0_0_16px_#38bdf8] pointer-events-none transform -translate-x-1/2 z-20" style="left: 50%;">
@@ -764,8 +856,13 @@
           </div>
 
           <div id="timing-feedback-lbl" class="text-center text-[11px] font-black text-slate-400 mt-1 min-h-[16px]">
-            ¡Toca "¡GIRAR!" para clavar la aguja en el centro dorado!
+            ¡Toca en cualquier parte para clavar la aguja en el centro dorado!
           </div>
+        </div>
+
+        <!-- HINT: TOCAR EN CUALQUIER PARTE -->
+        <div class="tap-anywhere-hint text-[10px] text-amber-300 font-bold text-center mb-2 animate-pulse">
+          👆 ¡Puedes tocar en cualquier lugar de la pantalla para girar!
         </div>
 
         <!-- BOTÓN DIRECTO DE ACCIÓN EN RULETA -->
@@ -1365,6 +1462,18 @@
         </button>
       </div>
 
+      <!-- CRÉDITOS FINALES -->
+      <div class="mt-3 pt-2.5 border-t border-slate-800 text-center">
+        <div class="text-[10px] uppercase tracking-wider text-amber-400 font-black mb-1">AquaSort Master Deluxe • Créditos</div>
+        <p class="text-[11px] text-slate-300">
+          Diseño y Creación: <strong class="text-amber-300 font-black">Mauro Cuquejo</strong>
+        </p>
+        <p class="text-[11px] text-slate-300">
+          Co-desarrollo Alquímico e IA: <strong class="text-sky-300 font-black">Antigravity</strong> (Google DeepMind)
+        </p>
+        <div class="text-[9px] text-slate-500 mt-1 italic">¡Gracias por completar la Gran Obra Alquímica! ✨</div>
+      </div>
+
     </div>
   </div>
 
@@ -1498,15 +1607,15 @@
   <input type="file" id="input-save-file" accept=".json" class="hidden">
 
   <!-- Scripts modulares -->
-  <script src="js/audio.js?v=22"></script>
-  <script src="js/palette.js?v=22"></script>
-  <script src="js/levels.js?v=22"></script>
-  <script src="js/challenges.js?v=22"></script>
-  <script src="js/honor.js?v=22"></script>
-  <script src="js/state.js?v=22"></script>
-  <script src="js/leaderboard.js?v=22"></script>
-  <script src="js/roulette.js?v=22"></script>
-  <script src="js/game.js?v=22"></script>
+  <script src="js/audio.js?v=23"></script>
+  <script src="js/palette.js?v=23"></script>
+  <script src="js/levels.js?v=23"></script>
+  <script src="js/challenges.js?v=23"></script>
+  <script src="js/honor.js?v=23"></script>
+  <script src="js/state.js?v=23"></script>
+  <script src="js/leaderboard.js?v=23"></script>
+  <script src="js/roulette.js?v=23"></script>
+  <script src="js/game.js?v=23"></script>
 
   <!-- Registro de Service Worker PWA -->
   <script>

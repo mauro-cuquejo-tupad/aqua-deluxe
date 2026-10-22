@@ -957,6 +957,16 @@ body.screen-apocalypse-rumble {
    ========================================================================== */
 
 /* 1. FINAL MALO: EXPLOSIÓN DEL LABORATORIO */
+@keyframes normalAlchemistFade {
+  0%, 42% { opacity: 1; transform: translateX(0); }
+  45%, 92% { opacity: 0; transform: translateX(-10px); }
+  96%, 100% { opacity: 1; transform: translateX(0); }
+}
+.bad-alchemist-normal {
+  animation: normalAlchemistFade 5.2s infinite ease-in-out;
+  transform-origin: 70px 95px;
+}
+
 @keyframes flaskThrobbing {
   0%, 20% { transform: scale(1); }
   25% { transform: scale(1.08, 0.95); }
