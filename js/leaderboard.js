@@ -30,6 +30,18 @@ class LeaderboardManager {
     } catch (e) {}
   }
 
+  // --- REINICIAR Y LIMPIAR TODOS LOS RÉCORDS ---
+  clearAllRecords() {
+    this.records = {};
+    try {
+      localStorage.removeItem(this.storageKey);
+      localStorage.removeItem('aquasort_leaderboard');
+      localStorage.removeItem('aquasort_leaderboard_records');
+    } catch (e) {
+      console.warn('Error borrando récords:', e);
+    }
+  }
+
   // --- CONTROL DEL TEMPORIZADOR EN VIVO ---
   startTimer(displayElementId = 'lbl-timer') {
     this.stopTimer();
@@ -242,17 +254,20 @@ class LeaderboardManager {
     const statBestTime = document.getElementById('stat-best-time');
     const statTotalScore = document.getElementById('stat-total-score');
 
-    if (statCompleted) statCompleted.textContent = `${stats.completedLevels}/100`;
+    if (statCompleted) statCompleted.textContent = stats.completedLevels;
     if (statStars) statStars.textContent = `${stats.totalStars} ⭐`;
     if (statAvgMoves) statAvgMoves.textContent = stats.avgMoves;
     if (statBestTime) statBestTime.textContent = stats.bestTimeStr;
     if (statTotalScore) statTotalScore.textContent = `${stats.totalScoreStr} pts`;
 
-    // Generar filas de la tabla
+    // Generar filas de la tabla (solo hasta el nivel desbloqueado más alto para mantener en secreto los niveles futuros)
     let rowsHTML = '';
     const recordsList = [];
+    const maxUnlocked = window.stateManager?.state?.progress?.unlockedLevel || 1;
+    const maxRecorded = Object.keys(this.records).reduce((max, k) => Math.max(max, parseInt(k, 10) || 1), 1);
+    const maxVisibleLevel = Math.max(1, maxUnlocked, maxRecorded);
 
-    for (let i = 1; i <= 100; i++) {
+    for (let i = 1; i <= maxVisibleLevel; i++) {
       const rec = this.getRecord(i);
       if (filter === 'completed' && !rec) continue;
       recordsList.push({ level: i, record: rec });

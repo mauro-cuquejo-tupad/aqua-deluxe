@@ -777,8 +777,17 @@ class StateManager {
     }
     try {
       setCookie(STORAGE_KEY, '', -1);
+      document.cookie = `${STORAGE_KEY}=; expires=Thu, 01 Jan 1970 00:00:00 UTC; path=/; SameSite=Lax`;
     } catch (e) {
       console.warn('Error borrando cookie:', e);
+    }
+    if (window.leaderboardManager && typeof window.leaderboardManager.clearAllRecords === 'function') {
+      window.leaderboardManager.clearAllRecords();
+    } else {
+      try {
+        localStorage.removeItem('aquasort_leaderboard_records');
+        localStorage.removeItem('aquasort_leaderboard');
+      } catch (e) {}
     }
     this.state = JSON.parse(JSON.stringify(DEFAULT_STATE));
     this.saveState();

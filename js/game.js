@@ -3305,16 +3305,23 @@ class GameController {
     const btnResetProgress = document.getElementById('btn-reset-all-progress');
     if (btnResetProgress) {
       this.bindTapOrClick(btnResetProgress, () => {
-        const confirmed = confirm('⚠️ ¿Estás completamente seguro de reiniciar TODO el progreso?\n\nSe restablecerá la campaña al Nivel 1, y se borrarán todas tus estrellas, monedas y récords.');
+        const confirmed = confirm('⚠️ ¿Estás completamente seguro de reiniciar TODO el progreso?\n\nSe restablecerá la campaña al Nivel 1, y se borrarán todos tus niveles completados, estrellas, monedas y récords.');
         if (confirmed) {
-          if (window.stateManager) {
+          if (window.leaderboardManager && typeof window.leaderboardManager.clearAllRecords === 'function') {
+            window.leaderboardManager.clearAllRecords();
+          }
+          if (window.stateManager && typeof window.stateManager.resetAllProgress === 'function') {
             window.stateManager.resetAllProgress();
           }
-          if (window.leaderboardManager) {
-            try { localStorage.removeItem('aquasort_leaderboard'); } catch (e) {}
-          }
-          alert('Progreso reiniciado con éxito. ¡Comienza una nueva Gran Obra!');
-          window.location.reload();
+          try {
+            localStorage.removeItem('aquasort_leaderboard_records');
+            localStorage.removeItem('aquasort_leaderboard');
+            localStorage.removeItem('aquasort_state_v1');
+            document.cookie = 'aquasort_state_v1=; expires=Thu, 01 Jan 1970 00:00:00 UTC; path=/; SameSite=Lax';
+          } catch (e) {}
+          alert('Progreso reiniciado con éxito. ¡Comienza una nueva Gran Obra desde el Nivel 1!');
+          // Redirigir limpiando posibles parámetros de URL (ej. ?level=X)
+          window.location.href = window.location.pathname;
         }
       });
     }
