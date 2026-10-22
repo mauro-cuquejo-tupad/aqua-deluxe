@@ -138,7 +138,7 @@ class MinigameEngine {
           bannerEl.innerHTML = '🎲 ¡Minijuego Asignado desde la Bolsa: Diana de Dardos!';
         }
       }
-      if (window.audio) window.audio.playWindGust();
+      if (window.audio && fromRandom) window.audio.playWindGust();
     }
 
     if (window.lucide) window.lucide.createIcons();
@@ -1005,7 +1005,14 @@ class MinigameEngine {
   finalizeRound(winningSlice, modalBox) {
     setTimeout(() => {
       const modal = document.getElementById('modal-roulette');
-      if (modal) modal.classList.add('hidden');
+      if (modal) {
+        if (window.game && typeof window.game.hideModal === 'function') {
+          window.game.hideModal(modal);
+        } else {
+          modal.classList.add('hidden');
+          modal.style.setProperty('display', 'none', 'important');
+        }
+      }
 
       if (modalBox) modalBox.classList.remove('roulette-lose-glow');
       if (winningSlice) winningSlice.classList.remove('winner-slice');
@@ -1033,7 +1040,14 @@ class MinigameEngine {
   openModal(coins = 50) {
     if (!this.btnAction) this.initDOM();
     const modal = document.getElementById('modal-roulette');
-    if (modal) modal.classList.remove('hidden');
+    if (modal) {
+      if (window.game && typeof window.game.showModal === 'function') {
+        window.game.showModal(modal);
+      } else {
+        modal.classList.remove('hidden');
+        modal.style.setProperty('display', 'flex', 'important');
+      }
+    }
     this.initRound();
     if (window.audio) window.audio.playMusic('roulette');
     if (window.lucide) lucide.createIcons();
@@ -1041,7 +1055,14 @@ class MinigameEngine {
 
   closeModal() {
     const modal = document.getElementById('modal-roulette');
-    if (modal) modal.classList.add('hidden');
+    if (modal) {
+      if (window.game && typeof window.game.hideModal === 'function') {
+        window.game.hideModal(modal);
+      } else {
+        modal.classList.add('hidden');
+        modal.style.setProperty('display', 'none', 'important');
+      }
+    }
     if (window.audio) window.audio.playMusic('level');
   }
 }

@@ -64,7 +64,7 @@ class GameController {
     const paramLevel = parseInt(urlParams.get('level'), 10);
     if (!isNaN(paramLevel) && paramLevel >= 1 && paramLevel <= this.maxLevels) {
       this.currentLevel = paramLevel;
-      if (this.modalHome) this.modalHome.classList.add('hidden');
+      if (this.modalHome) this.hideModal(this.modalHome);
     } else if (window.stateManager && window.stateManager.state.progress.unlockedLevel) {
       this.currentLevel = window.stateManager.state.progress.unlockedLevel;
     }
@@ -146,6 +146,104 @@ class GameController {
     // Elementos de la Tienda y Pantalla de Inicio
     this.shopItemsContainer = document.getElementById('shop-items-container');
     this.inputSaveFile = document.getElementById('input-save-file');
+  }
+
+  // --- GESTIÓN ROBUSTA DE MODALES (COMPATIBILIDAD MÓVIL Y DESKTOP) ---
+  showModal(modal) {
+    if (!modal) return;
+    modal.classList.remove('hidden');
+    modal.style.setProperty('display', 'flex', 'important');
+    modal.style.setProperty('visibility', 'visible', 'important');
+    modal.style.setProperty('opacity', '1', 'important');
+    modal.style.setProperty('pointer-events', 'auto', 'important');
+  }
+
+  hideModal(modal) {
+    if (!modal) return;
+    modal.classList.add('hidden');
+    modal.style.setProperty('display', 'none', 'important');
+    modal.style.setProperty('visibility', 'hidden', 'important');
+    modal.style.setProperty('opacity', '0', 'important');
+    modal.style.setProperty('pointer-events', 'none', 'important');
+  }
+
+  bindTapOrClick(element, callback) {
+    if (!element) return;
+    let startX = 0;
+    let startY = 0;
+    let isTouch = false;
+    let touchStartTime = 0;
+
+    element.addEventListener('touchstart', (e) => {
+      isTouch = true;
+      if (e.touches && e.touches[0]) {
+        startX = e.touches[0].clientX;
+        startY = e.touches[0].clientY;
+      }
+      touchStartTime = Date.now();
+    }, { passive: true });
+
+    element.addEventListener('touchend', (e) => {
+      if (!isTouch) return;
+      const touch = e.changedTouches && e.changedTouches[0];
+      if (touch) {
+        const dx = Math.abs(touch.clientX - startX);
+        const dy = Math.abs(touch.clientY - startY);
+        // Tap válido si no se movió más de 14px y duró menos de 600ms
+        if (dx < 14 && dy < 14 && (Date.now() - touchStartTime < 600)) {
+          if (e.cancelable) e.preventDefault();
+          element._lastTapHandled = Date.now();
+          callback(e);
+        }
+      }
+      isTouch = false;
+    }, { passive: false });
+
+    element.addEventListener('click', (e) => {
+      // Ignorar click sintético generado por el navegador tras el touchend
+      if (element._lastTapHandled && (Date.now() - element._lastTapHandled < 450)) {
+        return;
+      }
+      callback(e);
+    });
+  }
+
+  setupBackdropClose(modal, closeCallback) {
+    if (!modal) return;
+    let startTarget = null;
+    let startX = 0;
+    let startY = 0;
+
+    modal.addEventListener('touchstart', (e) => {
+      startTarget = e.target;
+      if (e.touches && e.touches[0]) {
+        startX = e.touches[0].clientX;
+        startY = e.touches[0].clientY;
+      }
+    }, { passive: true });
+
+    modal.addEventListener('touchend', (e) => {
+      if (startTarget === modal && e.target === modal) {
+        const touch = e.changedTouches && e.changedTouches[0];
+        if (touch) {
+          const dx = Math.abs(touch.clientX - startX);
+          const dy = Math.abs(touch.clientY - startY);
+          if (dx < 15 && dy < 15) {
+            if (e.cancelable) e.preventDefault();
+            modal._lastBackdropTap = Date.now();
+            closeCallback(e);
+          }
+        }
+      }
+      startTarget = null;
+    }, { passive: false });
+
+    modal.addEventListener('click', (e) => {
+      if (modal._lastBackdropTap && (Date.now() - modal._lastBackdropTap < 450)) return;
+      if (e.target === modal) {
+        closeCallback(e);
+      }
+    });
   }
 
   initCanvas() {
@@ -1345,13 +1443,13 @@ class GameController {
   openApocalypseModal() {
     const modal = document.getElementById('modal-apocalypse-easter-egg');
     if (!modal) return;
-    modal.classList.remove('hidden');
+    this.showModal(modal);
     if (window.lucide) lucide.createIcons();
   }
 
   closeApocalypseModal() {
     const modal = document.getElementById('modal-apocalypse-easter-egg');
-    if (modal) modal.classList.add('hidden');
+    this.hideModal(modal);
   }
 
   restartFromApocalypse() {
@@ -1915,7 +2013,7 @@ class GameController {
     }
 
     if (window.lucide) lucide.createIcons();
-    if (this.modalVictory) this.modalVictory.classList.remove('hidden');
+    this.showModal(this.modalVictory);
   }
 
   // --- ANIMACIÓN SECUENCIAL Y EVALUACIÓN DE DESAFÍOS AL GANAR EL NIVEL ---
@@ -2285,12 +2383,12 @@ class GameController {
   openShopModal() {
     this.updateCoinsUI();
     this.renderShopItems();
-    if (this.modalShop) this.modalShop.classList.remove('hidden');
+    this.showModal(this.modalShop);
     if (window.lucide) lucide.createIcons();
   }
 
   closeShopModal() {
-    if (this.modalShop) this.modalShop.classList.add('hidden');
+    this.hideModal(this.modalShop);
     this.updateAuxiliaryButtonUI();
     this.updateLivesHUD();
   }
@@ -2590,12 +2688,12 @@ class GameController {
       playText.textContent = `Continuar Nivel ${this.currentLevel}`;
     }
 
-    if (this.modalHome) this.modalHome.classList.remove('hidden');
+    this.showModal(this.modalHome);
     if (window.audio) window.audio.playMusic('level');
   }
 
   closeHomeModal() {
-    if (this.modalHome) this.modalHome.classList.add('hidden');
+    this.hideModal(this.modalHome);
     if (window.audio) {
       window.audio.init();
       window.audio.playMusic('level');
@@ -2647,13 +2745,13 @@ class GameController {
   // --- EVENT LISTENERS E INTERACTIVIDAD DE INTERFAZ ---
   initEvents() {
     // Acciones principales del HUD
-    if (this.btnUndo) this.btnUndo.addEventListener('click', () => this.undo());
-    if (this.btnRestart) this.btnRestart.addEventListener('click', () => this.openRestartConfirmModal());
-    if (this.btnHint) this.btnHint.addEventListener('click', () => this.giveHint());
-    if (this.btnAddTube) this.btnAddTube.addEventListener('click', () => this.addAuxiliaryTube());
+    if (this.btnUndo) this.bindTapOrClick(this.btnUndo, () => this.undo());
+    if (this.btnRestart) this.bindTapOrClick(this.btnRestart, () => this.openRestartConfirmModal());
+    if (this.btnHint) this.bindTapOrClick(this.btnHint, () => this.giveHint());
+    if (this.btnAddTube) this.bindTapOrClick(this.btnAddTube, () => this.addAuxiliaryTube());
 
     const btnCloseHint = document.getElementById('btn-close-hint');
-    if (btnCloseHint) btnCloseHint.addEventListener('click', () => this.clearHintHighlight());
+    if (btnCloseHint) this.bindTapOrClick(btnCloseHint, () => this.clearHintHighlight());
 
     // Selector rápido de nivel
     if (this.selLevelQuick) {
@@ -2672,35 +2770,35 @@ class GameController {
     // Botón Inicio y Botón Tienda en Header
     const btnOpenHome = document.getElementById('btn-open-home');
     if (btnOpenHome) {
-      btnOpenHome.addEventListener('click', () => this.openHomeModal());
+      this.bindTapOrClick(btnOpenHome, () => this.openHomeModal());
     }
 
     const btnOpenShop = document.getElementById('btn-open-shop');
     if (btnOpenShop) {
-      btnOpenShop.addEventListener('click', () => this.openShopModal());
+      this.bindTapOrClick(btnOpenShop, () => this.openShopModal());
     }
 
     const btnOpenMinigame = document.getElementById('btn-open-minigame');
     if (btnOpenMinigame) {
-      btnOpenMinigame.addEventListener('click', () => {
+      this.bindTapOrClick(btnOpenMinigame, () => {
         if (window.minigameEngine) window.minigameEngine.openModal();
       });
     }
 
     // Botón Widget de Vidas -> Abre la tienda para recarga
     if (this.livesHud) {
-      this.livesHud.addEventListener('click', () => this.openShopModal());
+      this.bindTapOrClick(this.livesHud, () => this.openShopModal());
     }
 
     // Botón Taller de Creación en Header
     if (this.btnOpenEditor) {
-      this.btnOpenEditor.addEventListener('click', () => this.openEditorModal('design'));
+      this.bindTapOrClick(this.btnOpenEditor, () => this.openEditorModal('design'));
     }
 
     // Botón Taller de Creación en Home Screen
     const btnHomeEditor = document.getElementById('btn-home-editor');
     if (btnHomeEditor) {
-      btnHomeEditor.addEventListener('click', () => {
+      this.bindTapOrClick(btnHomeEditor, () => {
         this.closeHomeModal();
         this.openEditorModal('design');
       });
@@ -2709,29 +2807,29 @@ class GameController {
     // Modal Reinicio Confirmación
     const btnConfirmRestart = document.getElementById('btn-confirm-restart');
     if (btnConfirmRestart) {
-      btnConfirmRestart.addEventListener('click', () => this.confirmRestartLevel());
+      this.bindTapOrClick(btnConfirmRestart, () => this.confirmRestartLevel());
     }
     const btnCancelRestart = document.getElementById('btn-cancel-restart');
     if (btnCancelRestart) {
-      btnCancelRestart.addEventListener('click', () => this.closeRestartConfirmModal());
+      this.bindTapOrClick(btnCancelRestart, () => this.closeRestartConfirmModal());
     }
 
     // Botón Ayuda y Guía de Tubos / Tutoriales en Header
     const btnOpenHelp = document.getElementById('btn-open-help');
     if (btnOpenHelp) {
-      btnOpenHelp.addEventListener('click', () => this.openTutorialsHelp());
+      this.bindTapOrClick(btnOpenHelp, () => this.openTutorialsHelp());
     }
 
     // Botón Rápido de Tutorial de Mecánica en Subtítulo de Nivel
     const btnQuickHelp = document.getElementById('btn-quick-help');
     if (btnQuickHelp) {
-      btnQuickHelp.addEventListener('click', () => this.openTutorialsHelp(this.levelData?.primaryMechanicId));
+      this.bindTapOrClick(btnQuickHelp, () => this.openTutorialsHelp(this.levelData?.primaryMechanicId));
     }
 
     // Botón Guía de Tubos en Pantalla de Inicio
     const btnHomeTutorials = document.getElementById('btn-home-tutorials');
     if (btnHomeTutorials) {
-      btnHomeTutorials.addEventListener('click', () => {
+      this.bindTapOrClick(btnHomeTutorials, () => {
         this.closeHomeModal();
         this.openTutorialsHelp();
       });
@@ -2740,51 +2838,51 @@ class GameController {
     // Modal Tutorial (Cerrar, Cerrar X, Anterior, Siguiente)
     const btnCloseTut = document.getElementById('btn-close-tutorial');
     if (btnCloseTut) {
-      btnCloseTut.addEventListener('click', () => this.closeTutorialModal());
+      this.bindTapOrClick(btnCloseTut, () => this.closeTutorialModal());
     }
     const btnCloseTutX = document.getElementById('btn-close-tutorial-x');
     if (btnCloseTutX) {
-      btnCloseTutX.addEventListener('click', () => this.closeTutorialModal());
+      this.bindTapOrClick(btnCloseTutX, () => this.closeTutorialModal());
     }
     const btnTutPrev = document.getElementById('btn-tut-prev');
     if (btnTutPrev) {
-      btnTutPrev.addEventListener('click', () => this.navigateTutorial(-1));
+      this.bindTapOrClick(btnTutPrev, () => this.navigateTutorial(-1));
     }
     const btnTutNext = document.getElementById('btn-tut-next');
     if (btnTutNext) {
-      btnTutNext.addEventListener('click', () => this.navigateTutorial(1));
+      this.bindTapOrClick(btnTutNext, () => this.navigateTutorial(1));
     }
 
     // Modal Easter Egg de Apocalipsis (Reiniciar nivel tras la explosión)
     const btnRestartApocalypse = document.getElementById('btn-restart-apocalypse');
     if (btnRestartApocalypse) {
-      btnRestartApocalypse.addEventListener('click', () => this.restartFromApocalypse());
+      this.bindTapOrClick(btnRestartApocalypse, () => this.restartFromApocalypse());
     }
     const btnCloseApocalypseX = document.getElementById('btn-close-apocalypse-x');
     if (btnCloseApocalypseX) {
-      btnCloseApocalypseX.addEventListener('click', () => this.restartFromApocalypse());
+      this.bindTapOrClick(btnCloseApocalypseX, () => this.restartFromApocalypse());
     }
 
     // Modal Editor de Niveles botones y pestañas
     const btnCloseEditor = document.getElementById('btn-close-editor');
     if (btnCloseEditor) {
-      btnCloseEditor.addEventListener('click', () => this.closeEditorModal());
+      this.bindTapOrClick(btnCloseEditor, () => this.closeEditorModal());
     }
     const tabDesign = document.getElementById('tab-editor-design');
     if (tabDesign) {
-      tabDesign.addEventListener('click', () => this.switchEditorTab('design'));
+      this.bindTapOrClick(tabDesign, () => this.switchEditorTab('design'));
     }
     const tabSaved = document.getElementById('tab-editor-saved');
     if (tabSaved) {
-      tabSaved.addEventListener('click', () => this.switchEditorTab('saved'));
+      this.bindTapOrClick(tabSaved, () => this.switchEditorTab('saved'));
     }
     const btnTest = document.getElementById('btn-editor-test');
     if (btnTest) {
-      btnTest.addEventListener('click', () => this.testCustomLevel());
+      this.bindTapOrClick(btnTest, () => this.testCustomLevel());
     }
     const btnPublish = document.getElementById('btn-editor-publish');
     if (btnPublish) {
-      btnPublish.addEventListener('click', () => this.publishCustomLevel());
+      this.bindTapOrClick(btnPublish, () => this.publishCustomLevel());
     }
     const selTubeCount = document.getElementById('editor-tube-count');
     if (selTubeCount) {
@@ -2805,14 +2903,14 @@ class GameController {
 
     // Modal Inicio (Home) botones internos
     const btnCloseHome = document.getElementById('btn-close-home');
-    if (btnCloseHome) btnCloseHome.addEventListener('click', () => this.closeHomeModal());
+    if (btnCloseHome) this.bindTapOrClick(btnCloseHome, () => this.closeHomeModal());
 
     const btnHomePlay = document.getElementById('btn-home-play');
-    if (btnHomePlay) btnHomePlay.addEventListener('click', () => this.closeHomeModal());
+    if (btnHomePlay) this.bindTapOrClick(btnHomePlay, () => this.closeHomeModal());
 
     const btnHomeMap = document.getElementById('btn-home-map');
     if (btnHomeMap) {
-      btnHomeMap.addEventListener('click', () => {
+      this.bindTapOrClick(btnHomeMap, () => {
         this.closeHomeModal();
         this.openMapModal();
         if (window.audio) window.audio.playMusic('map');
@@ -2821,7 +2919,7 @@ class GameController {
 
     const btnHomeShop = document.getElementById('btn-home-shop');
     if (btnHomeShop) {
-      btnHomeShop.addEventListener('click', () => {
+      this.bindTapOrClick(btnHomeShop, () => {
         this.closeHomeModal();
         this.openShopModal();
       });
@@ -2829,7 +2927,7 @@ class GameController {
 
     const btnHomeLeaderboard = document.getElementById('btn-home-leaderboard');
     if (btnHomeLeaderboard) {
-      btnHomeLeaderboard.addEventListener('click', () => {
+      this.bindTapOrClick(btnHomeLeaderboard, () => {
         this.closeHomeModal();
         const btnLB = document.getElementById('btn-open-leaderboard');
         if (btnLB) btnLB.click();
@@ -2838,7 +2936,7 @@ class GameController {
 
     const btnHomeSettings = document.getElementById('btn-home-settings');
     if (btnHomeSettings) {
-      btnHomeSettings.addEventListener('click', () => {
+      this.bindTapOrClick(btnHomeSettings, () => {
         this.closeHomeModal();
         const btnSet = document.getElementById('btn-open-settings');
         if (btnSet) btnSet.click();
@@ -2848,12 +2946,12 @@ class GameController {
     // Guardado y Carga de Partida en Archivo (.json)
     const btnExportFile = document.getElementById('btn-export-file');
     if (btnExportFile) {
-      btnExportFile.addEventListener('click', () => this.exportGameFile());
+      this.bindTapOrClick(btnExportFile, () => this.exportGameFile());
     }
 
     const btnImportFile = document.getElementById('btn-import-file');
     if (btnImportFile) {
-      btnImportFile.addEventListener('click', () => {
+      this.bindTapOrClick(btnImportFile, () => {
         if (this.inputSaveFile) this.inputSaveFile.click();
       });
     }
@@ -2908,12 +3006,12 @@ class GameController {
 
     // Modal Tienda botones internos
     const btnCloseShop = document.getElementById('btn-close-shop');
-    if (btnCloseShop) btnCloseShop.addEventListener('click', () => this.closeShopModal());
+    if (btnCloseShop) this.bindTapOrClick(btnCloseShop, () => this.closeShopModal());
 
     // Audio Mute Toggle
     const btnSound = document.getElementById('btn-toggle-sound');
     if (btnSound) {
-      btnSound.addEventListener('click', () => {
+      this.bindTapOrClick(btnSound, () => {
         if (window.audio) {
           const muted = window.audio.toggleMute();
           const icon = document.getElementById('icon-sound');
@@ -2926,7 +3024,7 @@ class GameController {
     // Pantalla completa
     const btnFullscreen = document.getElementById('btn-fullscreen');
     if (btnFullscreen) {
-      btnFullscreen.addEventListener('click', () => {
+      this.bindTapOrClick(btnFullscreen, () => {
         if (!document.fullscreenElement) {
           document.documentElement.requestFullscreen().catch(() => {});
         } else {
@@ -2939,14 +3037,14 @@ class GameController {
     const btnOpenMap = document.getElementById('btn-open-map');
     const btnCloseMap = document.getElementById('btn-close-map');
     if (btnOpenMap) {
-      btnOpenMap.addEventListener('click', () => {
+      this.bindTapOrClick(btnOpenMap, () => {
         this.openMapModal();
         if (window.audio) window.audio.playMusic('map');
       });
     }
     if (btnCloseMap) {
-      btnCloseMap.addEventListener('click', () => {
-        if (this.modalMap) this.modalMap.classList.add('hidden');
+      this.bindTapOrClick(btnCloseMap, () => {
+        this.hideModal(this.modalMap);
         if (window.audio) window.audio.playMusic('level');
       });
     }
@@ -2955,7 +3053,7 @@ class GameController {
     const btnOpenLeaderboard = document.getElementById('btn-open-leaderboard');
     const btnCloseLeaderboard = document.getElementById('btn-close-leaderboard');
     if (btnOpenLeaderboard) {
-      btnOpenLeaderboard.addEventListener('click', () => {
+      this.bindTapOrClick(btnOpenLeaderboard, () => {
         if (window.leaderboardManager) {
           window.leaderboardManager.renderLeaderboardUI('leaderboard-table-container', 'score');
         }
@@ -2969,18 +3067,18 @@ class GameController {
             t.classList.add('border-transparent', 'text-slate-400');
           }
         });
-        if (this.modalLeaderboard) this.modalLeaderboard.classList.remove('hidden');
+        this.showModal(this.modalLeaderboard);
       });
     }
     if (btnCloseLeaderboard) {
-      btnCloseLeaderboard.addEventListener('click', () => {
-        if (this.modalLeaderboard) this.modalLeaderboard.classList.add('hidden');
+      this.bindTapOrClick(btnCloseLeaderboard, () => {
+        this.hideModal(this.modalLeaderboard);
       });
     }
 
     // Pestañas de filtrado de clasificaciones
     document.querySelectorAll('.tab-leaderboard').forEach(tab => {
-      tab.addEventListener('click', (e) => {
+      this.bindTapOrClick(tab, (e) => {
         document.querySelectorAll('.tab-leaderboard').forEach(t => {
           t.classList.remove('active', 'border-sky-400', 'text-sky-300', 'border-amber-400', 'text-amber-300');
           t.classList.add('border-transparent', 'text-slate-400');
@@ -2998,25 +3096,25 @@ class GameController {
     const btnOpenSettings = document.getElementById('btn-open-settings');
     const btnCloseSettings = document.getElementById('btn-close-settings');
     if (btnOpenSettings) {
-      btnOpenSettings.addEventListener('click', () => {
+      this.bindTapOrClick(btnOpenSettings, () => {
         if (window.paletteManager) {
           window.paletteManager.renderColorSettingsUI('color-pickers-list', () => {
             this.renderTubes();
           });
         }
-        if (this.modalSettings) this.modalSettings.classList.remove('hidden');
+        this.showModal(this.modalSettings);
       });
     }
     if (btnCloseSettings) {
-      btnCloseSettings.addEventListener('click', () => {
-        if (this.modalSettings) this.modalSettings.classList.add('hidden');
+      this.bindTapOrClick(btnCloseSettings, () => {
+        this.hideModal(this.modalSettings);
       });
     }
 
     // Restablecer colores de paleta
     const btnResetColors = document.getElementById('btn-reset-palette-colors');
     if (btnResetColors) {
-      btnResetColors.addEventListener('click', () => {
+      this.bindTapOrClick(btnResetColors, () => {
         if (window.paletteManager) {
           window.paletteManager.resetDefaults();
           window.paletteManager.renderColorSettingsUI('color-pickers-list', () => this.renderTubes());
@@ -3038,8 +3136,8 @@ class GameController {
     // Modal Victoria: Siguiente Nivel y Ruleta
     const btnVicNext = document.getElementById('btn-vic-next');
     if (btnVicNext) {
-      btnVicNext.addEventListener('click', () => {
-        if (this.modalVictory) this.modalVictory.classList.add('hidden');
+      this.bindTapOrClick(btnVicNext, () => {
+        this.hideModal(this.modalVictory);
         if (this.currentLevel >= 100) {
           this.showGameCompletionModal();
         } else {
@@ -3049,9 +3147,9 @@ class GameController {
     }
     const btnVicRoulette = document.getElementById('btn-vic-roulette');
     if (btnVicRoulette) {
-      btnVicRoulette.addEventListener('click', () => {
-        if (this.modalVictory) this.modalVictory.classList.add('hidden');
-        if (this.modalRoulette) this.modalRoulette.classList.remove('hidden');
+      this.bindTapOrClick(btnVicRoulette, () => {
+        this.hideModal(this.modalVictory);
+        this.showModal(this.modalRoulette);
         if (window.rouletteEngine) window.rouletteEngine.initRound();
         if (window.audio) window.audio.playMusic('roulette');
       });
@@ -3060,8 +3158,8 @@ class GameController {
     // Salir de la ruleta sin girar
     const btnCashout = document.getElementById('btn-cashout-roulette');
     if (btnCashout) {
-      btnCashout.addEventListener('click', () => {
-        if (this.modalRoulette) this.modalRoulette.classList.add('hidden');
+      this.bindTapOrClick(btnCashout, () => {
+        this.hideModal(this.modalRoulette);
         if (window.audio) window.audio.playMusic('level');
         if (this.currentLevel >= 100) {
           this.showGameCompletionModal();
@@ -3082,7 +3180,7 @@ class GameController {
     }
     const btnResetBg = document.getElementById('btn-reset-bg');
     if (btnResetBg) {
-      btnResetBg.addEventListener('click', () => {
+      this.bindTapOrClick(btnResetBg, () => {
         document.body.style.backgroundColor = '#0b1329';
         if (bgPicker) bgPicker.value = '#0b1329';
       });
@@ -3091,8 +3189,8 @@ class GameController {
     // Modal Victoria de Desafío de Honor
     const btnHonorVicClose = document.getElementById('btn-honor-vic-close');
     if (btnHonorVicClose) {
-      btnHonorVicClose.addEventListener('click', () => {
-        if (this.modalHonorVictory) this.modalHonorVictory.classList.add('hidden');
+      this.bindTapOrClick(btnHonorVicClose, () => {
+        this.hideModal(this.modalHonorVictory);
         this.isHonorMode = false;
         this.openMapModal();
       });
@@ -3101,16 +3199,16 @@ class GameController {
     // Modal Derrota de Desafío de Honor
     const btnHonorRetry = document.getElementById('btn-honor-retry');
     if (btnHonorRetry) {
-      btnHonorRetry.addEventListener('click', () => {
-        if (this.modalHonorDefeat) this.modalHonorDefeat.classList.add('hidden');
+      this.bindTapOrClick(btnHonorRetry, () => {
+        this.hideModal(this.modalHonorDefeat);
         this.startHonorChallenge(this.honorSectionId, (this.seedVariation || 0) + 1);
       });
     }
 
     const btnHonorExit = document.getElementById('btn-honor-exit');
     if (btnHonorExit) {
-      btnHonorExit.addEventListener('click', () => {
-        if (this.modalHonorDefeat) this.modalHonorDefeat.classList.add('hidden');
+      this.bindTapOrClick(btnHonorExit, () => {
+        this.hideModal(this.modalHonorDefeat);
         this.isHonorMode = false;
         this.loadLevel(this.currentLevel);
       });
@@ -3118,18 +3216,52 @@ class GameController {
 
     const btnHonorLockedOk = document.getElementById('btn-honor-locked-ok');
     if (btnHonorLockedOk) {
-      btnHonorLockedOk.addEventListener('click', () => {
-        if (this.modalHonorDefeat) this.modalHonorDefeat.classList.add('hidden');
+      this.bindTapOrClick(btnHonorLockedOk, () => {
+        this.hideModal(this.modalHonorDefeat);
         this.isHonorMode = false;
         this.loadLevel(this.currentLevel);
       });
     }
 
+    // Configurar cierre instantáneo tocando el fondo oscuro exterior (Backdrop)
+    this.setupBackdropClose(this.modalHome, () => this.closeHomeModal());
+    this.setupBackdropClose(this.modalShop, () => this.closeShopModal());
+    this.setupBackdropClose(this.modalMap, () => {
+      this.hideModal(this.modalMap);
+      if (window.audio) window.audio.playMusic('level');
+    });
+    this.setupBackdropClose(this.modalLeaderboard, () => this.hideModal(this.modalLeaderboard));
+    this.setupBackdropClose(this.modalSettings, () => this.hideModal(this.modalSettings));
+    this.setupBackdropClose(this.modalRestartConfirm, () => this.closeRestartConfirmModal());
+    this.setupBackdropClose(this.modalTutorial, () => this.closeTutorialModal());
+    this.setupBackdropClose(this.modalEditor, () => this.closeEditorModal());
+    this.setupBackdropClose(this.modalHonorVictory, () => {
+      this.hideModal(this.modalHonorVictory);
+      this.isHonorMode = false;
+      this.openMapModal();
+    });
+    this.setupBackdropClose(this.modalHonorDefeat, () => {
+      this.hideModal(this.modalHonorDefeat);
+      this.isHonorMode = false;
+      this.loadLevel(this.currentLevel);
+    });
+    this.setupBackdropClose(document.getElementById('modal-completion'), () => {
+      const mc = document.getElementById('modal-completion');
+      if (mc) this.hideModal(mc);
+    });
+    this.setupBackdropClose(this.modalApocalypse, () => this.restartFromApocalypse());
+    this.setupBackdropClose(this.modalRoulette, () => {
+      if (this.modalRoulette && !window.rouletteEngine?.isSpinning) {
+        this.hideModal(this.modalRoulette);
+        if (window.audio) window.audio.playMusic('level');
+      }
+    });
+
     // Cerrar modales con Escape
     window.addEventListener('keydown', (e) => {
       if (e.key === 'Escape') {
-        const modals = [this.modalMap, this.modalLeaderboard, this.modalSettings, this.modalHome, this.modalShop, this.modalRestartConfirm, this.modalTutorial, this.modalEditor, this.modalHonorVictory, this.modalHonorDefeat];
-        modals.forEach(m => m && m.classList.add('hidden'));
+        const modals = [this.modalMap, this.modalLeaderboard, this.modalSettings, this.modalHome, this.modalShop, this.modalRestartConfirm, this.modalTutorial, this.modalEditor, this.modalHonorVictory, this.modalHonorDefeat, document.getElementById('modal-completion')];
+        modals.forEach(m => m && this.hideModal(m));
         if (window.audio && !this.isModalOpen()) {
           window.audio.playMusic('level');
         }
@@ -3205,12 +3337,12 @@ class GameController {
       }
     }
 
-    if (this.modalRestartConfirm) this.modalRestartConfirm.classList.remove('hidden');
+    this.showModal(this.modalRestartConfirm);
     if (window.lucide) lucide.createIcons();
   }
 
   closeRestartConfirmModal() {
-    if (this.modalRestartConfirm) this.modalRestartConfirm.classList.add('hidden');
+    this.hideModal(this.modalRestartConfirm);
   }
 
   confirmRestartLevel() {
@@ -3265,7 +3397,7 @@ class GameController {
     this.renderTutorialTabs();
     this.renderTutorialContent(this.currentTutorialId, isNewAnnouncement);
 
-    if (this.modalTutorial) this.modalTutorial.classList.remove('hidden');
+    this.showModal(this.modalTutorial);
     if (window.audio) {
       if (isNewAnnouncement) window.audio.playReveal();
       else window.audio.playPop();
@@ -3623,7 +3755,7 @@ class GameController {
   }
 
   closeTutorialModal() {
-    if (this.modalTutorial) this.modalTutorial.classList.add('hidden');
+    this.hideModal(this.modalTutorial);
   }
 
   // --- TALLER DE CREACIÓN DE NIVELES (LEVEL EDITOR) ---
@@ -3642,12 +3774,12 @@ class GameController {
     this.renderEditorBrushes();
     this.renderEditorTubes();
     this.updateEditorValidation();
-    if (this.modalEditor) this.modalEditor.classList.remove('hidden');
+    this.showModal(this.modalEditor);
     if (window.lucide) lucide.createIcons();
   }
 
   closeEditorModal() {
-    if (this.modalEditor) this.modalEditor.classList.add('hidden');
+    this.hideModal(this.modalEditor);
   }
 
   switchEditorTab(tab) {
@@ -4086,7 +4218,7 @@ class GameController {
 
     // 3. Cerrar modales abiertos
     const modals = [this.modalMap, this.modalVictory, this.modalRoulette, this.modalLeaderboard, this.modalSettings, this.modalHome, this.modalShop, this.modalHonorVictory, this.modalHonorDefeat];
-    modals.forEach(m => m && m.classList.add('hidden'));
+    modals.forEach(m => m && this.hideModal(m));
 
     // 4. Configurar estado de Modo de Honor
     this.isHonorMode = true;
@@ -4229,7 +4361,7 @@ class GameController {
       }
     }
 
-    if (modal) modal.classList.remove('hidden');
+    if (modal) this.showModal(modal);
     if (window.lucide) lucide.createIcons();
   }
 
@@ -4308,7 +4440,7 @@ class GameController {
       if (livesEl) livesEl.textContent = `${st.lives}/3 ❤️ conservadas`;
       if (coinsEl) coinsEl.textContent = `+${rewardCoins} 🪙`;
 
-      if (modal) modal.classList.remove('hidden');
+      if (modal) this.showModal(modal);
       if (window.lucide) lucide.createIcons();
     }, this.tubes.length * 220 + 350);
   }
@@ -4455,8 +4587,8 @@ class GameController {
           ${hasAllChal ? '<span class="absolute top-1 right-1 w-1.5 h-1.5 rounded-full bg-purple-400 shadow-sm" title="Desafíos completados"></span>' : ''}
         `;
 
-        btn.addEventListener('click', () => {
-          if (this.modalMap) this.modalMap.classList.add('hidden');
+        this.bindTapOrClick(btn, () => {
+          if (this.modalMap) this.hideModal(this.modalMap);
           if (window.audio) window.audio.playMusic('level');
           this.isHonorMode = false;
           this.loadLevel(i);
@@ -4545,7 +4677,7 @@ class GameController {
     });
 
     if (window.lucide) lucide.createIcons();
-    if (this.modalMap) this.modalMap.classList.remove('hidden');
+    if (this.modalMap) this.showModal(this.modalMap);
   }
 
   // --- MODAL DE GRAN CONSAGRACIÓN Y FELICITACIONES (100 NIVELES) ---
@@ -4617,7 +4749,7 @@ class GameController {
     }
 
     if (window.lucide) lucide.createIcons();
-    modal.classList.remove('hidden');
+    this.showModal(modal);
   }
 
   // --- RENDER DE CINEMÁTICAS CÓMICAS DE FINAL (MALO / REGULAR / BUENO CON GIRO) ---
@@ -4977,13 +5109,13 @@ class GameController {
     const btnReg = document.getElementById('btn-ending-regular');
     const btnGood = document.getElementById('btn-ending-good');
 
-    if (btnBad) btnBad.addEventListener('click', () => this.renderEndingCinematic('bad'));
-    if (btnReg) btnReg.addEventListener('click', () => this.renderEndingCinematic('regular'));
-    if (btnGood) btnGood.addEventListener('click', () => this.renderEndingCinematic('good'));
+    if (btnBad) this.bindTapOrClick(btnBad, () => this.renderEndingCinematic('bad'));
+    if (btnReg) this.bindTapOrClick(btnReg, () => this.renderEndingCinematic('regular'));
+    if (btnGood) this.bindTapOrClick(btnGood, () => this.renderEndingCinematic('good'));
 
     const btnHomeEndings = document.getElementById('btn-home-endings');
     if (btnHomeEndings) {
-      btnHomeEndings.addEventListener('click', () => {
+      this.bindTapOrClick(btnHomeEndings, () => {
         this.closeHomeModal();
         this.showGameCompletionModal();
       });
@@ -4991,36 +5123,36 @@ class GameController {
 
     const btnMapEndings = document.getElementById('btn-map-endings');
     if (btnMapEndings) {
-      btnMapEndings.addEventListener('click', () => {
-        if (this.modalMap) this.modalMap.classList.add('hidden');
+      this.bindTapOrClick(btnMapEndings, () => {
+        this.hideModal(this.modalMap);
         this.showGameCompletionModal();
       });
     }
 
     if (btnMap) {
-      btnMap.addEventListener('click', () => {
-        if (modal) modal.classList.add('hidden');
+      this.bindTapOrClick(btnMap, () => {
+        if (modal) this.hideModal(modal);
         this.openMapModal();
       });
     }
 
     if (btnHonor) {
-      btnHonor.addEventListener('click', () => {
-        if (modal) modal.classList.add('hidden');
+      this.bindTapOrClick(btnHonor, () => {
+        if (modal) this.hideModal(modal);
         this.openMapModal();
       });
     }
 
     if (btnEditor) {
-      btnEditor.addEventListener('click', () => {
-        if (modal) modal.classList.add('hidden');
+      this.bindTapOrClick(btnEditor, () => {
+        if (modal) this.hideModal(modal);
         this.openEditorModal();
       });
     }
 
     if (btnReplay) {
-      btnReplay.addEventListener('click', () => {
-        if (modal) modal.classList.add('hidden');
+      this.bindTapOrClick(btnReplay, () => {
+        if (modal) this.hideModal(modal);
         this.loadLevel(100);
       });
     }

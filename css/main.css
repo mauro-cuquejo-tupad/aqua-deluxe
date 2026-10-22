@@ -96,7 +96,35 @@ body {
   animation: neonGlow 2s ease-in-out infinite;
 }
 
-/* Modal backdrop animation */
+/* Modal backdrop and hiding rules */
+.hidden {
+  display: none !important;
+}
+
+.modal-overlay.hidden,
+.modal-overlay[style*="display: none"],
+.modal-overlay[style*="display:none"] {
+  display: none !important;
+  visibility: hidden !important;
+  pointer-events: none !important;
+  opacity: 0 !important;
+}
+
+.modal-overlay:not(.hidden) {
+  display: flex !important;
+  pointer-events: auto !important;
+}
+
+/* Optimizaciones táctiles para botones dentro de modales */
+.modal-overlay button,
+.modal-overlay [role="button"],
+.modal-overlay .btn-interactive {
+  touch-action: manipulation;
+  -webkit-tap-highlight-color: transparent;
+  user-select: none;
+  -webkit-user-select: none;
+}
+
 .modal-overlay {
   animation: fadeIn 0.25s ease-out forwards;
 }

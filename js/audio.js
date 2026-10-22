@@ -54,37 +54,42 @@ class ProceduralAudioEngine {
   }
 
   init() {
-    // Si aún no hubo interacción del usuario en navegadores móviles, posponer para no generar advertencias
-    if (!this.hasUserInteracted && !this.ctx) {
-      return false;
-    }
-
     if (!this.ctx) {
-      const AudioCtxClass = window.AudioContext || window.webkitAudioContext;
-      if (!AudioCtxClass) return false;
-      this.ctx = new AudioCtxClass();
+      try {
+        const AudioCtxClass = window.AudioContext || window.webkitAudioContext;
+        if (!AudioCtxClass) return false;
+        this.ctx = new AudioCtxClass();
 
-      // Master Gain
-      this.masterGain = this.ctx.createGain();
-      this.masterGain.gain.setValueAtTime(this.isMuted ? 0 : 1, this.ctx.currentTime);
-      this.masterGain.connect(this.ctx.destination);
+        // Master Gain
+        this.masterGain = this.ctx.createGain();
+        this.masterGain.gain.setValueAtTime(this.isMuted ? 0 : 1, this.ctx.currentTime);
+        this.masterGain.connect(this.ctx.destination);
 
-      // Music Gain
-      this.musicGain = this.ctx.createGain();
-      this.musicGain.gain.setValueAtTime(this.musicVolume, this.ctx.currentTime);
-      this.musicGain.connect(this.masterGain);
+        // Music Gain
+        this.musicGain = this.ctx.createGain();
+        this.musicGain.gain.setValueAtTime(this.musicVolume, this.ctx.currentTime);
+        this.musicGain.connect(this.masterGain);
 
-      // SFX Gain
-      this.sfxGain = this.ctx.createGain();
-      this.sfxGain.gain.setValueAtTime(this.sfxVolume, this.ctx.currentTime);
-      this.sfxGain.connect(this.masterGain);
+        // SFX Gain
+        this.sfxGain = this.ctx.createGain();
+        this.sfxGain.gain.setValueAtTime(this.sfxVolume, this.ctx.currentTime);
+        this.sfxGain.connect(this.masterGain);
+      } catch (e) {
+        return false;
+      }
     }
 
-    if (this.ctx && this.ctx.state === 'suspended') {
+    if (this.ctx && this.ctx.state === 'suspended' && this.hasUserInteracted) {
       this.ctx.resume().catch(() => {});
     }
 
     return true;
+  }
+
+  ready() {
+    if (this.isMuted) return false;
+    this.init();
+    return Boolean(this.ctx);
   }
 
   toggleMute() {
@@ -336,8 +341,7 @@ class ProceduralAudioEngine {
   // ==========================================================================
 
   playSelect() {
-    if (this.isMuted) return;
-    this.init();
+    if (!this.ready()) return;
     const now = this.ctx.currentTime;
     const osc = this.ctx.createOscillator();
     const gain = this.ctx.createGain();
@@ -356,8 +360,7 @@ class ProceduralAudioEngine {
   }
 
   playPourSound() {
-    if (this.isMuted) return;
-    this.init();
+    if (!this.ready()) return;
     const now = this.ctx.currentTime;
 
     // Chorro burbujeante modulado
@@ -382,8 +385,7 @@ class ProceduralAudioEngine {
   }
 
   playUnlock() {
-    if (this.isMuted) return;
-    this.init();
+    if (!this.ready()) return;
     const now = this.ctx.currentTime;
     const notes = [523.25, 659.25, 783.99, 1046.50];
 
@@ -406,8 +408,7 @@ class ProceduralAudioEngine {
   }
 
   playReveal() {
-    if (this.isMuted) return;
-    this.init();
+    if (!this.ready()) return;
     const now = this.ctx.currentTime;
     const osc = this.ctx.createOscillator();
     const gain = this.ctx.createGain();
@@ -426,8 +427,7 @@ class ProceduralAudioEngine {
   }
 
   playPegClack() {
-    if (this.isMuted) return;
-    this.init();
+    if (!this.ready()) return;
     const now = this.ctx.currentTime;
     const osc = this.ctx.createOscillator();
     const gain = this.ctx.createGain();
@@ -446,8 +446,7 @@ class ProceduralAudioEngine {
   }
 
   playComboTone(pitchIndex = 1) {
-    if (this.isMuted) return;
-    this.init();
+    if (!this.ready()) return;
     const pentatonic = [261.63, 293.66, 329.63, 392.00, 440.00, 523.25, 587.33, 659.25, 783.99];
     const freq = pentatonic[Math.min(pitchIndex - 1, pentatonic.length - 1)];
 
@@ -468,8 +467,7 @@ class ProceduralAudioEngine {
   }
 
   playWinFanfare() {
-    if (this.isMuted) return;
-    this.init();
+    if (!this.ready()) return;
     const now = this.ctx.currentTime;
     const fanfare = [
       { f: 523.25, t: 0.0, d: 0.15 },
@@ -498,8 +496,7 @@ class ProceduralAudioEngine {
   }
 
   playFailSound() {
-    if (this.isMuted) return;
-    this.init();
+    if (!this.ready()) return;
     const now = this.ctx.currentTime;
     const osc = this.ctx.createOscillator();
     const gain = this.ctx.createGain();
@@ -519,8 +516,7 @@ class ProceduralAudioEngine {
 
   // Sonido de equivocación / negación (doble tono "uh-uh" con caída armónica y textura de rechazo)
   playInvalidMoveSound() {
-    if (this.isMuted) return;
-    this.init();
+    if (!this.ready()) return;
     const now = this.ctx.currentTime;
 
     const pulses = [
@@ -576,8 +572,7 @@ class ProceduralAudioEngine {
 
   // Sonido de éxito al cumplir un desafío (campanilla cristalina ascendente y luminosa)
   playChallengeSuccess(step = 0) {
-    if (this.isMuted) return;
-    this.init();
+    if (!this.ready()) return;
     const now = this.ctx.currentTime;
     const baseFreqs = [587.33, 739.99, 880.00, 1174.66]; // D5, F#5, A5, D6
     const f1 = baseFreqs[Math.min(step, baseFreqs.length - 1)];
@@ -602,8 +597,7 @@ class ProceduralAudioEngine {
 
   // Sonido de fallo al no cumplir un desafío (suave tono de descarte con sutil vibrato)
   playChallengeFail() {
-    if (this.isMuted) return;
-    this.init();
+    if (!this.ready()) return;
     const now = this.ctx.currentTime;
     const osc = this.ctx.createOscillator();
     const gain = this.ctx.createGain();
@@ -631,8 +625,7 @@ class ProceduralAudioEngine {
 
   // Aplausos y ovación multitudinaria al ganar en la ruleta
   playCrowdCheer() {
-    if (this.isMuted) return;
-    this.init();
+    if (!this.ready()) return;
     const now = this.ctx.currentTime;
 
     // Generar buffer de ruido para textura de aplausos
@@ -683,8 +676,7 @@ class ProceduralAudioEngine {
 
   // Decepción / "Awwwww" del público al perder en la ruleta
   playDisappointedCrowd() {
-    if (this.isMuted) return;
-    this.init();
+    if (!this.ready()) return;
     const now = this.ctx.currentTime;
 
     // Ruido con filtro descendente ("Awww...")
@@ -742,8 +734,7 @@ class ProceduralAudioEngine {
 
   // Lanzamiento de dardo (silbido de aire / swoosh)
   playDartThrow() {
-    if (this.isMuted) return;
-    this.init();
+    if (!this.ready()) return;
     const now = this.ctx.currentTime;
     const osc = this.ctx.createOscillator();
     const gain = this.ctx.createGain();
@@ -762,8 +753,7 @@ class ProceduralAudioEngine {
 
   // Impacto de dardo en la diana (thud seco de madera)
   playDartHit() {
-    if (this.isMuted) return;
-    this.init();
+    if (!this.ready()) return;
     const now = this.ctx.currentTime;
     const osc = this.ctx.createOscillator();
     const gain = this.ctx.createGain();
@@ -782,8 +772,7 @@ class ProceduralAudioEngine {
 
   // Ráfaga de viento para la diana
   playWindGust() {
-    if (this.isMuted) return;
-    this.init();
+    if (!this.ready()) return;
     const now = this.ctx.currentTime;
     const bufferSize = Math.floor(this.ctx.sampleRate * 1.0);
     const noiseBuffer = this.ctx.createBuffer(1, bufferSize, this.ctx.sampleRate);
@@ -816,8 +805,7 @@ class ProceduralAudioEngine {
 
   // Error de frasco pegado (zumbido metálico trabado)
   playGluedError() {
-    if (this.isMuted) return;
-    this.init();
+    if (!this.ready()) return;
     const now = this.ctx.currentTime;
     const osc = this.ctx.createOscillator();
     const gain = this.ctx.createGain();
@@ -836,8 +824,7 @@ class ProceduralAudioEngine {
 
   // Efecto químico inesperado / ebullición y desborde por sobrecarga en tubo 1x1
   playChemicalReactionSound() {
-    if (this.isMuted) return;
-    this.init();
+    if (!this.ready()) return;
     const now = this.ctx.currentTime;
 
     // 1. Burbujeo rápido / ebullición química modulada
@@ -903,8 +890,7 @@ class ProceduralAudioEngine {
 
   // Fanfarria Real Triunfal: Concesión de la Medalla de Honor Alquímica
   playHonorVictory() {
-    if (this.isMuted) return;
-    this.init();
+    if (!this.ready()) return;
     const now = this.ctx.currentTime;
     const notes = [
       { f: 261.63, t: 0.00, d: 0.20 }, // C4
@@ -933,8 +919,7 @@ class ProceduralAudioEngine {
 
   // Tic tac sutil del temporizador de honor cuando queda poco tiempo
   playHonorTimerTick() {
-    if (this.isMuted) return;
-    this.init();
+    if (!this.ready()) return;
     const now = this.ctx.currentTime;
     const osc = this.ctx.createOscillator();
     const gain = this.ctx.createGain();
@@ -951,8 +936,7 @@ class ProceduralAudioEngine {
 
   // Sonido de crujido y fisura de vidrio al introducir un color no afín
   playGlassCrack(severity = 1) {
-    if (this.isMuted) return;
-    this.init();
+    if (!this.ready()) return;
     const now = this.ctx.currentTime;
 
     // Ruido impulsivo de impacto inicial
@@ -994,8 +978,7 @@ class ProceduralAudioEngine {
 
   // Estallido de cristal rompiéndose en mil pedazos
   playGlassShatter() {
-    if (this.isMuted) return;
-    this.init();
+    if (!this.ready()) return;
     const now = this.ctx.currentTime;
 
     // 1. Estallido de ruido blanco filtrado
@@ -1049,8 +1032,7 @@ class ProceduralAudioEngine {
 
   // Estallido de Cataclismo Cósmico (Easter Egg: El Mundo Explotando)
   playWorldExplosion() {
-    if (this.isMuted) return;
-    this.init();
+    if (!this.ready()) return;
     const now = this.ctx.currentTime;
 
     // 1. Estruendo Sísmico Grave Sub-Bass (80Hz -> 20Hz)
@@ -1122,8 +1104,7 @@ class ProceduralAudioEngine {
 
   // Sonido cómico de explosión de laboratorio (Final Malo)
   playLabExplosion() {
-    if (this.isMuted) return;
-    this.init();
+    if (!this.ready()) return;
     const now = this.ctx.currentTime;
 
     // 1. Silbido ascendente de olla a presión
@@ -1177,8 +1158,7 @@ class ProceduralAudioEngine {
 
   // Sonido cómico de estornudo alérgico por plátanos (Final Regular)
   playBananaSneeze() {
-    if (this.isMuted) return;
-    this.init();
+    if (!this.ready()) return;
     const now = this.ctx.currentTime;
 
     // 1. Inhalación cómica "Ah... ah..."
