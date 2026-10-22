@@ -12,6 +12,8 @@ class ProceduralAudioEngine {
 
     // Estados de música activa
     this.currentTrack = null; // 'level', 'map', 'roulette', null
+    this.pendingTrack = null;
+    this.hasUserInteracted = false;
     this.musicLoopTimer = null;
     this.musicStep = 0;
     this.activeNodes = [];
@@ -26,12 +28,41 @@ class ProceduralAudioEngine {
       const savedMute = localStorage.getItem('aquasort_muted');
       if (savedMute !== null) this.isMuted = JSON.parse(savedMute);
     } catch (e) {}
+
+    // Desbloqueo limpio ante el primer gesto del usuario (toque, clic, tecla)
+    this.setupGestureUnlock();
+  }
+
+  setupGestureUnlock() {
+    if (typeof window === 'undefined') return;
+    const unlock = () => {
+      this.hasUserInteracted = true;
+      this.init();
+      if (this.pendingTrack && !this.currentTrack) {
+        const trk = this.pendingTrack;
+        this.pendingTrack = null;
+        this.playMusic(trk);
+      }
+      ['click', 'touchstart', 'touchend', 'pointerdown', 'keydown'].forEach(evt => {
+        window.removeEventListener(evt, unlock, true);
+      });
+    };
+
+    ['click', 'touchstart', 'touchend', 'pointerdown', 'keydown'].forEach(evt => {
+      window.addEventListener(evt, unlock, { capture: true, passive: true });
+    });
   }
 
   init() {
+    // Si aún no hubo interacción del usuario en navegadores móviles, posponer para no generar advertencias
+    if (!this.hasUserInteracted && !this.ctx) {
+      return false;
+    }
+
     if (!this.ctx) {
-      const AudioContext = window.AudioContext || window.webkitAudioContext;
-      this.ctx = new AudioContext();
+      const AudioCtxClass = window.AudioContext || window.webkitAudioContext;
+      if (!AudioCtxClass) return false;
+      this.ctx = new AudioCtxClass();
 
       // Master Gain
       this.masterGain = this.ctx.createGain();
@@ -49,12 +80,15 @@ class ProceduralAudioEngine {
       this.sfxGain.connect(this.masterGain);
     }
 
-    if (this.ctx.state === 'suspended') {
-      this.ctx.resume();
+    if (this.ctx && this.ctx.state === 'suspended') {
+      this.ctx.resume().catch(() => {});
     }
+
+    return true;
   }
 
   toggleMute() {
+    this.hasUserInteracted = true;
     this.init();
     this.isMuted = !this.isMuted;
     try {
@@ -80,7 +114,16 @@ class ProceduralAudioEngine {
   // ==========================================================================
 
   playMusic(trackType) {
-    this.init();
+    if (!this.hasUserInteracted) {
+      this.pendingTrack = trackType;
+      return;
+    }
+
+    if (!this.init()) {
+      this.pendingTrack = trackType;
+      return;
+    }
+
     if (this.currentTrack === trackType) return;
     this.stopMusic();
     this.currentTrack = trackType;
