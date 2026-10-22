@@ -63,6 +63,24 @@ class GameController {
     this.initCanvas();
     this.initEditorWorkspace();
 
+    // Auto-reparación y sincronización de unlockedLevel según el progreso guardado
+    if (window.stateManager && window.leaderboardManager) {
+      const records = window.leaderboardManager.records || {};
+      let highestCompleted = 0;
+      Object.keys(records).forEach(k => {
+        const lvlNum = parseInt(k, 10);
+        if (!isNaN(lvlNum) && records[k] && records[k].stars >= 1) {
+          highestCompleted = Math.max(highestCompleted, lvlNum);
+        }
+      });
+      const currentUnlocked = window.stateManager.state.progress.unlockedLevel || 1;
+      const expectedUnlocked = Math.max(currentUnlocked, highestCompleted + 1);
+      if (expectedUnlocked > currentUnlocked && expectedUnlocked <= this.maxLevels) {
+        window.stateManager.state.progress.unlockedLevel = expectedUnlocked;
+        window.stateManager.saveState();
+      }
+    }
+
     // Sincronizar nivel desde parámetro URL o progreso guardado
     const urlParams = new URLSearchParams(window.location.search);
     const paramLevel = parseInt(urlParams.get('level'), 10);
@@ -1849,18 +1867,35 @@ class GameController {
       });
     }
 
-    // Guardar récord en el gestor de clasificaciones ÚNICAMENTE si no se usaron pistas
+    // Guardar récord en el gestor de clasificaciones y persistir progreso (incluso si se usaron pistas)
     let recordResult = null;
     const usedHints = (this.hintsUsedInLevel > 0);
-    if (!usedHints && window.leaderboardManager) {
+    if (window.leaderboardManager) {
       recordResult = window.leaderboardManager.recordLevelCompletion(
         this.currentLevel,
         elapsedSecs,
         this.moves,
         starCount,
         scoreData,
-        combo
+        combo,
+        usedHints
       );
+    }
+
+    // Desbloquear siguiente nivel y persistir estado de niveles completados
+    if (window.stateManager && !this.customLevelTesting && !this.isDailyChallenge && !this.isHonorMode) {
+      const nextLevel = Math.min(this.maxLevels, this.currentLevel + 1);
+      if (nextLevel > (window.stateManager.state.progress.unlockedLevel || 1)) {
+        window.stateManager.state.progress.unlockedLevel = nextLevel;
+      }
+      if (!window.stateManager.state.progress.completedLevels) {
+        window.stateManager.state.progress.completedLevels = {};
+      }
+      window.stateManager.state.progress.completedLevels[String(this.currentLevel)] = {
+        stars: starCount,
+        usedHints: usedHints
+      };
+      window.stateManager.saveState();
     }
 
     // Animación de sellado de corchos uno por uno con fanfarria pentatónica
@@ -1967,10 +2002,10 @@ class GameController {
       }
     }
 
-    // Notificación de nuevo récord personal si aplica
+    // Notificación de nuevo récord personal si aplica (solo si no se usaron pistas para mérito de récord)
     const recordBadge = document.getElementById('lbl-new-record-badge');
     if (recordBadge) {
-      if (recordResult && (recordResult.isNewBestTime || recordResult.isNewBestMoves || recordResult.isNewBestScore)) {
+      if (!this.hintsUsedInLevel && recordResult && (recordResult.isNewBestTime || recordResult.isNewBestMoves || recordResult.isNewBestScore)) {
         recordBadge.classList.remove('hidden');
         if (recordResult.isNewBestScore) {
           recordBadge.innerHTML = '<span>🏆 ¡NUEVO RÉCORD DE PUNTAJE! 🏆</span>';
@@ -4794,7 +4829,6 @@ class GameController {
 
         secGrid.appendChild(btn);
       }
-      card.appendChild(secGrid);
       card.appendChild(secGrid);
 
       // Tarjeta de Desafío de Honor de la sección

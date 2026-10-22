@@ -157,7 +157,7 @@ class LeaderboardManager {
   }
 
   // --- REGISTRO Y ACTUALIZACIÓN DE RÉCORDS ---
-  recordLevelCompletion(level, timeSeconds, moves, stars, scoreData = null, combo = 0) {
+  recordLevelCompletion(level, timeSeconds, moves, stars, scoreData = null, combo = 0, usedHints = false) {
     const key = String(level);
     const prev = this.records[key];
     let isNewBestTime = false;
@@ -175,6 +175,7 @@ class LeaderboardManager {
         bestScore: newScore,
         bestCombo: combo,
         scoreData: scoreData,
+        usedHints: usedHints,
         date: new Date().toLocaleDateString()
       };
       isNewBestTime = true;
@@ -196,6 +197,9 @@ class LeaderboardManager {
       }
       prev.bestCombo = Math.max(prev.bestCombo || 0, combo);
       prev.stars = Math.max(prev.stars, stars);
+      if (prev.usedHints !== undefined) {
+        prev.usedHints = prev.usedHints && usedHints;
+      }
       prev.date = new Date().toLocaleDateString();
     }
 
