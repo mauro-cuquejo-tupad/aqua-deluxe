@@ -42,7 +42,8 @@ const DEFAULT_STATE = {
   settings: {
     showAccessibilityPatterns: false, // Por defecto desactivado: líquidos puros y limpios
     disabledMechanics: [],            // Mecánicas deshabilitadas por personalización de dificultad
-    visualComfortMode: false          // Modo Descanso Visual / Filtro Lentes Amarillos
+    visualComfortMode: false,         // Modo Descanso Visual / Filtro Lentes Amarillos
+    disabledMusicTracks: []           // IDs de temas musicales desactivados por el usuario
   },
   secretEasterEgg: {
     discoveredNames: [],              // Nombres descubiertos por 5s tap: ['mirko', 'tom', 'nina', 'matilda', 'bianca', 'zoila', 'freya']
@@ -131,7 +132,8 @@ class StateManager {
             ...DEFAULT_STATE.settings,
             ...(parsed.settings || {}),
             disabledMechanics: Array.isArray(parsed.settings?.disabledMechanics) ? parsed.settings.disabledMechanics : [],
-            visualComfortMode: !!parsed.settings?.visualComfortMode
+            visualComfortMode: !!parsed.settings?.visualComfortMode,
+            disabledMusicTracks: Array.isArray(parsed.settings?.disabledMusicTracks) ? parsed.settings.disabledMusicTracks : []
           },
           secretEasterEgg: {
             ...DEFAULT_STATE.secretEasterEgg,
@@ -234,6 +236,33 @@ class StateManager {
   isMechanicDisabled(mechanicKey) {
     return Array.isArray(this.state.settings?.disabledMechanics) &&
            this.state.settings.disabledMechanics.includes(mechanicKey);
+  }
+
+  // --- GESTIÓN DE TEMAS MUSICALES (BANDA SONORA PERSONALIZADA) ---
+  isMusicTrackDisabled(trackId) {
+    return Array.isArray(this.state.settings?.disabledMusicTracks) &&
+           this.state.settings.disabledMusicTracks.includes(trackId);
+  }
+
+  setMusicTrackDisabled(trackId, isDisabled) {
+    if (!this.state.settings) this.state.settings = {};
+    if (!Array.isArray(this.state.settings.disabledMusicTracks)) {
+      this.state.settings.disabledMusicTracks = [];
+    }
+    const idx = this.state.settings.disabledMusicTracks.indexOf(trackId);
+    if (isDisabled && idx === -1) {
+      this.state.settings.disabledMusicTracks.push(trackId);
+    } else if (!isDisabled && idx !== -1) {
+      this.state.settings.disabledMusicTracks.splice(idx, 1);
+    }
+    this.saveState();
+    if (window.audio && typeof window.audio.onTrackToggled === 'function') {
+      window.audio.onTrackToggled(trackId, isDisabled);
+    }
+  }
+
+  getDisabledMusicTracks() {
+    return Array.isArray(this.state.settings?.disabledMusicTracks) ? this.state.settings.disabledMusicTracks : [];
   }
 
   // --- EASTER EGG SECRETO: 7 NOMBRES Y FINAL ESPECIAL ---

@@ -294,12 +294,23 @@ class GameController {
     resize();
   }
 
+  resumeGameMusic() {
+    if (!window.audio) return;
+    if (this.isTimeAttack) {
+      window.audio.playMusic('time_attack');
+    } else if (this.isCasualSandbox) {
+      window.audio.playMusic('level', 'casual');
+    } else {
+      window.audio.playMusic('level', this.currentLevel);
+    }
+  }
+
   setupAudioUnlock() {
     const unlock = () => {
       if (window.audio) {
         window.audio.init();
         if (window.audio.currentTrack === null) {
-          window.audio.playMusic('level');
+          this.resumeGameMusic();
         }
       }
       window.removeEventListener('click', unlock);
@@ -405,7 +416,7 @@ class GameController {
 
     // Actualizar música de fondo
     if (window.audio && !this.isModalOpen()) {
-      window.audio.playMusic('level');
+      this.resumeGameMusic();
     }
 
     this.updateHeaderUI();
@@ -652,6 +663,7 @@ class GameController {
       clearInterval(this.timeAttackInterval);
       this.timeAttackInterval = null;
     }
+    if (window.audio) window.audio.stopMusic();
     if (window.audio && typeof window.audio.playGameOverSound === 'function') {
       window.audio.playGameOverSound();
     } else if (window.audio) {
@@ -3322,7 +3334,7 @@ class GameController {
     this.hideModal(this.modalHome);
     if (window.audio) {
       window.audio.init();
-      window.audio.playMusic('level');
+      this.resumeGameMusic();
     }
   }
 
@@ -3498,6 +3510,120 @@ class GameController {
         }
       });
     });
+  }
+
+  renderMusicSettingsUI() {
+    const container = document.getElementById('music-tracks-list');
+    if (!container || !window.audio) return;
+
+    const catalog = window.audio.getTracksCatalog();
+    const sm = window.stateManager;
+    const currentTrackInfo = window.audio.getCurrentTrackInfo();
+
+    // Actualizar banner de tema actual
+    const banner = document.getElementById('now-playing-banner');
+    const lblName = document.getElementById('lbl-now-playing-track-name');
+    const lblGenre = document.getElementById('lbl-now-playing-track-genre');
+    const btnStopPreview = document.getElementById('btn-audio-stop-preview');
+
+    if (currentTrackInfo) {
+      if (banner) banner.classList.remove('hidden');
+      if (lblName) lblName.textContent = currentTrackInfo.name;
+      if (lblGenre) lblGenre.textContent = currentTrackInfo.genre;
+      if (btnStopPreview) btnStopPreview.classList.remove('hidden');
+    } else {
+      if (lblName) lblName.textContent = 'Silencio (Música desactivada)';
+      if (lblGenre) lblGenre.textContent = 'Mute';
+      if (btnStopPreview) btnStopPreview.classList.add('hidden');
+    }
+
+    let html = '';
+    catalog.forEach(track => {
+      const isDisabled = sm ? sm.isMusicTrackDisabled(track.id) : false;
+      const isPlaying = (window.audio.currentTrackId === track.id);
+
+      html += `
+        <div class="flex items-center justify-between p-2.5 rounded-xl border transition-all ${
+          isPlaying
+            ? 'bg-emerald-950/40 border-emerald-500/50 shadow-sm shadow-emerald-500/20'
+            : isDisabled
+            ? 'bg-slate-900/60 border-slate-800 opacity-60'
+            : 'bg-slate-800/60 border-slate-700/80 hover:bg-slate-800'
+        }">
+          <div class="flex items-start gap-2.5 flex-1 mr-2">
+            <button class="btn-preview-track mt-0.5 p-1.5 rounded-lg border text-xs font-bold shrink-0 transition-all ${
+              isPlaying
+                ? 'bg-emerald-500 text-slate-950 border-emerald-400'
+                : 'bg-slate-700 hover:bg-slate-600 text-slate-200 border-slate-600'
+            }" data-track-id="${track.id}" title="${isPlaying ? 'Pausar' : 'Escuchar prueba'}">
+              <i data-lucide="${isPlaying ? 'square' : 'play'}" class="w-3.5 h-3.5"></i>
+            </button>
+            <div class="flex-1 min-w-0">
+              <div class="flex items-center gap-1.5 flex-wrap">
+                <span class="text-xs font-bold ${isPlaying ? 'text-emerald-300' : 'text-white'}">${track.name}</span>
+                <span class="text-[9px] px-1.5 py-0.5 rounded font-bold uppercase tracking-wider ${
+                  track.id === 'track_bossa'
+                    ? 'bg-amber-900/50 text-amber-300 border border-amber-600/40'
+                    : track.id === 'track_tropical' || track.id === 'track_coral'
+                    ? 'bg-teal-900/50 text-teal-300 border border-teal-600/40'
+                    : track.id === 'track_cristal'
+                    ? 'bg-purple-900/50 text-purple-300 border border-purple-600/40'
+                    : 'bg-slate-700/70 text-slate-300 border border-slate-600/40'
+                }">${track.genre}</span>
+              </div>
+              <p class="text-[10px] text-sky-400/90 font-medium">${track.sectionName}</p>
+              <p class="text-[10px] text-slate-400 line-clamp-1 mt-0.5">${track.description}</p>
+            </div>
+          </div>
+
+          <div class="flex items-center gap-2 shrink-0">
+            <label class="relative inline-flex items-center cursor-pointer">
+              <input type="checkbox" class="sr-only peer toggle-track-checkbox" data-track-id="${track.id}" ${!isDisabled ? 'checked' : ''}>
+              <div class="w-9 h-5 bg-slate-700 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-slate-300 after:border after:rounded-full after:h-4 after:w-4 after:transition-all peer-checked:bg-emerald-500"></div>
+            </label>
+          </div>
+        </div>
+      `;
+    });
+
+    container.innerHTML = html;
+    if (window.lucide) window.lucide.createIcons();
+
+    // Event listeners para toggles
+    container.querySelectorAll('.toggle-track-checkbox').forEach(chk => {
+      chk.addEventListener('change', (e) => {
+        const trackId = e.target.getAttribute('data-track-id');
+        const isEnabled = e.target.checked;
+        if (sm) {
+          sm.setMusicTrackDisabled(trackId, !isEnabled);
+        }
+        this.renderMusicSettingsUI();
+      });
+    });
+
+    // Event listeners para preview
+    container.querySelectorAll('.btn-preview-track').forEach(btn => {
+      btn.addEventListener('click', (e) => {
+        const targetBtn = e.currentTarget;
+        const trackId = targetBtn.getAttribute('data-track-id');
+        if (window.audio) {
+          if (window.audio.currentTrackId === trackId) {
+            window.audio.stopMusic();
+          } else {
+            window.audio.playTrack(trackId);
+          }
+        }
+        this.renderMusicSettingsUI();
+      });
+    });
+
+    if (btnStopPreview && !btnStopPreview.hasAttribute('data-bound')) {
+      btnStopPreview.setAttribute('data-bound', 'true');
+      btnStopPreview.addEventListener('click', () => {
+        if (window.audio) window.audio.stopMusic();
+        this.renderMusicSettingsUI();
+      });
+    }
   }
 
   isModalOpen() {
@@ -3825,7 +3951,7 @@ class GameController {
     if (btnCloseMap) {
       this.bindTapOrClick(btnCloseMap, () => {
         this.hideModal(this.modalMap);
-        if (window.audio) window.audio.playMusic('level');
+        this.resumeGameMusic();
       });
     }
 
@@ -3950,12 +4076,14 @@ class GameController {
         });
       }
       this.renderDifficultyMechanicsSettings();
+      this.renderMusicSettingsUI();
       this.showModal(this.modalSettings);
     };
     if (btnOpenSettings) this.bindTapOrClick(btnOpenSettings, openSettingsAction);
     if (btnCloseSettings) {
       this.bindTapOrClick(btnCloseSettings, () => {
         this.hideModal(this.modalSettings);
+        this.resumeGameMusic();
       });
     }
 
@@ -4147,7 +4275,7 @@ class GameController {
     if (btnCashout) {
       this.bindTapOrClick(btnCashout, () => {
         this.hideModal(this.modalRoulette);
-        if (window.audio) window.audio.playMusic('level');
+        this.resumeGameMusic();
         if (this.currentLevel >= 100) {
           this.showGameCompletionModal();
         } else {
@@ -4215,10 +4343,13 @@ class GameController {
     this.setupBackdropClose(this.modalShop, () => this.closeShopModal());
     this.setupBackdropClose(this.modalMap, () => {
       this.hideModal(this.modalMap);
-      if (window.audio) window.audio.playMusic('level');
+      this.resumeGameMusic();
     });
     this.setupBackdropClose(this.modalLeaderboard, () => this.hideModal(this.modalLeaderboard));
-    this.setupBackdropClose(this.modalSettings, () => this.hideModal(this.modalSettings));
+    this.setupBackdropClose(this.modalSettings, () => {
+      this.hideModal(this.modalSettings);
+      this.resumeGameMusic();
+    });
     this.setupBackdropClose(this.modalRestartConfirm, () => this.closeRestartConfirmModal());
     this.setupBackdropClose(this.modalTutorial, () => this.closeTutorialModal());
     this.setupBackdropClose(this.modalEditor, () => this.closeEditorModal());
@@ -4240,7 +4371,14 @@ class GameController {
     this.setupBackdropClose(this.modalRoulette, () => {
       if (this.modalRoulette && !window.rouletteEngine?.isSpinning) {
         this.hideModal(this.modalRoulette);
-        if (window.audio) window.audio.playMusic('level');
+        this.resumeGameMusic();
+      }
+    });
+
+    // Escuchar cambios de música para refrescar UI de opciones si está abierta
+    window.addEventListener('aquasort:trackchange', () => {
+      if (this.modalSettings && !this.modalSettings.classList.contains('hidden')) {
+        this.renderMusicSettingsUI();
       }
     });
 
@@ -4308,7 +4446,7 @@ class GameController {
         ];
         modals.forEach(m => m && this.hideModal(m));
         if (window.audio && !this.isModalOpen()) {
-          window.audio.playMusic('level');
+          this.resumeGameMusic();
         }
       }
     });

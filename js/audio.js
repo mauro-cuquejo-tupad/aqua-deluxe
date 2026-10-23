@@ -3,6 +3,99 @@
    Sintetizador Web Audio API: Música de Niveles, Música de Mapas y Ruleta
    ========================================================================== */
 
+const MUSIC_TRACKS = [
+  {
+    id: 'track_zen',
+    name: 'Zen Alquímico',
+    genre: 'Ambient Chill / Gotas de Agua',
+    icon: 'droplets',
+    sectionName: 'Cap. 1: Laboratorio Escolar (Niveles 1-10)',
+    levelRange: [1, 10],
+    description: 'Pads etéreos aterciopelados y campanitas pentatónicas que transmiten serenidad pura y gotas cristalinas.'
+  },
+  {
+    id: 'track_mystery',
+    name: 'Misterio Nocturno',
+    genre: 'Lo-Fi Cósmico / Piano Eólico',
+    icon: 'moon',
+    sectionName: 'Cap. 2: Líquidos Ocultos & Candados (Niveles 11-20, 31-40)',
+    levelRange: [11, 20],
+    description: 'Acordes en modo eólico con notas espaciadas de piano de medianoche que invitan a la introspección.'
+  },
+  {
+    id: 'track_bossa',
+    name: 'Bossa de los Frascos',
+    genre: 'Bossa Nova Jazz Relajante',
+    icon: 'coffee',
+    sectionName: 'Cap. 3: Frascos Gigantes & Tubos Estrechos (Niveles 21-30, 41-50)',
+    levelRange: [21, 30],
+    description: 'Cadencia de bossa suave con bajo sincopado cálido, acordes de novena y sutil escobilla con swing brasileño.'
+  },
+  {
+    id: 'track_tropical',
+    name: 'Laguna Tropical',
+    genre: 'Calypso & Marimba Relajante',
+    icon: 'palmtree',
+    sectionName: 'Cap. 4: Frascos en Roca & Naturaleza (Niveles 51-60)',
+    levelRange: [51, 60],
+    description: 'Marimba de madera caribeña, cadencia veraniega suave y brisa marina que acompaña con calma paradisíaca.'
+  },
+  {
+    id: 'track_coral',
+    name: 'Mar de Coral',
+    genre: 'Bossa-Tropical Exótica',
+    icon: 'waves',
+    sectionName: 'Cap. 5: Líquido Camaleón (Niveles 61-70)',
+    levelRange: [61, 70],
+    description: 'Armonías fluidas que mutan de color como el líquido camaleón entre arrecifes de coral y olas cristalinas.'
+  },
+  {
+    id: 'track_cristal',
+    name: 'Cristal Efervescente',
+    genre: 'Neo-Soul & Jazz Acuático',
+    icon: 'sparkles',
+    sectionName: 'Cap. 6: Cristales Frágiles & Reacciones (Niveles 71-80)',
+    levelRange: [71, 80],
+    description: 'Glockenspiel que tintinea como burbujas al reaccionar químicamente y armonías jazzísticas sofisticadas.'
+  },
+  {
+    id: 'track_magna',
+    name: 'Sinfonía del Destino',
+    genre: 'Ambient Orquestal Suave',
+    icon: 'crown',
+    sectionName: 'Cap. 7: Conjunción Híbrida & Obra Magna (Niveles 81-100)',
+    levelRange: [81, 100],
+    description: 'Pads orquestales majestuosos de violonchelo suave y campanas celestiales que celebran la maestría alquímica.'
+  },
+  {
+    id: 'track_time_attack',
+    name: 'Pulso Contrarreloj',
+    genre: 'Chillwave Hipnótico',
+    icon: 'hourglass',
+    sectionName: 'Modo Contrarreloj (Time Attack)',
+    isSpecial: true,
+    description: 'Arpegio fluido y pulso rítmico lo-fi a 108 BPM que acompaña el reto con concentración zen y sin estrés.'
+  },
+  {
+    id: 'track_map',
+    name: 'Senda de la Kalimba',
+    genre: 'Exploración Acústica',
+    icon: 'map',
+    sectionName: 'Mapa de Aventura',
+    isSpecial: true,
+    description: 'Kalimba africana y contrabajo caminante durante los viajes de exploración por el archipiélago.'
+  },
+  {
+    id: 'track_roulette',
+    name: 'Vals de la Ruleta',
+    genre: 'Caja de Música / Arcade Suave',
+    icon: 'dices',
+    sectionName: 'Ruleta de la Fortuna y Diana',
+    isSpecial: true,
+    description: 'Pizzicato alegre y festivo que celebra la emoción de cada tirada de la suerte.'
+  }
+];
+
 class ProceduralAudioEngine {
   constructor() {
     this.ctx = null;
@@ -11,12 +104,15 @@ class ProceduralAudioEngine {
     this.sfxVolume = 0.5;
 
     // Estados de música activa
-    this.currentTrack = null; // 'level', 'map', 'roulette', null
+    this.currentTrack = null;      // tipo de contexto: 'level', 'map', 'roulette', 'time_attack'
+    this.currentTrackId = null;    // id específico del tema: 'track_zen', 'track_bossa', etc.
     this.pendingTrack = null;
+    this.pendingContext = null;
     this.hasUserInteracted = false;
     this.musicLoopTimer = null;
     this.musicStep = 0;
     this.activeNodes = [];
+    this.noiseBuffer = null;
 
     // Master Gains
     this.masterGain = null;
@@ -40,8 +136,10 @@ class ProceduralAudioEngine {
       this.init();
       if (this.pendingTrack && !this.currentTrack) {
         const trk = this.pendingTrack;
+        const ctxParam = this.pendingContext;
         this.pendingTrack = null;
-        this.playMusic(trk);
+        this.pendingContext = null;
+        this.playMusic(trk, ctxParam);
       }
       ['click', 'touchstart', 'touchend', 'pointerdown', 'keydown'].forEach(evt => {
         window.removeEventListener(evt, unlock, true);
@@ -115,31 +213,207 @@ class ProceduralAudioEngine {
   }
 
   // ==========================================================================
-  // 1. SISTEMA DE MÚSICA PROCEDURAL (NIVELES, MAPA, RULETA)
+  // 1. SISTEMA DE MÚSICA PROCEDURAL Y CATÁLOGO DE TEMAS
   // ==========================================================================
 
-  playMusic(trackType) {
+  getTracksCatalog() {
+    return MUSIC_TRACKS;
+  }
+
+  getCurrentTrackInfo() {
+    if (!this.currentTrackId) return null;
+    return MUSIC_TRACKS.find(t => t.id === this.currentTrackId) || null;
+  }
+
+  createNoiseBuffer() {
+    if (this.noiseBuffer) return this.noiseBuffer;
+    if (!this.ctx) return null;
+    const bufferSize = this.ctx.sampleRate * 2;
+    const buffer = this.ctx.createBuffer(1, bufferSize, this.ctx.sampleRate);
+    const data = buffer.getChannelData(0);
+    let lastOut = 0.0;
+    for (let i = 0; i < bufferSize; i++) {
+      const white = Math.random() * 2 - 1;
+      data[i] = (lastOut + (0.02 * white)) / 1.02;
+      lastOut = data[i];
+      data[i] *= 3.5;
+    }
+    this.noiseBuffer = buffer;
+    return buffer;
+  }
+
+  playShakerTap(now, gainLevel = 0.005) {
+    if (!this.ctx) return;
+    const buf = this.createNoiseBuffer();
+    if (!buf) return;
+    const src = this.ctx.createBufferSource();
+    src.buffer = buf;
+    const filter = this.ctx.createBiquadFilter();
+    filter.type = 'highpass';
+    filter.frequency.setValueAtTime(4500, now);
+    const gain = this.ctx.createGain();
+    gain.gain.setValueAtTime(gainLevel, now);
+    gain.gain.exponentialRampToValueAtTime(0.0001, now + 0.06);
+    src.connect(filter);
+    filter.connect(gain);
+    gain.connect(this.musicGain);
+    src.start(now);
+    src.stop(now + 0.07);
+  }
+
+  resolveLevelTrack(levelContext) {
+    if (levelContext === 'time_attack') return 'track_time_attack';
+    
+    // Nivel por defecto según progresión de mecánicas y capítulos
+    let preferredTrackId = 'track_zen';
+    if (typeof levelContext === 'number') {
+      if (levelContext >= 81) preferredTrackId = 'track_magna';
+      else if (levelContext >= 71) preferredTrackId = 'track_cristal';
+      else if (levelContext >= 61) preferredTrackId = 'track_coral';
+      else if (levelContext >= 51) preferredTrackId = 'track_tropical';
+      else if (levelContext >= 41) preferredTrackId = 'track_bossa';
+      else if (levelContext >= 31) preferredTrackId = 'track_mystery';
+      else if (levelContext >= 21) preferredTrackId = 'track_bossa';
+      else if (levelContext >= 11) preferredTrackId = 'track_mystery';
+      else preferredTrackId = 'track_zen';
+    } else if (levelContext === 'casual') {
+      // En modo casual rotamos entre los temas relajantes
+      const casualOptions = ['track_zen', 'track_bossa', 'track_tropical', 'track_coral', 'track_cristal'];
+      const enabledCasual = casualOptions.filter(t => !window.stateManager || !window.stateManager.isMusicTrackDisabled(t));
+      if (enabledCasual.length > 0) {
+        return enabledCasual[Math.floor(Math.random() * enabledCasual.length)];
+      }
+    }
+
+    // Comprobar si el usuario deshabilitó este tema en Opciones
+    const sm = window.stateManager;
+    if (sm && sm.isMusicTrackDisabled(preferredTrackId)) {
+      const levelTracks = ['track_zen', 'track_bossa', 'track_tropical', 'track_mystery', 'track_coral', 'track_cristal', 'track_magna'];
+      const enabled = levelTracks.filter(id => !sm.isMusicTrackDisabled(id));
+      if (enabled.length > 0) {
+        const idx = (typeof levelContext === 'number' ? levelContext - 1 : 0) % enabled.length;
+        return enabled[idx];
+      }
+      return null; // Todos los temas de niveles están desactivados por el usuario
+    }
+
+    return preferredTrackId;
+  }
+
+  playMusic(trackType, contextParam = null) {
     if (!this.hasUserInteracted) {
       this.pendingTrack = trackType;
+      this.pendingContext = contextParam;
       return;
     }
 
     if (!this.init()) {
       this.pendingTrack = trackType;
+      this.pendingContext = contextParam;
       return;
     }
 
-    if (this.currentTrack === trackType) return;
+    if (trackType === 'level') {
+      const trackId = this.resolveLevelTrack(contextParam);
+      if (trackId) {
+        this.playTrack(trackId);
+      } else {
+        this.stopMusic();
+      }
+    } else if (trackType === 'time_attack') {
+      const isDis = window.stateManager && window.stateManager.isMusicTrackDisabled('track_time_attack');
+      if (isDis) {
+        const fallback = this.resolveLevelTrack('casual');
+        if (fallback) this.playTrack(fallback);
+        else this.stopMusic();
+      } else {
+        this.playTrack('track_time_attack');
+      }
+    } else if (trackType === 'map') {
+      const isDis = window.stateManager && window.stateManager.isMusicTrackDisabled('track_map');
+      if (!isDis) this.playTrack('track_map');
+      else this.stopMusic();
+    } else if (trackType === 'roulette') {
+      const isDis = window.stateManager && window.stateManager.isMusicTrackDisabled('track_roulette');
+      if (!isDis) this.playTrack('track_roulette');
+      else this.stopMusic();
+    }
+  }
+
+  playTrack(trackId) {
+    if (!this.hasUserInteracted) {
+      this.pendingTrack = trackId;
+      return;
+    }
+
+    if (!this.init()) {
+      this.pendingTrack = trackId;
+      return;
+    }
+
+    // Si ya está sonando este mismo tema en el bucle, no interrumpir
+    if (this.currentTrackId === trackId && this.musicLoopTimer) return;
+
     this.stopMusic();
-    this.currentTrack = trackType;
+    this.currentTrackId = trackId;
+    this.currentTrack = trackId;
     this.musicStep = 0;
 
-    if (trackType === 'level') {
-      this.startLevelMusic();
-    } else if (trackType === 'map') {
-      this.startMapMusic();
-    } else if (trackType === 'roulette') {
-      this.startRouletteMusic();
+    switch (trackId) {
+      case 'track_zen':
+        this.startZenMusic();
+        break;
+      case 'track_mystery':
+        this.startMysteryMusic();
+        break;
+      case 'track_bossa':
+        this.startBossaMusic();
+        break;
+      case 'track_tropical':
+        this.startTropicalMusic();
+        break;
+      case 'track_coral':
+        this.startCoralMusic();
+        break;
+      case 'track_cristal':
+        this.startCrystalMusic();
+        break;
+      case 'track_magna':
+        this.startMagnaMusic();
+        break;
+      case 'track_time_attack':
+        this.startTimeAttackMusic();
+        break;
+      case 'track_map':
+        this.startMapMusic();
+        break;
+      case 'track_roulette':
+        this.startRouletteMusic();
+        break;
+      default:
+        this.startZenMusic();
+        break;
+    }
+
+    // Notificar cambio de tema para que el UI se actualice
+    try {
+      window.dispatchEvent(new CustomEvent('aquasort:trackchange', {
+        detail: { trackId, track: this.getCurrentTrackInfo() }
+      }));
+    } catch (e) {}
+  }
+
+  onTrackToggled(trackId, isDisabled) {
+    if (this.currentTrackId === trackId && isDisabled) {
+      // El tema que estaba sonando fue desactivado por el usuario, pasar a otro
+      const sm = window.stateManager;
+      const levelTracks = ['track_zen', 'track_bossa', 'track_tropical', 'track_mystery', 'track_coral', 'track_cristal', 'track_magna'];
+      const enabled = levelTracks.filter(id => !sm || !sm.isMusicTrackDisabled(id));
+      if (enabled.length > 0) {
+        this.playTrack(enabled[0]);
+      } else {
+        this.stopMusic();
+      }
     }
   }
 
@@ -149,11 +423,17 @@ class ProceduralAudioEngine {
       this.musicLoopTimer = null;
     }
     this.currentTrack = null;
+    this.currentTrackId = null;
+
+    try {
+      window.dispatchEvent(new CustomEvent('aquasort:trackchange', {
+        detail: { trackId: null, track: null }
+      }));
+    } catch (e) {}
   }
 
-  // --- MÚSICA RELAJANTE DE NIVELES (Ambient Zen / Lo-Fi Water) ---
-  startLevelMusic() {
-    // Acordes pentatónicos suaves: Cmaj7, Am7, Fmaj7, Gsus4
+  // --- 1. TEMA ZEN ALQUÍMICO (Ambient Chill / Gotas de Agua) ---
+  startZenMusic() {
     const chords = [
       [130.81, 164.81, 196.00, 246.94], // C3, E3, G3, B3 (Cmaj7)
       [110.00, 146.83, 174.61, 220.00], // A2, D3, F3, A3 (Am7)
@@ -165,14 +445,13 @@ class ProceduralAudioEngine {
       261.63, 293.66, 329.63, 392.00, 440.00, 523.25, 587.33, 659.25
     ];
 
-    const playChordStep = () => {
-      if (!this.ctx || this.currentTrack !== 'level') return;
+    const playStep = () => {
+      if (!this.ctx || this.currentTrackId !== 'track_zen') return;
 
       const chordIdx = Math.floor(this.musicStep / 4) % chords.length;
       const currentChord = chords[chordIdx];
       const now = this.ctx.currentTime;
 
-      // Al inicio de cada compás (cada 4 pasos), tocar una almohadilla (pad) cálida
       if (this.musicStep % 4 === 0) {
         currentChord.forEach((freq, i) => {
           const osc = this.ctx.createOscillator();
@@ -198,7 +477,6 @@ class ProceduralAudioEngine {
         });
       }
 
-      // Notas de campanita suave tipo gota de agua (marimba/chime)
       if (Math.random() > 0.3) {
         const noteFreq = melodyNotes[Math.floor(Math.random() * melodyNotes.length)];
         const bellOsc = this.ctx.createOscillator();
@@ -207,7 +485,7 @@ class ProceduralAudioEngine {
         bellOsc.type = 'sine';
         bellOsc.frequency.setValueAtTime(noteFreq, now + 0.1);
 
-        bellGain.gain.setValueAtTime(0.04, now + 0.1);
+        bellGain.gain.setValueAtTime(0.038, now + 0.1);
         bellGain.gain.exponentialRampToValueAtTime(0.0001, now + 1.2);
 
         bellOsc.connect(bellGain);
@@ -220,18 +498,509 @@ class ProceduralAudioEngine {
       this.musicStep++;
     };
 
-    playChordStep();
-    this.musicLoopTimer = setInterval(playChordStep, 950);
+    playStep();
+    this.musicLoopTimer = setInterval(playStep, 950);
   }
 
-  // --- MÚSICA DISTINTA PARA MAPAS (Exploración / Aventura Acústica) ---
+  // --- 2. TEMA BOSSA DE LOS FRASCOS (Bossa Nova Jazz Relajante) ---
+  startBossaMusic() {
+    // Progresión cálida de bossa nova: Fmaj9 -> Em7 -> Dm9 -> Cmaj7
+    const bossaChords = [
+      [174.61, 220.00, 261.63, 329.63, 392.00], // F3, A3, C4, E4, G4 (Fmaj9)
+      [164.81, 196.00, 246.94, 293.66],         // E3, G3, B3, D4 (Em7)
+      [146.83, 174.61, 220.00, 261.63, 329.63], // D3, F3, A3, C4, E4 (Dm9)
+      [130.81, 164.81, 196.00, 246.94]          // C3, E3, G3, B3 (Cmaj7)
+    ];
+
+    const bossaBassNotes = [
+      87.31,  130.81, // F2, C3
+      82.41,  123.47, // E2, B2
+      73.42,  110.00, // D2, A2
+      65.41,  98.00   // C2, G2
+    ];
+
+    const playBossaStep = () => {
+      if (!this.ctx || this.currentTrackId !== 'track_bossa') return;
+      const now = this.ctx.currentTime;
+      const compasStep = this.musicStep % 4;
+      const chordIdx = Math.floor(this.musicStep / 4) % bossaChords.length;
+      const currentChord = bossaChords[chordIdx];
+
+      // Bajo de Bossa Nova acústico y sincopado
+      const bassIndex = (chordIdx * 2) + (compasStep >= 2 ? 1 : 0);
+      const bassFreq = bossaBassNotes[bassIndex % bossaBassNotes.length];
+      if (compasStep === 0 || compasStep === 2) {
+        const bOsc = this.ctx.createOscillator();
+        const bGain = this.ctx.createGain();
+        const bFilter = this.ctx.createBiquadFilter();
+
+        bOsc.type = 'triangle';
+        bOsc.frequency.setValueAtTime(bassFreq, now);
+
+        bFilter.type = 'lowpass';
+        bFilter.frequency.setValueAtTime(260, now);
+
+        bGain.gain.setValueAtTime(0.065, now);
+        bGain.gain.exponentialRampToValueAtTime(0.001, now + 0.55);
+
+        bOsc.connect(bFilter);
+        bFilter.connect(bGain);
+        bGain.connect(this.musicGain);
+
+        bOsc.start(now);
+        bOsc.stop(now + 0.6);
+      }
+
+      // Rasgueo suave de guitarra de nylon / Rhodes con séptimas
+      if (compasStep === 0 || compasStep === 3) {
+        currentChord.forEach((freq, idx) => {
+          const chordOsc = this.ctx.createOscillator();
+          const chordGain = this.ctx.createGain();
+          const chordFilter = this.ctx.createBiquadFilter();
+
+          const stagger = now + (idx * 0.015);
+          chordOsc.type = 'sine';
+          chordOsc.frequency.setValueAtTime(freq, stagger);
+
+          chordFilter.type = 'lowpass';
+          chordFilter.frequency.setValueAtTime(750, stagger);
+
+          chordGain.gain.setValueAtTime(0.001, stagger);
+          chordGain.gain.linearRampToValueAtTime(0.024, stagger + 0.04);
+          chordGain.gain.exponentialRampToValueAtTime(0.0005, stagger + 0.65);
+
+          chordOsc.connect(chordFilter);
+          chordFilter.connect(chordGain);
+          chordGain.connect(this.musicGain);
+
+          chordOsc.start(stagger);
+          chordOsc.stop(stagger + 0.7);
+        });
+      }
+
+      // Shaker/escobilla acústica con swing brasileño
+      this.playShakerTap(now, 0.0035);
+      if (compasStep === 1 || compasStep === 3) {
+        this.playShakerTap(now + 0.35, 0.0045);
+      }
+
+      this.musicStep++;
+    };
+
+    playBossaStep();
+    this.musicLoopTimer = setInterval(playBossaStep, 720);
+  }
+
+  // --- 3. TEMA LAGUNA TROPICAL (Calypso & Marimba Relajante) ---
+  startTropicalMusic() {
+    // Escala pentatónica caribeña en G mayor
+    const scale = [196.00, 220.00, 246.94, 293.66, 329.63, 392.00, 440.00, 493.88];
+    const bassline = [98.00, 146.83, 110.00, 146.83, 82.41, 123.47, 98.00, 146.83];
+    const melodyPattern = [0, 2, 4, 3, 5, 4, 2, 1, 3, 5, 7, 5, 4, 2, 3, 0];
+
+    const playTropicalStep = () => {
+      if (!this.ctx || this.currentTrackId !== 'track_tropical') return;
+      const now = this.ctx.currentTime;
+
+      // Bajo caminante tropical cálido
+      const bassFreq = bassline[this.musicStep % bassline.length];
+      const bOsc = this.ctx.createOscillator();
+      const bGain = this.ctx.createGain();
+      bOsc.type = 'triangle';
+      bOsc.frequency.setValueAtTime(bassFreq, now);
+      bGain.gain.setValueAtTime(0.06, now);
+      bGain.gain.exponentialRampToValueAtTime(0.001, now + 0.45);
+      bOsc.connect(bGain);
+      bGain.connect(this.musicGain);
+      bOsc.start(now);
+      bOsc.stop(now + 0.5);
+
+      // Marimba de madera caribeña (fundamental + 3er armónico cálido)
+      const noteIdx = melodyPattern[this.musicStep % melodyPattern.length];
+      const freq = scale[noteIdx];
+
+      const mOsc1 = this.ctx.createOscillator();
+      const mOsc2 = this.ctx.createOscillator();
+      const mGain = this.ctx.createGain();
+      const mFilter = this.ctx.createBiquadFilter();
+
+      mOsc1.type = 'sine';
+      mOsc1.frequency.setValueAtTime(freq, now);
+
+      mOsc2.type = 'sine';
+      mOsc2.frequency.setValueAtTime(freq * 3.01, now); // Click amaderado característico
+
+      mFilter.type = 'bandpass';
+      mFilter.frequency.setValueAtTime(750, now);
+      mFilter.Q.setValueAtTime(2.2, now);
+
+      mGain.gain.setValueAtTime(0.05, now);
+      mGain.gain.exponentialRampToValueAtTime(0.0005, now + 0.38);
+
+      mOsc1.connect(mGain);
+      mOsc2.connect(mFilter);
+      mFilter.connect(mGain);
+      mGain.connect(this.musicGain);
+
+      mOsc1.start(now);
+      mOsc2.start(now);
+      mOsc1.stop(now + 0.42);
+      mOsc2.stop(now + 0.42);
+
+      // Suave shaker caribeño
+      if (this.musicStep % 2 === 1) {
+        this.playShakerTap(now, 0.003);
+      }
+
+      this.musicStep++;
+    };
+
+    playTropicalStep();
+    this.musicLoopTimer = setInterval(playTropicalStep, 560);
+  }
+
+  // --- 4. TEMA MISTERIO NOCTURNO (Lo-Fi Cósmico / Piano Eólico) ---
+  startMysteryMusic() {
+    const mysteryChords = [
+      [146.83, 220.00, 261.63, 329.63, 392.00], // Dm9
+      [116.54, 174.61, 233.08, 293.66, 369.99], // Bbmaj7(#11)
+      [98.00, 146.83, 196.00, 293.66, 329.63],  // Gm9
+      [110.00, 164.81, 220.00, 293.66, 311.13]  // Asus4(b9)
+    ];
+
+    const pianoNotes = [293.66, 349.23, 440.00, 523.25, 587.33, 698.46, 783.99];
+
+    const playMysteryStep = () => {
+      if (!this.ctx || this.currentTrackId !== 'track_mystery') return;
+      const now = this.ctx.currentTime;
+      const chordIdx = Math.floor(this.musicStep / 4) % mysteryChords.length;
+      const currentChord = mysteryChords[chordIdx];
+
+      // Pad nocturno con filtro oscuro que respira suavemente
+      if (this.musicStep % 4 === 0) {
+        currentChord.forEach(f => {
+          const osc = this.ctx.createOscillator();
+          const gain = this.ctx.createGain();
+          const filter = this.ctx.createBiquadFilter();
+
+          osc.type = 'triangle';
+          osc.frequency.setValueAtTime(f, now);
+
+          filter.type = 'lowpass';
+          filter.frequency.setValueAtTime(320, now);
+          filter.frequency.linearRampToValueAtTime(520, now + 1.8);
+          filter.frequency.linearRampToValueAtTime(320, now + 3.6);
+
+          gain.gain.setValueAtTime(0.001, now);
+          gain.gain.linearRampToValueAtTime(0.032, now + 1.2);
+          gain.gain.exponentialRampToValueAtTime(0.001, now + 3.7);
+
+          osc.connect(filter);
+          filter.connect(gain);
+          gain.connect(this.musicGain);
+
+          osc.start(now);
+          osc.stop(now + 3.9);
+        });
+      }
+
+      // Gotas de piano de medianoche dispersas
+      if (Math.random() > 0.4) {
+        const pFreq = pianoNotes[Math.floor(Math.random() * pianoNotes.length)];
+        const pOsc = this.ctx.createOscillator();
+        const pGain = this.ctx.createGain();
+        const pFilter = this.ctx.createBiquadFilter();
+
+        pOsc.type = 'sine';
+        pOsc.frequency.setValueAtTime(pFreq, now);
+
+        pFilter.type = 'lowpass';
+        pFilter.frequency.setValueAtTime(1100, now);
+
+        pGain.gain.setValueAtTime(0.04, now);
+        pGain.gain.exponentialRampToValueAtTime(0.0001, now + 1.5);
+
+        pOsc.connect(pFilter);
+        pFilter.connect(pGain);
+        pGain.connect(this.musicGain);
+
+        pOsc.start(now);
+        pOsc.stop(now + 1.6);
+      }
+
+      this.musicStep++;
+    };
+
+    playMysteryStep();
+    this.musicLoopTimer = setInterval(playMysteryStep, 920);
+  }
+
+  // --- 5. TEMA MAR DE CORAL (Bossa-Tropical Exótica) ---
+  startCoralMusic() {
+    const coralChords = [
+      [220.00, 277.18, 329.63, 415.30], // Amaj7
+      [185.00, 220.00, 277.18, 329.63], // F#m7
+      [246.94, 293.66, 369.99, 440.00], // Bm7
+      [164.81, 246.94, 293.66, 370.00]  // E7sus4
+    ];
+
+    const arpeggios = [
+      [220.00, 277.18, 329.63, 440.00],
+      [277.18, 329.63, 415.30, 554.37],
+      [246.94, 293.66, 369.99, 493.88],
+      [196.00, 246.94, 293.66, 392.00]
+    ];
+
+    const playCoralStep = () => {
+      if (!this.ctx || this.currentTrackId !== 'track_coral') return;
+      const now = this.ctx.currentTime;
+      const chordIdx = Math.floor(this.musicStep / 4) % coralChords.length;
+
+      // Sub-bajo oceánico profundo
+      if (this.musicStep % 2 === 0) {
+        const bassFreq = coralChords[chordIdx][0] / 2;
+        const bOsc = this.ctx.createOscillator();
+        const bGain = this.ctx.createGain();
+        bOsc.type = 'sine';
+        bOsc.frequency.setValueAtTime(bassFreq, now);
+        bGain.gain.setValueAtTime(0.07, now);
+        bGain.gain.exponentialRampToValueAtTime(0.001, now + 0.85);
+        bOsc.connect(bGain);
+        bGain.connect(this.musicGain);
+        bOsc.start(now);
+        bOsc.stop(now + 0.9);
+      }
+
+      // Arpegio flotante de coral
+      const arpNotes = arpeggios[chordIdx];
+      const noteFreq = arpNotes[this.musicStep % arpNotes.length];
+      const arpOsc = this.ctx.createOscillator();
+      const arpGain = this.ctx.createGain();
+
+      arpOsc.type = 'sine';
+      arpOsc.frequency.setValueAtTime(noteFreq, now);
+
+      arpGain.gain.setValueAtTime(0.038, now);
+      arpGain.gain.exponentialRampToValueAtTime(0.0005, now + 0.55);
+
+      arpOsc.connect(arpGain);
+      arpGain.connect(this.musicGain);
+
+      arpOsc.start(now);
+      arpOsc.stop(now + 0.6);
+
+      this.playShakerTap(now, 0.0025);
+      this.musicStep++;
+    };
+
+    playCoralStep();
+    this.musicLoopTimer = setInterval(playCoralStep, 640);
+  }
+
+  // --- 6. TEMA CRISTAL EFERVESCENTE (Neo-Soul & Jazz Acuático) ---
+  startCrystalMusic() {
+    const jazzChords = [
+      [155.56, 196.00, 233.08, 293.66, 349.23], // Ebmaj9
+      [130.81, 155.56, 196.00, 233.08, 293.66], // Cm9
+      [174.61, 207.65, 261.63, 311.13, 392.00], // Fm9
+      [116.54, 185.00, 233.08, 293.66, 349.23]  // Bb13
+    ];
+
+    const sparkleBells = [1046.50, 1174.66, 1244.51, 1396.91, 1567.98, 1864.66, 2093.00];
+
+    const playCrystalStep = () => {
+      if (!this.ctx || this.currentTrackId !== 'track_cristal') return;
+      const now = this.ctx.currentTime;
+      const chordIdx = Math.floor(this.musicStep / 4) % jazzChords.length;
+      const chord = jazzChords[chordIdx];
+
+      // Acordes aterciopelados estilo Rhodes
+      if (this.musicStep % 4 === 0) {
+        chord.forEach(f => {
+          const osc = this.ctx.createOscillator();
+          const gain = this.ctx.createGain();
+          const filter = this.ctx.createBiquadFilter();
+
+          osc.type = 'sine';
+          osc.frequency.setValueAtTime(f, now);
+
+          filter.type = 'lowpass';
+          filter.frequency.setValueAtTime(650, now);
+
+          gain.gain.setValueAtTime(0.001, now);
+          gain.gain.linearRampToValueAtTime(0.025, now + 0.05);
+          gain.gain.exponentialRampToValueAtTime(0.0008, now + 2.5);
+
+          osc.connect(filter);
+          filter.connect(gain);
+          gain.connect(this.musicGain);
+
+          osc.start(now);
+          osc.stop(now + 2.6);
+        });
+      }
+
+      // Tintineo de glockenspiel acuático / burbujas químicas
+      if (Math.random() > 0.35) {
+        const bellFreq = sparkleBells[Math.floor(Math.random() * sparkleBells.length)];
+        const bOsc = this.ctx.createOscillator();
+        const bGain = this.ctx.createGain();
+
+        bOsc.type = 'sine';
+        bOsc.frequency.setValueAtTime(bellFreq, now);
+
+        bGain.gain.setValueAtTime(0.028, now);
+        bGain.gain.exponentialRampToValueAtTime(0.0001, now + 0.9);
+
+        bOsc.connect(bGain);
+        bGain.connect(this.musicGain);
+
+        bOsc.start(now);
+        bOsc.stop(now + 0.95);
+      }
+
+      this.musicStep++;
+    };
+
+    playCrystalStep();
+    this.musicLoopTimer = setInterval(playCrystalStep, 680);
+  }
+
+  // --- 7. TEMA SINFONÍA DEL DESTINO (Ambient Orquestal Suave) ---
+  startMagnaMusic() {
+    const magnaChords = [
+      [146.83, 220.00, 277.18, 370.00, 440.00], // Dmaj7
+      [123.47, 185.00, 220.00, 293.66, 370.00], // Bm9
+      [98.00, 146.83, 196.00, 293.66, 370.00],  // Gmaj7
+      [110.00, 164.81, 220.00, 293.66, 440.00]  // Asus4
+    ];
+
+    const cathedralChimes = [587.33, 739.99, 880.00, 1174.66];
+
+    const playMagnaStep = () => {
+      if (!this.ctx || this.currentTrackId !== 'track_magna') return;
+      const now = this.ctx.currentTime;
+      const chordIdx = Math.floor(this.musicStep / 4) % magnaChords.length;
+      const chord = magnaChords[chordIdx];
+
+      // Pad orquestal cálido con violonchelo sintético
+      if (this.musicStep % 4 === 0) {
+        chord.forEach((f, idx) => {
+          const osc = this.ctx.createOscillator();
+          const gain = this.ctx.createGain();
+          const filter = this.ctx.createBiquadFilter();
+
+          osc.type = idx === 0 ? 'triangle' : 'sine';
+          osc.frequency.setValueAtTime(f, now);
+
+          filter.type = 'lowpass';
+          filter.frequency.setValueAtTime(380, now);
+
+          gain.gain.setValueAtTime(0.001, now);
+          gain.gain.linearRampToValueAtTime(0.04, now + 1.4);
+          gain.gain.exponentialRampToValueAtTime(0.001, now + 3.8);
+
+          osc.connect(filter);
+          filter.connect(gain);
+          gain.connect(this.musicGain);
+
+          osc.start(now);
+          osc.stop(now + 4.0);
+        });
+
+        // Campana dorada en el cambio armónico
+        const chimeFreq = cathedralChimes[chordIdx % cathedralChimes.length];
+        const cOsc = this.ctx.createOscillator();
+        const cGain = this.ctx.createGain();
+
+        cOsc.type = 'sine';
+        cOsc.frequency.setValueAtTime(chimeFreq, now);
+
+        cGain.gain.setValueAtTime(0.035, now);
+        cGain.gain.exponentialRampToValueAtTime(0.0001, now + 2.2);
+
+        cOsc.connect(cGain);
+        cGain.connect(this.musicGain);
+
+        cOsc.start(now);
+        cOsc.stop(now + 2.3);
+      }
+
+      this.musicStep++;
+    };
+
+    playMagnaStep();
+    this.musicLoopTimer = setInterval(playMagnaStep, 980);
+  }
+
+  // --- 8. TEMA PULSO CONTRARRELOJ (Chillwave Hipnótico 108 BPM) ---
+  startTimeAttackMusic() {
+    const arpNotes = [
+      220.00, 261.63, 329.63, 392.00, 440.00, 523.25, 659.25, 523.25,
+      440.00, 392.00, 329.63, 261.63, 329.63, 392.00, 440.00, 523.25
+    ];
+
+    const subPulseNotes = [55.00, 65.41, 73.42, 65.41]; // A1, C2, D2, C2
+
+    const playTimeAttackStep = () => {
+      if (!this.ctx || this.currentTrackId !== 'track_time_attack') return;
+      const now = this.ctx.currentTime;
+
+      // Arpegio chillwave hipnótico en semicorcheas
+      const noteFreq = arpNotes[this.musicStep % arpNotes.length];
+      const osc = this.ctx.createOscillator();
+      const gain = this.ctx.createGain();
+      const filter = this.ctx.createBiquadFilter();
+
+      osc.type = 'triangle';
+      osc.frequency.setValueAtTime(noteFreq, now);
+
+      filter.type = 'lowpass';
+      filter.frequency.setValueAtTime(650, now);
+
+      gain.gain.setValueAtTime(0.03, now);
+      gain.gain.exponentialRampToValueAtTime(0.001, now + 0.24);
+
+      osc.connect(filter);
+      filter.connect(gain);
+      gain.connect(this.musicGain);
+
+      osc.start(now);
+      osc.stop(now + 0.26);
+
+      // Pulso sub-bass en cada negra (cada 4 pasos)
+      if (this.musicStep % 4 === 0) {
+        const subFreq = subPulseNotes[Math.floor(this.musicStep / 4) % subPulseNotes.length];
+        const subOsc = this.ctx.createOscillator();
+        const subGain = this.ctx.createGain();
+
+        subOsc.type = 'sine';
+        subOsc.frequency.setValueAtTime(subFreq, now);
+
+        subGain.gain.setValueAtTime(0.07, now);
+        subGain.gain.exponentialRampToValueAtTime(0.001, now + 0.35);
+
+        subOsc.connect(subGain);
+        subGain.connect(this.musicGain);
+
+        subOsc.start(now);
+        subOsc.stop(now + 0.38);
+      }
+
+      this.musicStep++;
+    };
+
+    playTimeAttackStep();
+    this.musicLoopTimer = setInterval(playTimeAttackStep, 280);
+  }
+
+  // --- 9. MÚSICA PARA MAPAS (Exploración / Aventura Acústica) ---
   startMapMusic() {
-    // Escala D mayor brillante, arpegios ligeros tipo kalimba
     const scale = [146.83, 185.00, 220.00, 277.18, 293.66, 370.00, 440.00, 554.37, 587.33];
     const bassline = [146.83, 146.83, 185.00, 220.00, 196.00, 196.00, 220.00, 146.83];
 
     const playMapStep = () => {
-      if (!this.ctx || this.currentTrack !== 'map') return;
+      if (!this.ctx || this.currentTrackId !== 'track_map') return;
       const now = this.ctx.currentTime;
 
       // Bajo rítmico que camina
@@ -273,9 +1042,8 @@ class ProceduralAudioEngine {
     this.musicLoopTimer = setInterval(playMapStep, 450);
   }
 
-  // --- MÚSICA ANIMADA PARA LA RULETA (Carnival / Upbeat Arcade) ---
+  // --- 10. MÚSICA ANIMADA PARA LA RULETA (Carnival / Upbeat Arcade) ---
   startRouletteMusic() {
-    // 128 BPM rápido, ritmo festivo, bajo saltarín
     const bassNotes = [110.00, 110.00, 130.81, 146.83, 164.81, 146.83, 130.81, 123.47];
     const synthChords = [
       [220.00, 277.18, 329.63], // A major
@@ -285,7 +1053,7 @@ class ProceduralAudioEngine {
     ];
 
     const playRouletteStep = () => {
-      if (!this.ctx || this.currentTrack !== 'roulette') return;
+      if (!this.ctx || this.currentTrackId !== 'track_roulette') return;
       const now = this.ctx.currentTime;
 
       // Bajo enérgico
