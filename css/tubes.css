@@ -99,31 +99,127 @@
   z-index: 25;
 }
 
-/* Estado Seleccionado */
+/* Estado Seleccionado (Mayor elevación, escala ampliada y glow respiratorio para alta visibilidad) */
 .test-tube.selected {
-  transform: translateY(-26px) scale(1.06);
-  filter: brightness(1.1);
-  z-index: 40;
+  transform: translateY(-28px) scale(1.10);
+  z-index: 45;
+  animation: tubeSelectedFloat 1.6s ease-in-out infinite alternate;
 }
+
 @media (max-width: 640px) {
   .test-tube.selected {
-    transform: translateY(-16px) scale(1.05);
+    transform: translateY(-18px) scale(1.09);
+    animation: tubeSelectedFloatMobile 1.6s ease-in-out infinite alternate;
   }
 }
-.test-tube.selected .tube-glass {
-  border-color: #38bdf8;
-  box-shadow: 0 0 30px rgba(56, 189, 248, 0.8), 0 20px 35px rgba(0, 0, 0, 0.6);
+
+.test-tube.selected::before {
+  content: '';
+  position: absolute;
+  bottom: -16px;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 75%;
+  height: 12px;
+  background: radial-gradient(ellipse at center, rgba(56, 189, 248, 0.85) 0%, rgba(14, 165, 233, 0.45) 50%, transparent 80%);
+  border-radius: 50%;
+  filter: blur(4px);
+  pointer-events: none;
+  animation: tubeSelectedHaloBreathe 1.6s ease-in-out infinite alternate;
+  z-index: 10;
 }
+
+.test-tube.selected .tube-glass {
+  border-width: 2.5px;
+  animation: tubeGlassGlowBreathe 1.6s ease-in-out infinite alternate;
+}
+
 .test-tube.selected .tube-lip {
-  border-color: #7dd3fc;
-  box-shadow: 0 0 15px rgba(125, 211, 252, 0.8);
+  border-width: 2.5px;
+  animation: tubeLipGlowBreathe 1.6s ease-in-out infinite alternate;
+}
+
+@keyframes tubeSelectedFloat {
+  0% {
+    transform: translateY(-27px) scale(1.09);
+    filter: drop-shadow(0 12px 20px rgba(0, 0, 0, 0.6)) drop-shadow(0 0 16px rgba(56, 189, 248, 0.7));
+  }
+  100% {
+    transform: translateY(-32px) scale(1.13);
+    filter: drop-shadow(0 18px 28px rgba(0, 0, 0, 0.75)) drop-shadow(0 0 30px rgba(56, 189, 248, 1)) drop-shadow(0 0 10px rgba(255, 255, 255, 0.65));
+  }
+}
+
+@keyframes tubeSelectedFloatMobile {
+  0% {
+    transform: translateY(-17px) scale(1.08);
+    filter: drop-shadow(0 10px 16px rgba(0, 0, 0, 0.6)) drop-shadow(0 0 14px rgba(56, 189, 248, 0.7));
+  }
+  100% {
+    transform: translateY(-21px) scale(1.12);
+    filter: drop-shadow(0 14px 22px rgba(0, 0, 0, 0.75)) drop-shadow(0 0 25px rgba(56, 189, 248, 1)) drop-shadow(0 0 8px rgba(255, 255, 255, 0.65));
+  }
+}
+
+@keyframes tubeGlassGlowBreathe {
+  0% {
+    border-color: #38bdf8;
+    box-shadow:
+      0 0 22px rgba(56, 189, 248, 0.8),
+      0 0 42px rgba(14, 165, 233, 0.5),
+      0 20px 35px rgba(0, 0, 0, 0.6),
+      inset 0 0 14px rgba(255, 255, 255, 0.4),
+      inset 0 0 24px rgba(56, 189, 248, 0.45);
+  }
+  100% {
+    border-color: #bae6fd;
+    box-shadow:
+      0 0 38px rgba(56, 189, 248, 1),
+      0 0 68px rgba(14, 165, 233, 0.9),
+      0 0 20px rgba(255, 255, 255, 0.85),
+      0 24px 44px rgba(0, 0, 0, 0.75),
+      inset 0 0 20px rgba(255, 255, 255, 0.7),
+      inset 0 0 35px rgba(56, 189, 248, 0.8);
+  }
+}
+
+@keyframes tubeLipGlowBreathe {
+  0% {
+    border-color: #7dd3fc;
+    box-shadow:
+      0 0 16px rgba(125, 211, 252, 0.85),
+      inset 0 1px 3px rgba(255, 255, 255, 0.6);
+  }
+  100% {
+    border-color: #ffffff;
+    box-shadow:
+      0 0 28px rgba(125, 211, 252, 1),
+      0 0 12px rgba(255, 255, 255, 0.95),
+      inset 0 1px 5px rgba(255, 255, 255, 0.95);
+  }
+}
+
+@keyframes tubeSelectedHaloBreathe {
+  0% {
+    opacity: 0.6;
+    transform: translateX(-50%) scale(0.9);
+  }
+  100% {
+    opacity: 1;
+    transform: translateX(-50%) scale(1.2);
+    filter: blur(6px);
+  }
 }
 
 /* Estado de Vertido (Vuelo e inclinación) */
 .test-tube.is-pouring {
+  animation: none !important;
   z-index: 60 !important;
   transition: transform 0.42s cubic-bezier(0.25, 1, 0.5, 1);
   filter: drop-shadow(0 15px 30px rgba(0, 0, 0, 0.65));
+}
+.test-tube.is-pouring::before {
+  display: none !important;
 }
 
 /* Pistas de ayuda */
