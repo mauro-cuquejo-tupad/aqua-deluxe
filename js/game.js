@@ -1068,6 +1068,13 @@ class GameController {
         if (toTube.liquids.length >= toTube.capacity) continue;
 
         if (this.canPour(i, j)) {
+          // Si el tubo destino es volátil / afín, solo es movimiento viable si el color es compatible
+          if (toTube.isAffinity || toTube.isSuperFragile || toTube.isFragile) {
+            const topFrom = fromTube.liquids[fromTube.liquids.length - 1];
+            const isChameleon = topFrom.isChameleon || topFrom.color === 'chameleon';
+            const isAffinityMatch = isChameleon || (Array.isArray(toTube.allowedColors) && toTube.allowedColors.includes(topFrom.color));
+            if (!isAffinityMatch) continue;
+          }
           return true;
         }
       }
@@ -3871,27 +3878,172 @@ class GameController {
     this.updateChallengesHUD();
   }
 
+  findBestHint() {
+    const scoredMoves = [];
+
+    for (let i = 0; i < this.tubes.length; i++) {
+      const fromTube = this.tubes[i];
+      if (!fromTube || fromTube.liquids.length === 0 || fromTube.isBroken || fromTube.isGlued) continue;
+      if (this.isTimeAttack && (fromTube.isCountingDown || fromTube.isDraining)) continue;
+
+      // NUNCA sugerir extraer líquido de un frasco ya completado
+      if (this.isTubeComplete(fromTube, { allowChameleon: true })) continue;
+
+      const topFrom = fromTube.liquids[fromTube.liquids.length - 1];
+      const isChameleon = topFrom.isChameleon || topFrom.color === 'chameleon';
+
+      // Contar bloques contiguos de este color en el tubo origen
+      let topCount = 0;
+      for (let k = fromTube.liquids.length - 1; k >= 0; k--) {
+        const item = fromTube.liquids[k];
+        if (!item.isMystery && (item.color === topFrom.color || item.isChameleon)) topCount++;
+        else break;
+      }
+
+      // Comprobar si el tubo origen es 100% homogéneo (un solo color conocido, sin misterio abajo)
+      const isFromHomogeneous = fromTube.liquids.every(item => !item.isMystery && (item.color === topFrom.color || item.isChameleon));
+
+      for (let j = 0; j < this.tubes.length; j++) {
+        if (i === j) continue;
+        const toTube = this.tubes[j];
+        if (!toTube || toTube.isBroken || toTube.isLocked) continue;
+        if (this.isTimeAttack && (toTube.isCountingDown || toTube.isDraining)) continue;
+        if (toTube.liquids.length >= toTube.capacity) continue;
+
+        // Validar reglas básicas de vertido del motor
+        if (!this.canPour(i, j)) continue;
+
+        // --- REGLA CRÍTICA: FRASCOS VOLÁTILES Y DE AFINIDAD ---
+        // NUNCA sugerir verter un color incompatible en un frasco volátil o de afinidad
+        const isVolatile = toTube.isAffinity || toTube.isFragile || toTube.isSuperFragile;
+        if (isVolatile) {
+          const isAffinityMatch = isChameleon || (Array.isArray(toTube.allowedColors) && toTube.allowedColors.includes(topFrom.color));
+          if (!isAffinityMatch) continue; // Descartar: provocaría fisura o destrucción del frasco
+        }
+
+        // --- EVITAR MOVIMIENTOS REDUNDANTES / INÚTILES ---
+        // Mover un frasco puro hacia un tubo vacío común no aporta progreso al puzzle
+        if (toTube.liquids.length === 0 && !isVolatile && isFromHomogeneous) {
+          scoredMoves.push({ from: i, to: j, score: 5, isFallback: true });
+          continue;
+        }
+
+        const space = toTube.capacity - toTube.liquids.length;
+        const effectiveCount = (fromTube.isNarrow || toTube.isNarrow) ? 1 : topCount;
+        const unitsToMove = Math.min(effectiveCount, space);
+
+        let score = 100;
+
+        // 1. ¿El movimiento completa el tubo destino? (Prioridad máxima de victoria)
+        if (toTube.liquids.length + unitsToMove === toTube.capacity) {
+          const isDestEmpty = toTube.liquids.length === 0;
+          const isDestMatching = !isDestEmpty && toTube.liquids.every(l => l.color === topFrom.color || l.isChameleon);
+          if (isDestEmpty ? (unitsToMove === toTube.capacity) : isDestMatching) {
+            score += 2000;
+          }
+        }
+
+        // 2. ¿Revela un líquido misterioso debajo en el tubo origen?
+        if (unitsToMove === topCount && fromTube.liquids.length > topCount) {
+          const itemBelow = fromTube.liquids[fromTube.liquids.length - 1 - topCount];
+          if (itemBelow && itemBelow.isMystery) {
+            score += 1200;
+          }
+        }
+
+        // 3. ¿Vacía completamente el frasco origen para liberar un espacio libre nuevo?
+        if (unitsToMove === fromTube.liquids.length && toTube.liquids.length > 0) {
+          score += 800;
+        }
+
+        // 4. ¿Desbloquea otro color conocido diferente que estaba atrapado debajo?
+        if (unitsToMove === topCount && fromTube.liquids.length > topCount) {
+          const itemBelow = fromTube.liquids[fromTube.liquids.length - 1 - topCount];
+          if (itemBelow && !itemBelow.isMystery && itemBelow.color !== topFrom.color) {
+            score += 500;
+          }
+        }
+
+        // 5. ¿Consolida capas del mismo color sobre un frasco que ya lo contiene?
+        if (toTube.liquids.length > 0) {
+          const topTo = toTube.liquids[toTube.liquids.length - 1];
+          if (topTo && (topTo.color === topFrom.color || topTo.isChameleon)) {
+            score += 350;
+          }
+        }
+
+        // 6. ¿Llena un frasco volátil con su color afín correcto?
+        if (isVolatile) {
+          score += 300;
+        }
+
+        // 7. ¿Mueve todo el bloque contiguo sin partirlo?
+        if (unitsToMove === topCount) {
+          score += 100;
+        }
+
+        // 8. Mover a un tubo vacío desde un frasco mezclado para liberar colores
+        if (toTube.liquids.length === 0 && !isFromHomogeneous) {
+          score += 150;
+        }
+
+        scoredMoves.push({ from: i, to: j, score });
+      }
+    }
+
+    if (scoredMoves.length === 0) return null;
+
+    scoredMoves.sort((a, b) => b.score - a.score);
+    return scoredMoves[0];
+  }
+
   giveHint() {
     if (this.hintsRemaining <= 0) return;
 
-    for (let i = 0; i < this.tubes.length; i++) {
-      for (let j = 0; j < this.tubes.length; j++) {
-        if (i !== j && this.canPour(i, j)) {
-          this.hintsRemaining--;
-          this.hintsUsedInLevel = (this.hintsUsedInLevel || 0) + 1; // Marca el nivel para exclusión del leaderboard
-          if (this.lblHintsLeft) this.lblHintsLeft.textContent = this.hintsRemaining;
-          this.activeHint = { from: i, to: j };
+    const bestMove = this.findBestHint();
+    const banner = document.getElementById('hint-banner');
 
-          const banner = document.getElementById('hint-banner');
-          if (banner) banner.classList.remove('hidden');
+    if (!bestMove) {
+      if (banner) {
+        banner.classList.remove('hidden');
+        const textSpan = banner.querySelector('span');
+        if (textSpan) {
+          textSpan.innerHTML = '⚠️ ¡No hay movimientos seguros disponibles! Prueba <strong>Deshacer (Undo)</strong> o añade un <strong>Frasco Extra (+ Botella)</strong>.';
+        }
+      }
+      if (window.audio && typeof window.audio.playInvalidMoveSound === 'function') {
+        window.audio.playInvalidMoveSound();
+      }
+      return;
+    }
 
-          if (window.audio) window.audio.playSelect();
-          this.renderTubes();
-          this.updateChallengesHUD();
-          return;
+    this.hintsRemaining--;
+    this.hintsUsedInLevel = (this.hintsUsedInLevel || 0) + 1; // Marca el nivel para exclusión del leaderboard
+    if (this.lblHintsLeft) this.lblHintsLeft.textContent = this.hintsRemaining;
+    this.activeHint = { from: bestMove.from, to: bestMove.to };
+
+    if (banner) {
+      banner.classList.remove('hidden');
+      const textSpan = banner.querySelector('span');
+      if (textSpan) {
+        const fromTube = this.tubes[bestMove.from];
+        const toTube = this.tubes[bestMove.to];
+        const topFrom = fromTube.liquids[fromTube.liquids.length - 1];
+        const colorName = topFrom?.name ? `el color <strong class="text-sky-300 font-bold">${topFrom.name}</strong>` : 'el líquido';
+
+        if (toTube.isSuperFragile) {
+          textSpan.innerHTML = `Pista guiada: vierte ${colorName} desde el frasco <strong class="text-amber-300 underline">DORADO</strong> hacia el frasco volátil ⚡ <strong class="text-emerald-400 underline">VERDE</strong> (color afín).`;
+        } else if (toTube.isAffinity) {
+          textSpan.innerHTML = `Pista guiada: vierte ${colorName} desde el frasco <strong class="text-amber-300 underline">DORADO</strong> hacia el frasco afín 💎 <strong class="text-emerald-400 underline">VERDE</strong>.`;
+        } else {
+          textSpan.innerHTML = `Pista guiada: vierte ${colorName} desde el frasco <strong class="text-amber-300 underline">DORADO</strong> hacia el <strong class="text-emerald-400 underline">VERDE</strong>.`;
         }
       }
     }
+
+    if (window.audio) window.audio.playSelect();
+    this.renderTubes();
+    this.updateChallengesHUD();
   }
 
   clearHintHighlight() {

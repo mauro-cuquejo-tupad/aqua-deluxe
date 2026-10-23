@@ -3,7 +3,7 @@
    Soporte Offline, Caché Rápida y Experiencia de App Nativa Móvil
    ========================================================================== */
 
-const CACHE_NAME = 'aquasort-deluxe-v4.8';
+const CACHE_NAME = 'aquasort-deluxe-v4.9';
 
 const PRECACHE_ASSETS = [
   './',
@@ -28,7 +28,7 @@ const PRECACHE_ASSETS = [
   './js/leaderboard.js?v=46',
   './js/roulette.js?v=46',
   './js/story.js?v=46',
-  './js/game.js?v=47'
+  './js/game.js?v=49'
 ];
 
 // Instalación: Cachear recursos críticos
