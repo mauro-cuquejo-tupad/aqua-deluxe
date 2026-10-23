@@ -2270,15 +2270,18 @@ class GameController {
     const fromEl = allTubeEls[fromIdx];
     const toEl = allTubeEls[toIdx];
 
+    // Detener la animación flotante de frasco seleccionado y habilitar cinemática de vertido
+    fromEl.classList.remove('selected');
+    fromEl.classList.add('is-pouring');
+    fromEl.style.zIndex = '70';
+
     const fRect = fromEl.getBoundingClientRect();
     const tRect = toEl.getBoundingClientRect();
 
     const isTargetToTheRight = tRect.left >= fRect.left;
     const tiltDeg = isTargetToTheRight ? 54 : -54;
-    const offsetX = tRect.left - fRect.left + (isTargetToTheRight ? -24 : 24);
-    const offsetY = tRect.top - fRect.top - 46;
-
-    fromEl.style.zIndex = '70';
+    const offsetX = tRect.left - fRect.left + (isTargetToTheRight ? -26 : 26);
+    const offsetY = tRect.top - fRect.top - 48;
 
     // =========================================================================
     // SECUENCIA CINEMÁTICA ESTRICTA:
@@ -2318,7 +2321,8 @@ class GameController {
           } else {
             streamColor = (topFrom.color === 'chameleon') ? '#ec4899' : topFrom.color;
           }
-          this.drawPourStream(fRect, tRect, streamColor, isTargetToTheRight, totalPourTime + 80);
+          const currentFromRect = fromEl.getBoundingClientRect();
+          this.drawPourStream(currentFromRect, tRect, streamColor, isTargetToTheRight, totalPourTime + 80);
 
           // PASO 5: Animación secuencial de vaciado porción por porción con transformaciones de fluido
           const fromGlass = fromEl.querySelector('.tube-glass');
@@ -2572,15 +2576,18 @@ class GameController {
       return;
     }
 
+    // Detener la animación flotante de frasco seleccionado y habilitar cinemática de vertido
+    fromEl.classList.remove('selected');
+    fromEl.classList.add('is-pouring');
+    fromEl.style.zIndex = '70';
+
     const fRect = fromEl.getBoundingClientRect();
     const tRect = toEl.getBoundingClientRect();
 
     const isTargetToTheRight = tRect.left >= fRect.left;
     const tiltDeg = isTargetToTheRight ? 54 : -54;
-    const offsetX = tRect.left - fRect.left + (isTargetToTheRight ? -24 : 24);
-    const offsetY = tRect.top - fRect.top - 46;
-
-    fromEl.style.zIndex = '70';
+    const offsetX = tRect.left - fRect.left + (isTargetToTheRight ? -26 : 26);
+    const offsetY = tRect.top - fRect.top - 48;
 
     // 1. Levantar frasco origen
     fromEl.style.transition = 'transform 0.18s cubic-bezier(0.2, 0.9, 0.3, 1.2)';
@@ -2601,7 +2608,8 @@ class GameController {
           const pourDuration = 440;
           if (window.audio) window.audio.playPourSound();
           const streamColor = topFrom.isChameleon ? '#ec4899' : (topFrom.color === 'chameleon' ? '#ec4899' : topFrom.color);
-          this.drawPourStream(fRect, tRect, streamColor, isTargetToTheRight, pourDuration + 80);
+          const currentFromRect = fromEl.getBoundingClientRect();
+          this.drawPourStream(currentFromRect, tRect, streamColor, isTargetToTheRight, pourDuration + 80);
 
           // 5. Animación de drenaje en origen y llenado en destino
           const fromGlass = fromEl.querySelector('.tube-glass');
@@ -2636,6 +2644,7 @@ class GameController {
           setTimeout(() => {
             fromEl.style.transition = 'transform 0.25s cubic-bezier(0.2, 0.9, 0.3, 1.2)';
             fromEl.style.transform = 'translateY(0) rotate(0deg)';
+            fromEl.classList.remove('is-pouring');
 
             // Frasco entra en ebullición caótica inestable y la pantalla tiembla violentamente
             toEl.classList.add('tube-catastrophic-reaction');
@@ -2687,10 +2696,10 @@ class GameController {
     const ctx = this.pourCtx;
     const parentRect = this.pourCanvas.getBoundingClientRect();
 
-    const startX = (isToRight ? fRect.right - 12 : fRect.left + 12) - parentRect.left;
-    const startY = fRect.top + 20 - parentRect.top;
+    const startX = (isToRight ? fRect.right - 14 : fRect.left + 14) - parentRect.left;
+    const startY = fRect.top + 22 - parentRect.top;
     const endX = (tRect.left + tRect.width / 2) - parentRect.left;
-    const endY = (tRect.top + 32) - parentRect.top;
+    const endY = (tRect.top + 28) - parentRect.top;
 
     const start = performance.now();
 
@@ -2717,8 +2726,10 @@ class GameController {
         ctx.save();
 
         // Parábola de fluido con comba natural por gravedad
-        const midX = (startX + endX) / 2 + (isToRight ? 16 : -16);
-        const midY = Math.min(startY, endY) - 36;
+        const dx = Math.abs(startX - endX);
+        const arch = Math.max(8, Math.min(32, dx * 0.35));
+        const midX = (startX + endX) / 2 + (isToRight ? arch * 0.3 : -arch * 0.3);
+        const midY = Math.min(startY, endY) - arch * 0.4;
 
         // Chorro de fluido translúcido con brillo de color
         ctx.beginPath();
