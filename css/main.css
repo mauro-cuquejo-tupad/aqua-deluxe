@@ -548,6 +548,141 @@ body {
   backdrop-filter: blur(12px);
 }
 
+/* Banner de reacción química posicionado CERCA del tubo con flecha indicadora */
+.chemical-banner-near {
+  position: fixed;
+  z-index: 120;
+  background: linear-gradient(135deg, rgba(136, 19, 55, 0.98), rgba(88, 28, 135, 0.98));
+  border: 2px solid #f59e0b;
+  border-radius: 16px;
+  padding: 10px 16px;
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.85), 0 0 24px rgba(245, 158, 11, 0.65);
+  color: #ffffff;
+  font-weight: 800;
+  text-align: center;
+  pointer-events: none;
+  max-width: 280px;
+  backdrop-filter: blur(12px);
+  transform-origin: center bottom;
+  animation: chemBannerPop 0.35s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+}
+
+@keyframes chemBannerPop {
+  0% { transform: scale(0.65) translateY(12px); opacity: 0; }
+  100% { transform: scale(1) translateY(0); opacity: 1; }
+}
+
+/* Gotas y salpicaduras de líquido desparramándose por la pantalla */
+.chem-splatter-droplet {
+  position: fixed;
+  border-radius: 50%;
+  pointer-events: none;
+  z-index: 115;
+  box-shadow: 0 0 10px currentColor, 0 0 20px currentColor;
+  animation: chemSplatterFly 0.95s cubic-bezier(0.25, 1, 0.5, 1) forwards;
+}
+
+@keyframes chemSplatterFly {
+  0% {
+    transform: translate(0, 0) scale(1);
+    opacity: 1;
+  }
+  65% {
+    opacity: 0.95;
+  }
+  100% {
+    transform: translate(var(--tx, 0px), var(--ty, 0px)) scale(var(--scale, 0.35));
+    opacity: 0;
+  }
+}
+
+/* Sacudida de pantalla tras giro perfecto */
+@keyframes perfectScreenShake {
+  0% { transform: translate(0, 0) rotate(0deg); }
+  15% { transform: translate(-8px, 6px) rotate(-1.5deg); }
+  30% { transform: translate(8px, -6px) rotate(1.5deg); }
+  45% { transform: translate(-6px, -4px) rotate(-1deg); }
+  60% { transform: translate(6px, 4px) rotate(1deg); }
+  75% { transform: translate(-3px, 2px) rotate(-0.5deg); }
+  100% { transform: translate(0, 0) rotate(0deg); }
+}
+
+.perfect-screen-shake {
+  animation: perfectScreenShake 0.6s cubic-bezier(0.36, 0.07, 0.19, 0.97) both;
+}
+
+/* Popup entusiasta tras tiro/giro perfecto */
+.perfect-shot-popup {
+  position: fixed;
+  top: 40%;
+  left: 50%;
+  transform: translate(-50%, -50%) scale(0.5);
+  z-index: 150;
+  padding: 16px 32px;
+  border-radius: 24px;
+  background: linear-gradient(135deg, rgba(245, 158, 11, 0.98), rgba(217, 70, 239, 0.98));
+  border: 3px solid #fef08a;
+  box-shadow: 0 0 45px rgba(245, 158, 11, 0.85), 0 14px 35px rgba(0, 0, 0, 0.75);
+  color: #ffffff;
+  text-align: center;
+  pointer-events: none;
+  animation: perfectShotAnim 1.7s cubic-bezier(0.17, 0.89, 0.32, 1.28) forwards;
+}
+
+@keyframes perfectShotAnim {
+  0% { transform: translate(-50%, -50%) scale(0.4) rotate(-5deg); opacity: 0; }
+  25% { transform: translate(-50%, -50%) scale(1.15) rotate(2deg); opacity: 1; }
+  40% { transform: translate(-50%, -50%) scale(1) rotate(0deg); opacity: 1; }
+  82% { transform: translate(-50%, -50%) scale(1.02) rotate(0deg); opacity: 1; }
+  100% { transform: translate(-50%, -70%) scale(0.85); opacity: 0; }
+}
+
+/* Interacción de nombres secretos en Modo Historia (5 segundos long-press) */
+.story-secret-keyword {
+  cursor: pointer;
+  border-bottom: 1.5px dotted rgba(245, 158, 11, 0.5);
+  transition: all 0.25s ease;
+  user-select: none;
+  -webkit-user-select: none;
+  touch-action: none;
+}
+
+.story-secret-keyword:hover {
+  color: #fde047;
+  border-bottom-color: #fde047;
+}
+
+.story-secret-keyword.holding-secret {
+  background: rgba(245, 158, 11, 0.35);
+  color: #fef08a;
+  border-radius: 6px;
+  padding: 0 3px;
+  animation: secretHoldPulse 0.8s infinite alternate ease-in-out;
+}
+
+@keyframes secretHoldPulse {
+  0% { box-shadow: 0 0 4px rgba(245, 158, 11, 0.4); }
+  100% { box-shadow: 0 0 16px rgba(245, 158, 11, 0.9), 0 0 8px rgba(244, 63, 94, 0.7); }
+}
+
+.story-secret-keyword.found-secret {
+  color: #fde047;
+  font-weight: 800;
+  border-bottom: none;
+  text-shadow: 0 0 8px rgba(250, 204, 21, 0.7);
+}
+
+.story-secret-keyword.secret-burst-sparkle {
+  animation: secretBurstAnim 1.2s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+}
+
+@keyframes secretBurstAnim {
+  0% { transform: scale(1); filter: brightness(1); }
+  30% { transform: scale(1.35); filter: brightness(2) drop-shadow(0 0 14px #fbbf24); }
+  60% { transform: scale(1.1); filter: brightness(1.4); }
+  100% { transform: scale(1); filter: brightness(1); }
+}
+
 /* ==========================================================================
    DESAFÍOS DE NIVEL (SIDE CHALLENGES): HUD & MODAL DE VICTORIA
    ========================================================================== */

@@ -564,4 +564,74 @@
   background: rgba(239, 68, 68, 0.05) !important;
 }
 
+/* ==========================================================================
+   TUBO ESTRECHO DE PRECISIÓN (1x1) - DISEÑO DELGADO, ALQUÍMICO Y BURBUJEANTE
+   ========================================================================== */
+.test-tube.tube-narrow {
+  width: 72% !important;
+  max-width: 44px !important;
+  filter: drop-shadow(0 0 10px rgba(192, 132, 252, 0.4));
+  transition: transform 0.28s cubic-bezier(0.34, 1.56, 0.64, 1), filter 0.25s ease, width 0.25s ease;
+}
+
+.test-tube.tube-narrow .tube-lip {
+  width: calc(100% + 6px);
+  border-color: rgba(216, 180, 254, 0.95);
+  background: linear-gradient(90deg, rgba(233, 213, 255, 0.8) 0%, rgba(192, 132, 252, 0.35) 50%, rgba(233, 213, 255, 0.8) 100%);
+  box-shadow: 0 0 14px rgba(168, 85, 247, 0.6);
+}
+
+.test-tube.tube-narrow .tube-glass {
+  border-color: rgba(192, 132, 252, 0.9);
+  border-width: 2.5px;
+  border-radius: 0 0 1.6rem 1.6rem;
+  box-shadow: 0 0 18px rgba(168, 85, 247, 0.45), inset 0 0 12px rgba(216, 180, 254, 0.35);
+  background: linear-gradient(135deg, rgba(168, 85, 247, 0.18) 0%, rgba(255, 255, 255, 0.06) 50%, rgba(147, 51, 234, 0.22) 100%);
+}
+
+/* Emisor de burbujitas mágicas continuas dentro del tubo 1x1 */
+.narrow-bubble-emitter {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  overflow: hidden;
+  border-radius: 0 0 1.6rem 1.6rem;
+  z-index: 22;
+}
+
+.narrow-bubble {
+  position: absolute;
+  bottom: 6px;
+  background: radial-gradient(circle at 30% 30%, rgba(255, 255, 255, 0.95), rgba(192, 132, 252, 0.7) 70%);
+  border-radius: 50%;
+  box-shadow: 0 0 6px rgba(255, 255, 255, 0.85);
+  animation: narrowBubbleRise 2.4s infinite ease-in;
+  pointer-events: none;
+}
+
+.narrow-bubble:nth-child(1) { left: 20%; width: 4.5px; height: 4.5px; animation-duration: 2.0s; animation-delay: 0s; }
+.narrow-bubble:nth-child(2) { left: 52%; width: 6.5px; height: 6.5px; animation-duration: 2.5s; animation-delay: 0.5s; }
+.narrow-bubble:nth-child(3) { left: 35%; width: 3.5px; height: 3.5px; animation-duration: 1.8s; animation-delay: 1.0s; }
+.narrow-bubble:nth-child(4) { left: 68%; width: 5.5px; height: 5.5px; animation-duration: 2.3s; animation-delay: 1.6s; }
+
+@keyframes narrowBubbleRise {
+  0% {
+    transform: translateY(0) scale(0.6);
+    opacity: 0;
+  }
+  25% {
+    opacity: 0.95;
+    transform: translateY(-16px) scale(1);
+  }
+  80% {
+    opacity: 0.85;
+    transform: translateY(-85px) scale(1.1) translateX(2px);
+  }
+  100% {
+    transform: translateY(-120px) scale(0.4);
+    opacity: 0;
+  }
+}
+
+
 

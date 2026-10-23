@@ -416,6 +416,22 @@
           </div>
         </div>
 
+        <!-- Dificultad Personalizada / Filtro de Mecánicas Desbloqueadas -->
+        <div class="bg-slate-800/50 border border-slate-700/80 rounded-2xl p-3.5 space-y-2.5">
+          <div class="flex items-center justify-between">
+            <div>
+              <div class="text-sm font-bold text-white flex items-center gap-1.5">
+                <i data-lucide="sliders" class="w-4 h-4 text-purple-400"></i>
+                Dificultad Personalizada
+              </div>
+              <p class="text-[11px] text-slate-400">Activa o desactiva mecánicas desbloqueadas para jugar a tu propio ritmo.</p>
+            </div>
+          </div>
+          <div id="difficulty-mechanics-list" class="space-y-2 pt-1">
+            <!-- Renderizado dinámico por renderDifficultyMechanicsSettings -->
+          </div>
+        </div>
+
         <!-- Personalización Completa de Colores de Líquidos -->
         <div class="space-y-2">
           <div class="flex items-center justify-between">
@@ -1023,6 +1039,12 @@
           <span>Minijuego de Fortuna (Diana / Ruleta) 🎯</span>
         </button>
 
+        <!-- Botón Modo Historia: Crónicas del Alquimista -->
+        <button id="btn-home-story" class="btn-interactive w-full py-2.5 bg-gradient-to-r from-violet-600/25 via-pink-600/25 to-amber-500/25 hover:from-violet-600/40 hover:to-amber-500/40 border border-violet-400/40 text-violet-200 font-bold text-xs rounded-2xl flex items-center justify-center gap-2">
+          <i data-lucide="book-open" class="w-4 h-4 text-violet-300"></i>
+          <span>Crónicas del Alquimista (Historia) 📜</span>
+        </button>
+
         <!-- Botón Epílogos Alquímicos (Finales) en Home Screen -->
         <button id="btn-home-endings" class="btn-interactive w-full py-2.5 bg-gradient-to-r from-amber-500/20 via-yellow-500/25 to-amber-500/20 hover:from-amber-500/35 hover:to-amber-500/35 border border-amber-400/40 text-amber-300 font-bold text-xs rounded-2xl flex items-center justify-center gap-2">
           <i data-lucide="clapperboard" class="w-4 h-4 text-amber-400"></i>
@@ -1154,6 +1176,11 @@
         <p id="tutorial-desc" class="text-xs text-slate-300 mb-2 leading-relaxed px-1">
           Toca un frasco para levantarlo y luego toca otro para verter su líquido.
         </p>
+
+        <!-- Botón de desactivación rápida de dificultad personalizada -->
+        <div id="tutorial-mechanic-toggle-container" class="w-full my-1.5 hidden">
+          <!-- Renderizado dinámico si la mecánica no es básica -->
+        </div>
       </div>
 
       <!-- Controles de Navegación y Cierre -->
@@ -1504,6 +1531,9 @@
             <button id="btn-ending-good" class="btn-interactive px-2.5 py-1 text-[11px] rounded-xl font-black bg-emerald-500/20 hover:bg-emerald-500/30 text-emerald-300 border border-emerald-500/40 transition">
               💰🌍 Bueno
             </button>
+            <button id="btn-ending-secret" class="btn-interactive px-2.5 py-1 text-[11px] rounded-xl font-black bg-pink-500/20 hover:bg-pink-500/35 text-pink-300 border border-pink-500/40 transition hidden">
+              💖 Especial (Naza & Mascotas)
+            </button>
           </div>
         </div>
       </div>
@@ -1807,21 +1837,96 @@
     </div>
   </div>
 
+  <!-- ==========================================================================
+       MODAL 15: CRÓNICAS DEL ALQUIMISTA (MODO HISTORIA ILUSTRADO)
+       ========================================================================== -->
+  <div id="modal-story-chapter" class="fixed inset-0 bg-slate-950/85 backdrop-blur-md z-50 hidden flex items-center justify-center p-3 sm:p-5 modal-overlay">
+    <div class="bg-slate-900 border border-amber-500/40 rounded-3xl max-w-lg w-full p-4 sm:p-6 shadow-2xl flex flex-col max-h-[92vh] modal-content relative">
+      <!-- Cabecera -->
+      <div class="flex items-center justify-between border-b border-slate-800 pb-3 mb-3">
+        <div>
+          <h2 id="story-chapter-title" class="text-base sm:text-lg font-black text-amber-300 flex items-center gap-2">
+            📜 Capítulo 1: El Desastre Escolar
+          </h2>
+          <p id="story-chapter-subtitle" class="text-[11px] text-slate-400">Laboratorio de Ciencias de la Secundaria</p>
+        </div>
+        <button id="btn-close-story" class="p-2 text-slate-400 hover:text-white rounded-xl bg-slate-800">
+          <i data-lucide="x" class="w-5 h-5"></i>
+        </button>
+      </div>
+
+      <!-- Ilustración SVG del capítulo -->
+      <div id="story-chapter-svg" class="w-full h-44 sm:h-52 mb-3 flex items-center justify-center overflow-hidden rounded-2xl border border-slate-800 bg-slate-950/60 shadow-inner">
+      </div>
+
+      <!-- Texto Narrativo del Capítulo con Nombres Secretos -->
+      <div id="story-chapter-text" class="text-xs sm:text-sm text-slate-200 leading-relaxed overflow-y-auto max-h-36 px-2 py-1 select-none">
+      </div>
+
+      <!-- Barra de Navegación entre Capítulos -->
+      <div class="flex items-center justify-between pt-3 mt-2 border-t border-slate-800">
+        <button id="btn-story-prev" class="px-3 py-1.5 rounded-xl bg-slate-800 hover:bg-slate-700 text-xs font-bold text-slate-300 border border-slate-700 disabled:opacity-30 disabled:pointer-events-none transition flex items-center gap-1">
+          <i data-lucide="chevron-left" class="w-4 h-4"></i> Anterior
+        </button>
+        <span id="story-nav-counter" class="text-xs font-mono font-black text-amber-400">1 / 7</span>
+        <button id="btn-story-next" class="px-3 py-1.5 rounded-xl bg-slate-800 hover:bg-slate-700 text-xs font-bold text-slate-300 border border-slate-700 disabled:opacity-30 disabled:pointer-events-none transition flex items-center gap-1">
+          Siguiente <i data-lucide="chevron-right" class="w-4 h-4"></i>
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ==========================================================================
+       MODAL 16: GRAN FINAL ESPECIAL - NAZA, PERROS Y GATOS (EASTER EGG DEFINITIVO)
+       ========================================================================== -->
+  <div id="modal-special-ending-naza" class="fixed inset-0 bg-slate-950/90 backdrop-blur-lg z-50 hidden flex items-center justify-center p-3 sm:p-5 modal-overlay">
+    <div class="bg-gradient-to-b from-slate-900 via-slate-900 to-indigo-950 border border-pink-500/50 rounded-3xl max-w-xl w-full p-4 sm:p-6 shadow-2xl flex flex-col max-h-[92vh] modal-content relative text-center">
+      <div class="flex items-center justify-center gap-2 mb-1.5">
+        <span class="text-2xl">✨💖✨</span>
+        <h2 class="text-lg sm:text-xl font-black text-transparent bg-clip-text bg-gradient-to-r from-pink-400 via-amber-200 to-purple-400">
+          EL FINAL MÁS HERMOSO
+        </h2>
+      </div>
+      <p class="text-xs text-pink-200/90 mb-3">Has descubierto el secreto más preciado del alquimista.</p>
+      
+      <!-- Contenedor del SVG Ilustrativo del Hogar con Mascotas -->
+      <div id="special-ending-svg-container" class="w-full h-52 sm:h-64 mb-3 rounded-2xl overflow-hidden border border-pink-500/30 shadow-2xl flex items-center justify-center">
+      </div>
+
+      <!-- Texto emotivo del final especial -->
+      <div class="text-xs sm:text-sm text-slate-200 leading-relaxed overflow-y-auto max-h-36 px-2 space-y-2 text-left">
+        <p class="text-center font-bold text-amber-300 text-xs sm:text-sm">
+          "La fórmula perfecta nunca estuvo en una probeta, sino en compartir cada día a tu lado."
+        </p>
+        <p class="text-slate-300 text-[11px] sm:text-xs">
+          El científico colgó su bata para siempre. Dejó atrás las explosiones y los matraces para casarse con Naza, la chica de su vida. Juntos formaron el hogar más cálido del mundo, rodeados de risas, caricias y sus fieles compañeros: un dulce caniche gris con su copito blanco en la cabeza, dos juguetones gatos blancos y negros, y un travieso gatito atigrado gris y negro.
+        </p>
+      </div>
+
+      <div class="mt-4 pt-3 border-t border-slate-800 flex justify-center">
+        <button id="btn-close-special-ending" class="btn-interactive px-6 py-2 rounded-2xl bg-gradient-to-r from-pink-500 to-purple-600 hover:from-pink-600 hover:to-purple-700 text-white font-black text-xs sm:text-sm shadow-lg shadow-pink-500/25 transition">
+          Guardar en el Corazón ❤️
+        </button>
+      </div>
+    </div>
+  </div>
+
   <!-- Input oculto para importación de partida en archivo JSON -->
   <input type="file" id="input-save-file" accept=".json" class="hidden">
 
   <!-- Scripts modulares -->
-  <script src="js/firebase-config.js?v=28"></script>
-  <script src="js/cloud-sync.js?v=28"></script>
-  <script src="js/audio.js?v=28"></script>
-  <script src="js/palette.js?v=28"></script>
-  <script src="js/levels.js?v=28"></script>
-  <script src="js/challenges.js?v=28"></script>
-  <script src="js/honor.js?v=28"></script>
-  <script src="js/state.js?v=28"></script>
-  <script src="js/leaderboard.js?v=28"></script>
-  <script src="js/roulette.js?v=28"></script>
-  <script src="js/game.js?v=28"></script>
+  <script src="js/firebase-config.js?v=29"></script>
+  <script src="js/cloud-sync.js?v=29"></script>
+  <script src="js/audio.js?v=29"></script>
+  <script src="js/palette.js?v=29"></script>
+  <script src="js/levels.js?v=29"></script>
+  <script src="js/challenges.js?v=29"></script>
+  <script src="js/honor.js?v=29"></script>
+  <script src="js/state.js?v=29"></script>
+  <script src="js/leaderboard.js?v=29"></script>
+  <script src="js/roulette.js?v=29"></script>
+  <script src="js/story.js?v=29"></script>
+  <script src="js/game.js?v=29"></script>
 
   <!-- Registro de Service Worker PWA -->
   <script>

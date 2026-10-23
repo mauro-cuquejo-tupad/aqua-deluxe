@@ -40,7 +40,12 @@ const DEFAULT_STATE = {
     cardUsesRemaining: 0     // Cantidad de minijuegos restantes con beneficio activo
   },
   settings: {
-    showAccessibilityPatterns: false // Por defecto desactivado: líquidos puros y limpios
+    showAccessibilityPatterns: false, // Por defecto desactivado: líquidos puros y limpios
+    disabledMechanics: []             // Mecánicas deshabilitadas por personalización de dificultad
+  },
+  secretEasterEgg: {
+    discoveredNames: [],              // Nombres descubiertos por 5s tap: ['mirko', 'tom', 'nina', 'matilda', 'bianca', 'zoila', 'freya']
+    allDiscovered: false              // True cuando se descubren los 7 nombres
   },
   customLevels: [],            // Niveles creados por el usuario [{ id, name, author, tubes, verified: true }]
   auxiliaryCooldownRemaining: 0 // Movimientos restantes para usar botella extra (persistente)
@@ -109,7 +114,16 @@ class StateManager {
           player: { ...DEFAULT_STATE.player, ...parsed.player },
           upgrades: { ...DEFAULT_STATE.upgrades, ...parsed.upgrades },
           cards: { ...DEFAULT_STATE.cards, ...(parsed.cards || {}) },
-          settings: { ...DEFAULT_STATE.settings, ...(parsed.settings || {}) },
+          settings: {
+            ...DEFAULT_STATE.settings,
+            ...(parsed.settings || {}),
+            disabledMechanics: Array.isArray(parsed.settings?.disabledMechanics) ? parsed.settings.disabledMechanics : []
+          },
+          secretEasterEgg: {
+            ...DEFAULT_STATE.secretEasterEgg,
+            ...(parsed.secretEasterEgg || {}),
+            discoveredNames: Array.isArray(parsed.secretEasterEgg?.discoveredNames) ? parsed.secretEasterEgg.discoveredNames : []
+          },
           minigameBag: {
             tokens: (parsed.minigameBag && Array.isArray(parsed.minigameBag.tokens) && parsed.minigameBag.tokens.length > 0)
               ? parsed.minigameBag.tokens
@@ -174,6 +188,62 @@ class StateManager {
     if (window.cloudSyncManager && typeof window.cloudSyncManager.triggerAutoSave === 'function') {
       window.cloudSyncManager.triggerAutoSave();
     }
+  }
+
+  // --- GESTIÓN DE DIFICULTAD PERSONALIZADA / MECÁNICAS DESHABILITADAS ---
+  setMechanicDisabled(mechanicKey, isDisabled) {
+    if (!this.state.settings) this.state.settings = {};
+    if (!Array.isArray(this.state.settings.disabledMechanics)) {
+      this.state.settings.disabledMechanics = [];
+    }
+    const idx = this.state.settings.disabledMechanics.indexOf(mechanicKey);
+    if (isDisabled && idx === -1) {
+      this.state.settings.disabledMechanics.push(mechanicKey);
+    } else if (!isDisabled && idx !== -1) {
+      this.state.settings.disabledMechanics.splice(idx, 1);
+    }
+    this.saveState();
+  }
+
+  isMechanicDisabled(mechanicKey) {
+    return Array.isArray(this.state.settings?.disabledMechanics) &&
+           this.state.settings.disabledMechanics.includes(mechanicKey);
+  }
+
+  // --- EASTER EGG SECRETO: 7 NOMBRES Y FINAL ESPECIAL ---
+  recordDiscoveredSecretName(name) {
+    const validNames = ['mirko', 'tom', 'nina', 'matilda', 'bianca', 'zoila', 'freya'];
+    const clean = String(name).toLowerCase().trim();
+    if (!validNames.includes(clean)) return { isNew: false, completed: false, total: 0 };
+
+    if (!this.state.secretEasterEgg) {
+      this.state.secretEasterEgg = { discoveredNames: [], allDiscovered: false };
+    }
+    if (!Array.isArray(this.state.secretEasterEgg.discoveredNames)) {
+      this.state.secretEasterEgg.discoveredNames = [];
+    }
+
+    let isNew = false;
+    if (!this.state.secretEasterEgg.discoveredNames.includes(clean)) {
+      this.state.secretEasterEgg.discoveredNames.push(clean);
+      isNew = true;
+    }
+
+    const completed = validNames.every(n => this.state.secretEasterEgg.discoveredNames.includes(n));
+    if (completed) {
+      this.state.secretEasterEgg.allDiscovered = true;
+    }
+
+    this.saveState();
+    return {
+      isNew,
+      completed,
+      total: this.state.secretEasterEgg.discoveredNames.length
+    };
+  }
+
+  isSecretEndingUnlocked() {
+    return !!this.state.secretEasterEgg?.allDiscovered;
   }
 
   // --- MONEDAS Y ECONOMÍA REBALANCEADA ---

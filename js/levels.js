@@ -15,23 +15,35 @@ class LevelGenerator {
     const capacity = 4;
 
     // Activación progresiva y espaciada de mecánicas cada 10 niveles
-    const hasMystery = (level >= 11 && level <= 20) || (level >= 81 && level % 3 === 0) || (level >= 91 && level % 2 === 1);
-    const hasGiant = (level >= 21 && level <= 30) || (level >= 81 && level % 3 === 1) || (level >= 91 && level % 3 === 0);
-    const hasSuperGiant = (level >= 85 && level % 4 === 0) || (level >= 98); // Frasco Súper Largo (Max 8)
-    const hasLock = (level >= 31 && level <= 40) || (level >= 81 && level % 3 === 2) || (level >= 92 && level % 2 === 0);
-    const hasNarrow = (level >= 41 && level <= 50) || (level >= 93 && level % 3 === 1);
-    const hasGlued = (level >= 51 && level <= 60) || (level >= 94 && level % 4 === 2);
-    const hasChameleon = (level >= 61 && level <= 70) || (level >= 85 && level % 4 === 1) || (level >= 95);
-    const hasFragile = (level >= 71 && level <= 80) || (level >= 88 && level % 4 === 3) || (level >= 96);
-    const isSuperFragile = (level >= 88 && level % 4 === 3) || (level >= 97); // Súper Frágil / Volátil (1 Uso)
+    const rawHasMystery = (level >= 11 && level <= 20) || (level >= 81 && level % 3 === 0) || (level >= 91 && level % 2 === 1);
+    const rawHasGiant = (level >= 21 && level <= 30) || (level >= 81 && level % 3 === 1) || (level >= 91 && level % 3 === 0);
+    const rawHasSuperGiant = (level >= 85 && level % 4 === 0) || (level >= 98); // Frasco Súper Largo (Max 8)
+    const rawHasLock = (level >= 31 && level <= 40) || (level >= 81 && level % 3 === 2) || (level >= 92 && level % 2 === 0);
+    const rawHasNarrow = (level >= 41 && level <= 50) || (level >= 93 && level % 3 === 1);
+    const rawHasGlued = (level >= 51 && level <= 60) || (level >= 94 && level % 4 === 2);
+    const rawHasChameleon = (level >= 61 && level <= 70) || (level >= 85 && level % 4 === 1) || (level >= 95);
+    const rawHasFragile = (level >= 71 && level <= 80) || (level >= 88 && level % 4 === 3) || (level >= 96);
+    const rawIsSuperFragile = (level >= 88 && level % 4 === 3) || (level >= 97); // Súper Frágil / Volátil (1 Uso)
+
+    // Filtro por configuración de dificultad personalizada del usuario
+    const sm = window.stateManager;
+    const hasMystery = rawHasMystery && !(sm && sm.isMechanicDisabled('mystery'));
+    const hasGiant = rawHasGiant && !(sm && sm.isMechanicDisabled('giant'));
+    const hasSuperGiant = rawHasSuperGiant && !(sm && sm.isMechanicDisabled('giant'));
+    const hasLock = rawHasLock && !(sm && sm.isMechanicDisabled('lock'));
+    const hasNarrow = rawHasNarrow && !(sm && sm.isMechanicDisabled('narrow'));
+    const hasGlued = rawHasGlued && !(sm && sm.isMechanicDisabled('glued'));
+    const hasChameleon = rawHasChameleon && !(sm && sm.isMechanicDisabled('chameleon'));
+    const hasFragile = rawHasFragile && !(sm && sm.isMechanicDisabled('fragile'));
+    const isSuperFragile = rawIsSuperFragile && !(sm && sm.isMechanicDisabled('fragile'));
 
     let mechanicTag = 'Básico';
     let primaryMechanicId = 'basic';
 
-    if (level >= 91) {
+    if (level >= 91 && (hasMystery || hasGiant || hasLock || hasNarrow || hasGlued || hasChameleon || hasFragile)) {
       mechanicTag = 'La Gran Obra Magna';
       primaryMechanicId = 'magna';
-    } else if (level >= 81) {
+    } else if (level >= 81 && (hasSuperGiant || hasMystery || hasGiant || hasLock || hasNarrow || hasGlued || hasChameleon || hasFragile)) {
       mechanicTag = hasSuperGiant ? 'Frasco Súper Largo (Max 8)' : 'Conjunción Híbrida';
       primaryMechanicId = 'hybrid';
     } else if (hasFragile) {

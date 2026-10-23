@@ -405,6 +405,22 @@ class GameController {
         }, 400);
       }
     }
+
+    // Comprobar si corresponde mostrar un capítulo del Modo Historia (Crónicas del Alquimista)
+    if (!customLevelData && !this.isHonorMode && !this.isDailyChallenge) {
+      const milestoneChapter = { 1: 0, 11: 1, 21: 2, 31: 3, 41: 4, 51: 5, 61: 6 }[this.currentLevel];
+      if (milestoneChapter !== undefined) {
+        if (!this.seenStoryChaptersThisSession) this.seenStoryChaptersThisSession = new Set();
+        if (!this.seenStoryChaptersThisSession.has(this.currentLevel)) {
+          this.seenStoryChaptersThisSession.add(this.currentLevel);
+          setTimeout(() => {
+            if (window.storyManager) {
+              window.storyManager.openStoryModal(milestoneChapter);
+            }
+          }, 450);
+        }
+      }
+    }
   }
 
   updateHeaderUI() {
@@ -698,9 +714,21 @@ class GameController {
 
       // Indicadores especiales (Tubo estrecho 1x1, Gigante, Pegado, Frágil)
       if (tube.isNarrow) {
+        tubeEl.classList.add('tube-narrow');
+        // Emisor de burbujitas mágicas continuas dentro del cristal
+        const emitter = document.createElement('div');
+        emitter.className = 'narrow-bubble-emitter';
+        emitter.innerHTML = `
+          <div class="narrow-bubble"></div>
+          <div class="narrow-bubble"></div>
+          <div class="narrow-bubble"></div>
+          <div class="narrow-bubble"></div>
+        `;
+        glassEl.appendChild(emitter);
+
         const narrowTag = document.createElement('span');
-        narrowTag.className = 'absolute -bottom-5 text-[10px] text-purple-300 font-bold tracking-wider';
-        narrowTag.textContent = '1x1';
+        narrowTag.className = 'absolute -bottom-5 text-[9.5px] text-purple-200 font-extrabold tracking-wider px-1.5 py-0.5 rounded-full bg-purple-950/80 border border-purple-400/50 shadow-sm whitespace-nowrap flex items-center gap-0.5';
+        narrowTag.innerHTML = `<span>1x1</span><span class="text-[8px] text-purple-300">✨</span>`;
         tubeEl.appendChild(narrowTag);
       }
       if (tube.capacity === 8) {
@@ -1694,19 +1722,27 @@ class GameController {
     // Efectos visuales de sobrecarga y ebullición en DOM:
     if (toEl) {
       toEl.classList.add('tube-overload-flash');
-      setTimeout(() => toEl.classList.remove('tube-overload-flash'), 800);
+      setTimeout(() => toEl.classList.remove('tube-overload-flash'), 900);
     }
     if (fromEl) {
       fromEl.classList.add('tube-boil-overflow');
-      setTimeout(() => fromEl.classList.remove('tube-boil-overflow'), 800);
+      setTimeout(() => fromEl.classList.remove('tube-boil-overflow'), 900);
     }
-
-    // Mostrar banner de reacción química inesperada
-    this.showChemicalReactionBanner();
 
     // Vaciado del tubo y dispersión aleatoria en tubos incompletos
     const spilled = [...fromTube.liquids];
     fromTube.liquids = [];
+
+    // Efectos de salpicaduras de líquido desparramándose por la pantalla y banner cerca del tubo
+    if (toEl) {
+      const rect = toEl.getBoundingClientRect();
+      const originX = rect.left + rect.width / 2;
+      const originY = rect.top + rect.height / 2;
+      this.triggerScreenLiquidSplatter(originX, originY, spilled.map(s => s.color));
+      this.showChemicalReactionBannerNear(toEl);
+    } else {
+      this.showChemicalReactionBannerNear(null);
+    }
 
     // Distribuir cada unidad en los demás tubos que NO estén completos y tengan espacio libre
     for (let i = 0; i < spilled.length; i++) {
@@ -1745,32 +1781,104 @@ class GameController {
       this.renderTubes();
       this.updateButtonsUI();
       this.checkVictory();
-    }, 750);
+    }, 850);
   }
 
-  showChemicalReactionBanner() {
+  // --- EFECTO DE LÍQUIDO DESPARRAMÁNDOSE POR LA PANTALLA ---
+  triggerScreenLiquidSplatter(originX, originY, colors = []) {
+    const palette = colors.length > 0 ? colors : ['#ec4899', '#a855f7', '#38bdf8', '#f59e0b', '#10b981'];
+    const count = 30;
+
+    // Vibración háptica en celulares si está disponible
+    if (navigator.vibrate) {
+      try { navigator.vibrate([40, 30, 80]); } catch (e) {}
+    }
+
+    // Sacudida enérgica de pantalla
+    const appEl = document.getElementById('app-container') || document.body;
+    appEl.classList.remove('perfect-screen-shake');
+    void appEl.offsetWidth;
+    appEl.classList.add('perfect-screen-shake');
+    setTimeout(() => appEl.classList.remove('perfect-screen-shake'), 600);
+
+    for (let i = 0; i < count; i++) {
+      const drop = document.createElement('div');
+      drop.className = 'chem-splatter-droplet';
+      const col = palette[i % palette.length];
+      const size = Math.floor(Math.random() * 14 + 8); // 8px a 22px
+      drop.style.width = `${size}px`;
+      drop.style.height = `${size}px`;
+      drop.style.backgroundColor = col;
+      drop.style.color = col;
+      drop.style.left = `${originX}px`;
+      drop.style.top = `${originY}px`;
+
+      // Ángulo y distancia aleatoria multidireccional
+      const angle = Math.random() * Math.PI * 2;
+      const distance = Math.random() * 260 + 60; // 60px a 320px
+      const tx = Math.cos(angle) * distance;
+      const ty = Math.sin(angle) * distance;
+      const scale = (Math.random() * 0.4 + 0.25).toFixed(2);
+
+      drop.style.setProperty('--tx', `${tx}px`);
+      drop.style.setProperty('--ty', `${ty}px`);
+      drop.style.setProperty('--scale', scale);
+
+      document.body.appendChild(drop);
+      setTimeout(() => drop.remove(), 950);
+    }
+  }
+
+  // --- BANNER DE REACCIÓN QUÍMICA POSICIONADO CERCA DEL TUBO ---
+  showChemicalReactionBannerNear(targetEl) {
     let banner = document.getElementById('chemical-reaction-banner');
     if (!banner) {
       banner = document.createElement('div');
       banner.id = 'chemical-reaction-banner';
-      banner.className = 'chemical-banner animate-bounce';
+      banner.className = 'chemical-banner-near';
       document.body.appendChild(banner);
     }
+
     banner.innerHTML = `
-      <div class="flex items-center justify-center gap-2 mb-1">
+      <div class="flex items-center justify-center gap-1.5 mb-0.5">
         <span class="text-base sm:text-lg">⚗️💥</span>
-        <span class="text-amber-300 font-black tracking-wide text-xs sm:text-sm">¡EFECTO QUÍMICO INESPERADO!</span>
+        <span class="text-amber-300 font-black tracking-wide text-xs sm:text-sm">¡REACCIÓN EN CADENA!</span>
       </div>
-      <span class="text-[10px] sm:text-[11px] block font-medium text-amber-100 leading-tight">
-        El tubo de precisión (1x1) no admite fluidos combinados (2+ cuartos). ¡La sobrecarga desbordó el frasco y sus fluidos se esparcieron!
-      </span>
+      <div class="text-[10px] sm:text-[11px] font-semibold text-amber-100 leading-tight">
+        ¡Sobrecarga en el tubo 1x1! El líquido desbordó y se esparció por el laboratorio.
+      </div>
     `;
+
+    // Posicionamiento dinámico cerca del tubo
+    if (targetEl) {
+      const rect = targetEl.getBoundingClientRect();
+      const bannerWidth = 260;
+      let left = rect.left + rect.width / 2 - bannerWidth / 2;
+      left = Math.max(12, Math.min(window.innerWidth - bannerWidth - 12, left));
+
+      let top = rect.top - 82;
+      if (top < 70) {
+        top = rect.bottom + 12;
+      }
+      banner.style.left = `${left}px`;
+      banner.style.top = `${top}px`;
+      banner.style.transform = 'none';
+    } else {
+      banner.style.left = '50%';
+      banner.style.top = '120px';
+      banner.style.transform = 'translateX(-50%)';
+    }
+
     banner.style.display = 'block';
 
     if (this._chemBannerTimer) clearTimeout(this._chemBannerTimer);
     this._chemBannerTimer = setTimeout(() => {
       if (banner) banner.style.display = 'none';
-    }, 3800);
+    }, 4200);
+  }
+
+  showChemicalReactionBanner() {
+    this.showChemicalReactionBannerNear(null);
   }
 
   // --- COMPROBACIÓN DE VICTORIA Y SECUENCIA DE CORCHOS ---
@@ -2889,6 +2997,131 @@ class GameController {
     this.renderTubes();
   }
 
+  // --- GESTIÓN DE DIFICULTAD PERSONALIZADA / MECÁNICAS DESHABILITADAS ---
+  renderDifficultyMechanicsSettings() {
+    const container = document.getElementById('difficulty-mechanics-list');
+    if (!container) return;
+
+    const sm = window.stateManager;
+    const unlockedLevel = sm?.state?.progress?.unlockedLevel || 1;
+
+    const mechanics = [
+      {
+        id: 'narrow',
+        name: 'Tubo Estrecho (1x1)',
+        level: 41,
+        icon: 'minimize-2',
+        color: 'text-purple-400',
+        desc: 'Frasco delgado que solo admite 1 líquido y sobrecarga con 2+'
+      },
+      {
+        id: 'mystery',
+        name: "Líquidos Misterio '?'",
+        level: 11,
+        icon: 'help-circle',
+        color: 'text-sky-400',
+        desc: 'Capas inferiores ocultas hasta remover el líquido superior'
+      },
+      {
+        id: 'giant',
+        name: 'Frascos Gigantes (Max 6 y Max 8)',
+        level: 21,
+        icon: 'maximize-2',
+        color: 'text-amber-400',
+        desc: 'Tubos de mayor capacidad que requieren estar completos para ganar'
+      },
+      {
+        id: 'lock',
+        name: 'Candado con Llave Oculta',
+        level: 31,
+        icon: 'lock',
+        color: 'text-yellow-400',
+        desc: 'Tubo bloqueado que requiere desenterrar su llave'
+      },
+      {
+        id: 'glued',
+        name: 'Frasco en la Roca (Solo Recibe)',
+        level: 51,
+        icon: 'anchor',
+        color: 'text-slate-400',
+        desc: 'Frasco inamovible que no puede verter en otros'
+      },
+      {
+        id: 'chameleon',
+        name: 'Líquido Camaleón',
+        level: 61,
+        icon: 'sparkles',
+        color: 'text-emerald-400',
+        desc: 'Adopta el color del líquido que recibe'
+      },
+      {
+        id: 'fragile',
+        name: 'Cristal Frágil y Volátil',
+        level: 71,
+        icon: 'alert-triangle',
+        color: 'text-rose-400',
+        desc: 'Límite estricto de usos antes de quebrarse'
+      }
+    ];
+
+    let html = '';
+    mechanics.forEach(m => {
+      const isUnlocked = unlockedLevel >= m.level;
+      const isDisabled = sm ? sm.isMechanicDisabled(m.id) : false;
+
+      if (!isUnlocked) {
+        html += `
+          <div class="flex items-center justify-between p-2.5 rounded-xl bg-slate-900/60 border border-slate-800/80 opacity-50">
+            <div class="flex items-center gap-2">
+              <i data-lucide="${m.icon}" class="w-4 h-4 text-slate-500"></i>
+              <div>
+                <div class="text-xs font-bold text-slate-400">${m.name}</div>
+                <div class="text-[10px] text-slate-500">Se desbloquea al alcanzar el Nivel ${m.level}</div>
+              </div>
+            </div>
+            <span class="text-[10px] font-mono text-slate-500 font-bold px-2 py-0.5 rounded-full bg-slate-800">🔒 Bloqueado</span>
+          </div>
+        `;
+      } else {
+        html += `
+          <div class="flex items-center justify-between p-2.5 rounded-xl bg-slate-800/70 border border-slate-700/80 hover:border-slate-600 transition">
+            <div class="flex items-center gap-2">
+              <i data-lucide="${m.icon}" class="w-4 h-4 ${m.color}"></i>
+              <div>
+                <div class="text-xs font-bold text-white flex items-center gap-1.5">
+                  ${m.name}
+                  ${isDisabled ? '<span class="text-[9px] text-amber-400 font-bold bg-amber-500/20 px-1 rounded border border-amber-400/30">Desactivado</span>' : ''}
+                </div>
+                <div class="text-[10.5px] text-slate-400">${m.desc}</div>
+              </div>
+            </div>
+            <label class="relative inline-flex items-center cursor-pointer ml-2">
+              <input type="checkbox" data-mech-id="${m.id}" class="toggle-mech-checkbox sr-only peer" ${isDisabled ? '' : 'checked'}>
+              <div class="w-10 h-5 bg-slate-700 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-slate-300 after:border after:rounded-full after:h-4 after:w-4 after:transition-all peer-checked:bg-emerald-500"></div>
+            </label>
+          </div>
+        `;
+      }
+    });
+
+    container.innerHTML = html;
+    if (window.lucide) window.lucide.createIcons();
+
+    // Eventos de toggles
+    container.querySelectorAll('.toggle-mech-checkbox').forEach(cb => {
+      cb.addEventListener('change', (e) => {
+        const id = e.target.getAttribute('data-mech-id');
+        const isChecked = e.target.checked;
+        if (sm) sm.setMechanicDisabled(id, !isChecked);
+        this.renderDifficultyMechanicsSettings();
+        // Si estamos en un nivel regular, regenerar determinísticamente para reflejar el cambio
+        if (this.currentLevel && !this.isHonorMode && !this.isDailyChallenge && !this.customLevelTesting) {
+          this.loadLevel(this.currentLevel, this.seedVariation);
+        }
+      });
+    });
+  }
+
   isModalOpen() {
     const modals = [this.modalMap, this.modalVictory, this.modalRoulette, this.modalLeaderboard, this.modalSettings, this.modalHome, this.modalShop];
     return modals.some(m => m && !m.classList.contains('hidden'));
@@ -3338,6 +3571,7 @@ class GameController {
           this.renderTubes();
         });
       }
+      this.renderDifficultyMechanicsSettings();
       this.showModal(this.modalSettings);
     };
     if (btnOpenSettings) this.bindTapOrClick(btnOpenSettings, openSettingsAction);
@@ -3542,10 +3776,68 @@ class GameController {
       }
     });
 
+    // Eventos del Modo Historia (Crónicas del Alquimista) y Easter Egg
+    const btnHomeStory = document.getElementById('btn-home-story');
+    if (btnHomeStory) {
+      this.bindTapOrClick(btnHomeStory, () => {
+        this.closeHomeModal();
+        if (window.storyManager) window.storyManager.openStoryModal(0);
+      });
+    }
+
+    const btnCloseStory = document.getElementById('btn-close-story');
+    if (btnCloseStory) {
+      this.bindTapOrClick(btnCloseStory, () => {
+        if (window.storyManager) window.storyManager.closeStoryModal();
+      });
+    }
+
+    const btnStoryPrev = document.getElementById('btn-story-prev');
+    if (btnStoryPrev) {
+      this.bindTapOrClick(btnStoryPrev, () => {
+        if (window.storyManager) window.storyManager.prevChapter();
+      });
+    }
+
+    const btnStoryNext = document.getElementById('btn-story-next');
+    if (btnStoryNext) {
+      this.bindTapOrClick(btnStoryNext, () => {
+        if (window.storyManager) window.storyManager.nextChapter();
+      });
+    }
+
+    const btnCloseSpecialEnding = document.getElementById('btn-close-special-ending');
+    if (btnCloseSpecialEnding) {
+      this.bindTapOrClick(btnCloseSpecialEnding, () => {
+        if (window.storyManager) window.storyManager.closeSpecialEndingModal();
+      });
+    }
+
+    const btnEndingSecret = document.getElementById('btn-ending-secret');
+    if (btnEndingSecret) {
+      this.bindTapOrClick(btnEndingSecret, () => {
+        const mc = document.getElementById('modal-completion');
+        if (mc) this.hideModal(mc);
+        if (window.storyManager) window.storyManager.triggerSecretEndingCinematic();
+      });
+    }
+
+    this.setupBackdropClose(document.getElementById('modal-story-chapter'), () => {
+      if (window.storyManager) window.storyManager.closeStoryModal();
+    });
+    this.setupBackdropClose(document.getElementById('modal-special-ending-naza'), () => {
+      if (window.storyManager) window.storyManager.closeSpecialEndingModal();
+    });
+
     // Cerrar modales con Escape
     window.addEventListener('keydown', (e) => {
       if (e.key === 'Escape') {
-        const modals = [this.modalMap, this.modalLeaderboard, this.modalSettings, this.modalHome, this.modalShop, this.modalRestartConfirm, this.modalTutorial, this.modalEditor, this.modalHonorVictory, this.modalHonorDefeat, document.getElementById('modal-completion')];
+        const modals = [
+          this.modalMap, this.modalLeaderboard, this.modalSettings, this.modalHome,
+          this.modalShop, this.modalRestartConfirm, this.modalTutorial, this.modalEditor,
+          this.modalHonorVictory, this.modalHonorDefeat, document.getElementById('modal-completion'),
+          document.getElementById('modal-story-chapter'), document.getElementById('modal-special-ending-naza')
+        ];
         modals.forEach(m => m && this.hideModal(m));
         if (window.audio && !this.isModalOpen()) {
           window.audio.playMusic('level');
@@ -4032,7 +4324,38 @@ class GameController {
     const btnNext = document.getElementById('btn-tut-next');
 
     if (btnPrev) btnPrev.disabled = currentIndex <= 0;
-    if (btnNext) btnNext.disabled = currentIndex < 0 || currentIndex >= unlocked.length - 1;
+    // Botón de activación/desactivación rápida de dificultad personalizada
+    const toggleCont = document.getElementById('tutorial-mechanic-toggle-container');
+    if (toggleCont) {
+      if (mechanicId === 'basic') {
+        toggleCont.classList.add('hidden');
+      } else {
+        toggleCont.classList.remove('hidden');
+        const isDis = window.stateManager ? window.stateManager.isMechanicDisabled(mechanicId) : false;
+        toggleCont.innerHTML = `
+          <div class="flex items-center justify-between p-2 rounded-xl bg-slate-800/80 border border-slate-700/80 text-left">
+            <div class="pr-2">
+              <span class="text-[11px] font-semibold text-slate-200 block">¿Deseas jugar sin esta mecánica?</span>
+              <span class="text-[10px] text-slate-400">Puedes desactivarla aquí o en el menú de Ajustes.</span>
+            </div>
+            <button id="btn-toggle-this-mechanic" class="px-2.5 py-1 rounded-lg text-xs font-bold whitespace-nowrap transition ${isDis ? 'bg-amber-500/25 text-amber-300 border border-amber-400/50' : 'bg-slate-700 hover:bg-slate-600 text-slate-200 border border-slate-600'}">
+              ${isDis ? 'Desactivada ✓' : 'Desactivar ✕'}
+            </button>
+          </div>
+        `;
+        const btnToggle = toggleCont.querySelector('#btn-toggle-this-mechanic');
+        if (btnToggle) {
+          btnToggle.addEventListener('click', () => {
+            const nowDis = !window.stateManager?.isMechanicDisabled(mechanicId);
+            window.stateManager?.setMechanicDisabled(mechanicId, nowDis);
+            this.renderTutorialContent(mechanicId, false);
+            if (this.currentLevel && !this.isHonorMode && !this.isDailyChallenge && !this.customLevelTesting) {
+              this.loadLevel(this.currentLevel, this.seedVariation);
+            }
+          });
+        }
+      }
+    }
 
     if (window.lucide) lucide.createIcons();
   }
@@ -5055,6 +5378,16 @@ class GameController {
       this.renderEndingCinematic(autoEnding, stats.totalScore || 0);
     }
 
+    // Comprobar si el gran Easter Egg del Final Especial de Naza está desbloqueado
+    const btnEndingSecret = document.getElementById('btn-ending-secret');
+    if (btnEndingSecret) {
+      if (window.stateManager && window.stateManager.isSecretEndingUnlocked()) {
+        btnEndingSecret.classList.remove('hidden');
+      } else {
+        btnEndingSecret.classList.add('hidden');
+      }
+    }
+
     // Gran torrente de fuegos artificiales de confeti
     if (typeof confetti === 'function') {
       const end = Date.now() + 4500;
@@ -5431,10 +5764,17 @@ class GameController {
     const btnBad = document.getElementById('btn-ending-bad');
     const btnReg = document.getElementById('btn-ending-regular');
     const btnGood = document.getElementById('btn-ending-good');
+    const btnSecret = document.getElementById('btn-ending-secret');
 
     if (btnBad) this.bindTapOrClick(btnBad, () => this.renderEndingCinematic('bad'));
     if (btnReg) this.bindTapOrClick(btnReg, () => this.renderEndingCinematic('regular'));
     if (btnGood) this.bindTapOrClick(btnGood, () => this.renderEndingCinematic('good'));
+    if (btnSecret) {
+      this.bindTapOrClick(btnSecret, () => {
+        if (modal) this.hideModal(modal);
+        if (window.storyManager) window.storyManager.triggerSecretEndingCinematic();
+      });
+    }
 
     const btnHomeEndings = document.getElementById('btn-home-endings');
     if (btnHomeEndings) {

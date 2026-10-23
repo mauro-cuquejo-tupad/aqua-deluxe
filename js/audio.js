@@ -1212,6 +1212,34 @@ class ProceduralAudioEngine {
       } catch (e) {}
     }, 280);
   }
+
+  // Chime misterioso celestial para descubrimiento de secretos / Easter Egg
+  playMysteryChime() {
+    if (this.isMuted || !this.ctx) return;
+    try {
+      const now = this.ctx.currentTime;
+      // Arpegio místico pentatónico brillante: E6 (1318), G#6 (1661), B6 (1975), D#7 (2489), E7 (2637)
+      const freqs = [1318.5, 1661.2, 1975.5, 2489.0, 2637.0];
+      freqs.forEach((freq, idx) => {
+        const start = now + idx * 0.085;
+        const osc = this.ctx.createOscillator();
+        const gain = this.ctx.createGain();
+
+        osc.type = 'sine';
+        osc.frequency.setValueAtTime(freq, start);
+
+        gain.gain.setValueAtTime(0.001, start);
+        gain.gain.linearRampToValueAtTime(0.22, start + 0.03);
+        gain.gain.exponentialRampToValueAtTime(0.0001, start + 1.2);
+
+        osc.connect(gain);
+        gain.connect(this.sfxGain);
+
+        osc.start(start);
+        osc.stop(start + 1.25);
+      });
+    } catch (e) {}
+  }
 }
 
 // Instancia global

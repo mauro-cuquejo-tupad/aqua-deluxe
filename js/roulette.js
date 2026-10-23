@@ -734,12 +734,16 @@ class MinigameEngine {
     const mult = landedSector.value;
 
     if (isWinner && mult > 0) {
-      if (window.audio) {
-        window.audio.playWinFanfare();
-        window.audio.playCrowdCheer();
-      }
-      if (typeof confetti === 'function') {
-        confetti({ particleCount: 90, spread: 75, origin: { y: 0.6 } });
+      if (timingResult === 'perfect') {
+        this.triggerPerfectCelebration("¡MAGISTRAL! 🌟", "¡Giro de Precisión Absoluta!");
+      } else {
+        if (window.audio) {
+          window.audio.playWinFanfare();
+          window.audio.playCrowdCheer();
+        }
+        if (typeof confetti === 'function') {
+          confetti({ particleCount: 90, spread: 75, origin: { y: 0.6 } });
+        }
       }
       if (this.timingFeedbackLbl) {
         this.timingFeedbackLbl.innerHTML = `🎉 ¡PREMIO ${landedSector.label}! GANAS MULTIPLICADOR ${mult}x 🪙`;
@@ -1332,12 +1336,16 @@ class MinigameEngine {
     }
 
     if (multiplier > 0) {
-      if (window.audio) {
-        window.audio.playWinFanfare();
-        window.audio.playCrowdCheer();
-      }
-      if (typeof confetti === 'function') {
-        confetti({ particleCount: 80, spread: 70, origin: { y: 0.6 } });
+      if (multiplier >= 3.0) {
+        this.triggerPerfectCelebration("¡DIANA DE ORO! 🎯", "¡Impacto Directo al Centro!");
+      } else {
+        if (window.audio) {
+          window.audio.playWinFanfare();
+          window.audio.playCrowdCheer();
+        }
+        if (typeof confetti === 'function') {
+          confetti({ particleCount: 80, spread: 70, origin: { y: 0.6 } });
+        }
       }
       if (hintEl) {
         hintEl.innerHTML = `${label} • <strong class="text-amber-300">GANAS ${multiplier}x 🪙</strong>`;
@@ -1641,8 +1649,50 @@ class MinigameEngine {
     this.finalizeRound(null, modalBox);
   }
 
+  // --- CELEBRACIÓN DE GIRO / TIRO PERFECTO ---
+  triggerPerfectCelebration(title = "¡MAGISTRAL! 🌟", subtitle = "¡Giro de Precisión Absoluta!") {
+    // 1. Sonidos de victoria y júbilo
+    if (window.audio) {
+      window.audio.playWinFanfare();
+      setTimeout(() => window.audio.playCrowdCheer(), 350);
+    }
+
+    // 2. Temblores en pantalla (Screen Shake)
+    const shakeTarget = document.getElementById('modal-roulette') || document.body;
+    shakeTarget.classList.remove('perfect-screen-shake');
+    // Force reflow
+    void shakeTarget.offsetWidth;
+    shakeTarget.classList.add('perfect-screen-shake');
+    setTimeout(() => shakeTarget.classList.remove('perfect-screen-shake'), 650);
+
+    // 3. Lluvia explosiva de confeti multidireccional
+    if (typeof confetti === 'function') {
+      confetti({
+        particleCount: 110,
+        spread: 85,
+        origin: { y: 0.5 },
+        colors: ['#f59e0b', '#ec4899', '#38bdf8', '#10b981', '#fef08a', '#a855f7']
+      });
+      setTimeout(() => {
+        confetti({ particleCount: 65, angle: 60, spread: 60, origin: { x: 0.1, y: 0.6 } });
+        confetti({ particleCount: 65, angle: 120, spread: 60, origin: { x: 0.9, y: 0.6 } });
+      }, 250);
+    }
+
+    // 4. Banner flotante entusiasta (sin términos ajenos)
+    const popup = document.createElement('div');
+    popup.className = 'perfect-shot-popup';
+    popup.innerHTML = `
+      <div class="text-2xl sm:text-3xl font-black text-amber-200 tracking-wider">${title}</div>
+      <div class="text-xs sm:text-sm font-bold text-white/90 mt-1">${subtitle}</div>
+    `;
+    document.body.appendChild(popup);
+    setTimeout(() => popup.remove(), 1700);
+  }
+
   // --- CIERRE DE RONDA Y RETORNO AL JUEGO ---
   finalizeRound(winningSlice, modalBox) {
+    // Aumento de tiempo de visualización para ver claramente el premio ganado (~4.2s)
     setTimeout(() => {
       const modal = document.getElementById('modal-roulette');
       if (modal) {
@@ -1667,7 +1717,7 @@ class MinigameEngine {
       if (window.game) {
         window.game.onRouletteClosed();
       }
-    }, 2600);
+    }, 4200);
   }
 
   openModal(coins = 50) {
