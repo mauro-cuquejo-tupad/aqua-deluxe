@@ -26,6 +26,13 @@
   user-select: none;
 }
 
+#tubes-grid {
+  touch-action: manipulation;
+  -webkit-tap-highlight-color: transparent;
+  user-select: none;
+  -webkit-user-select: none;
+}
+
 /* Clases de dimensionamiento responsivo (Mobile First) */
 .tube-size-normal { width: 54px; }
 .tube-size-medium { width: 46px; }

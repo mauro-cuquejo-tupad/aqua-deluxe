@@ -1148,20 +1148,43 @@ class GameController {
         tubeEl.addEventListener('mouseleave', () => this.removeFluorBadge(tubeEl));
       }
 
-      // Soporte táctil universal instantáneo (touchstart con 0ms de delay + click sin duplicados)
-      let touchTriggered = false;
+      // Soporte táctil universal instantáneo sin retrasos ni deselección duplicada en Android/iOS
+      let touchStartX = 0;
+      let touchStartY = 0;
+      let touchStartTime = 0;
+      let isTouchGesture = false;
 
       tubeEl.addEventListener('touchstart', (e) => {
-        touchTriggered = true;
-        this.handleTubeClick(idx, tubeEl, e);
-        setTimeout(() => { touchTriggered = false; }, 350);
+        isTouchGesture = true;
+        if (e.touches && e.touches[0]) {
+          touchStartX = e.touches[0].clientX;
+          touchStartY = e.touches[0].clientY;
+        }
+        touchStartTime = Date.now();
       }, { passive: true });
 
+      tubeEl.addEventListener('touchend', (e) => {
+        if (!isTouchGesture) return;
+        const touch = e.changedTouches && e.changedTouches[0];
+        if (touch) {
+          const dx = Math.abs(touch.clientX - touchStartX);
+          const dy = Math.abs(touch.clientY - touchStartY);
+          // Tap válido: movimiento menor a 15px (no es scroll o arrastre) y duración menor a 700ms
+          if (dx < 15 && dy < 15 && (Date.now() - touchStartTime < 700)) {
+            if (e.cancelable) e.preventDefault();
+            this._lastTubeInteractionTime = Date.now();
+            this.handleTubeClick(idx, tubeEl, e);
+          }
+        }
+        isTouchGesture = false;
+      }, { passive: false });
+
       tubeEl.addEventListener('click', (e) => {
-        if (touchTriggered) {
-          e.preventDefault();
+        // Ignorar click sintético posterior generado por Android Chrome tras touchend
+        if (this._lastTubeInteractionTime && (Date.now() - this._lastTubeInteractionTime < 450)) {
           return;
         }
+        this._lastTubeInteractionTime = Date.now();
         this.handleTubeClick(idx, tubeEl, e);
       });
 
@@ -1197,6 +1220,28 @@ class GameController {
     if (badge) badge.remove();
   }
 
+  selectTube(idx) {
+    if (this.selectedTubeIndex !== null && this.selectedTubeIndex !== idx) {
+      const prevEl = this.tubesGrid?.querySelector(`[data-index="${this.selectedTubeIndex}"]`);
+      if (prevEl) prevEl.classList.remove('selected');
+    }
+    this.selectedTubeIndex = idx;
+    this.lastInvalidTargetIdx = null;
+    const currEl = this.tubesGrid?.querySelector(`[data-index="${idx}"]`);
+    if (currEl) currEl.classList.add('selected');
+    if (window.audio) window.audio.playSelect();
+  }
+
+  deselectTube(playAudio = false) {
+    if (this.selectedTubeIndex !== null) {
+      const prevEl = this.tubesGrid?.querySelector(`[data-index="${this.selectedTubeIndex}"]`);
+      if (prevEl) prevEl.classList.remove('selected');
+      this.selectedTubeIndex = null;
+      this.lastInvalidTargetIdx = null;
+      if (playAudio && window.audio) window.audio.playSelect();
+    }
+  }
+
   // --- LÓGICA DE MOVIMIENTOS Y VERTIDO CON ANIMACIONES COMPLETAS ---
   handleTubeClick(idx, tubeEl, event) {
     if (this.isPouringAnimation) return;
@@ -1204,7 +1249,7 @@ class GameController {
 
     const clickedTube = this.tubes[idx];
 
-    // 1. Si no hay tubo seleccionado
+    // 1. Si no hay tubo seleccionado: intentar seleccionar
     if (this.selectedTubeIndex === null) {
       // Mecánica: Frasco pegado (solo puede recibir líquido, nunca vaciarse)
       if (clickedTube.isGlued) {
@@ -1230,29 +1275,19 @@ class GameController {
         return;
       }
 
-      // Frasco ya completado:
-      // REGLA DEL USUARIO:
-      // Debe bloquearse ÚNICAMENTE si todos los elementos son del mismo color real y corresponden a su tubo.
-      // Si contiene líquido camaleón o misterio, o es un traspaso temporal de un frasco gigante (unidades > capacidad),
-      // NO se bloquea para que el usuario pueda seguir jugando y transfiriendo fluidos libremente.
+      // Frasco ya completado
       if (this.isTubeComplete(clickedTube, { allowChameleon: false })) {
         this.triggerInvalidMove(idx, '✨ Tubo ya completado');
         return;
       }
 
-      this.selectedTubeIndex = idx;
-      this.lastInvalidTargetIdx = null;
-      if (window.audio) window.audio.playSelect();
-      this.renderTubes();
+      this.selectTube(idx);
       return;
     }
 
     // 2. Si se hace clic en el mismo tubo: deseleccionar
     if (this.selectedTubeIndex === idx) {
-      this.selectedTubeIndex = null;
-      this.lastInvalidTargetIdx = null;
-      if (window.audio) window.audio.playSelect();
-      this.renderTubes();
+      this.deselectTube(true);
       return;
     }
 
@@ -1265,6 +1300,7 @@ class GameController {
     // Frasco receptor destruido
     if (toTube.isBroken) {
       this.triggerInvalidMove(toIdx, '💥 Frasco destruido');
+      this.deselectTube();
       return;
     }
 
@@ -1283,19 +1319,17 @@ class GameController {
         return;
       } else {
         this.triggerInvalidMove(toIdx, '🔒 Llave incorrecta');
+        this.deselectTube();
         return;
       }
     }
 
-    // REGLA DEL TUBO DE PRECISIÓN (1x1):
-    // Solo permite ingresar un fluido de un solo elemento (1 cuarto aislado).
-    // Si se intenta verter un fluido que combinó 2 o más cuartos juntos, se rechaza,
-    // se vacía el tubo de origen y se esparcen sus fluidos en los demás tubos incompletos al azar (efecto químico inesperado).
+    // REGLA DEL TUBO DE PRECISIÓN (1x1)
     if (toTube.isNarrow) {
       let topBlockCount = 0;
       const topFrom = fromTube.liquids[fromTube.liquids.length - 1];
       if (topFrom.isChameleon) {
-        topBlockCount = 1; // El camaleón es siempre 1 unidad individual
+        topBlockCount = 1;
       } else {
         const topColor = topFrom.color;
         for (let i = fromTube.liquids.length - 1; i >= 0; i--) {
@@ -1310,6 +1344,7 @@ class GameController {
 
       if (topBlockCount >= 2) {
         this.triggerNarrowChemicalReaction(fromIdx, toIdx);
+        this.deselectTube();
         return;
       }
     }
@@ -1318,12 +1353,10 @@ class GameController {
     if (this.canPour(fromIdx, toIdx)) {
       this.executePour(fromIdx, toIdx);
     } else {
-      // Activar feedback de movimiento inválido (sonido de equivocación + sacudida con borde rojo + badge flotante)
+      // Activar feedback de movimiento inválido y deseleccionar frasco de origen
       const reason = this.getInvalidPourReason(fromIdx, toIdx);
 
       // EASTER EGG ALQUÍMICO:
-      // Si el usuario insiste 50 veces en verter un líquido incompatible, el juego "le deja",
-      // pero se desencadena una reacción catastrófica y el mundo explota.
       if (reason === '🚫 ¡Líquido incompatible!') {
         this.incompatiblePourAttempts = (this.incompatiblePourAttempts || 0) + 1;
         if (this.incompatiblePourAttempts >= 50) {
@@ -1333,6 +1366,7 @@ class GameController {
       }
 
       this.triggerInvalidMove(toIdx, reason);
+      this.deselectTube();
     }
   }
 
@@ -3641,6 +3675,46 @@ class GameController {
 
     const btnCloseHint = document.getElementById('btn-close-hint');
     if (btnCloseHint) this.bindTapOrClick(btnCloseHint, () => this.clearHintHighlight());
+
+    // Deseleccionar tubo al hacer clic o tap en un espacio vacío (fuera de tubos y botones)
+    let bgTouchStartX = 0;
+    let bgTouchStartY = 0;
+
+    document.addEventListener('touchstart', (e) => {
+      if (e.touches && e.touches[0]) {
+        bgTouchStartX = e.touches[0].clientX;
+        bgTouchStartY = e.touches[0].clientY;
+      }
+    }, { passive: true });
+
+    const handleEmptyAreaTap = (e) => {
+      if (this.selectedTubeIndex === null) return;
+      if (this.isPouringAnimation) return;
+
+      const target = e.target;
+      if (!target) return;
+      if (target.closest('.test-tube') || target.closest('button') || target.closest('input') || target.closest('select') || target.closest('.modal-content') || target.closest('.modal-overlay:not(.hidden)')) {
+        return;
+      }
+
+      this.deselectTube(true);
+    };
+
+    document.addEventListener('touchend', (e) => {
+      const touch = e.changedTouches && e.changedTouches[0];
+      if (touch) {
+        const dx = Math.abs(touch.clientX - bgTouchStartX);
+        const dy = Math.abs(touch.clientY - bgTouchStartY);
+        if (dx < 15 && dy < 15) {
+          handleEmptyAreaTap(e);
+        }
+      }
+    }, { passive: true });
+
+    document.addEventListener('click', (e) => {
+      if (this._lastTubeInteractionTime && (Date.now() - this._lastTubeInteractionTime < 450)) return;
+      handleEmptyAreaTap(e);
+    });
 
     // Selector rápido de nivel
     if (this.selLevelQuick) {
