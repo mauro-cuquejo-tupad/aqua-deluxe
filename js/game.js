@@ -3174,326 +3174,332 @@ class GameController {
   }
 
   showVictoryModal(elapsedSecs, combo, stars, recordResult, scoreData = null) {
-    // Reajuste de economía alquímica: recompensas sostenibles (2 a 4 monedas base)
-    let baseCoins = 2;
-    if (this.moves <= this.levelData.optimalMoves) baseCoins = 4;
-    else if (this.moves <= this.levelData.optimalMoves * 1.5) baseCoins = 3;
+    try {
+      // Reajuste de economía alquímica: recompensas sostenibles (2 a 4 monedas base)
+      let baseCoins = 2;
+      if (this.moves <= this.levelData.optimalMoves) baseCoins = 4;
+      else if (this.moves <= this.levelData.optimalMoves * 1.5) baseCoins = 3;
 
-    // Bonificación de combo para monedas si combo >= 2
-    let comboCoins = combo >= 2 ? (combo >= 4 ? 2 : 1) : 0;
-    let totalEarned = baseCoins + comboCoins;
-    this.addCoins(totalEarned);
+      // Bonificación de combo para monedas si combo >= 2
+      let comboCoins = combo >= 2 ? (combo >= 4 ? 2 : 1) : 0;
+      let totalEarned = baseCoins + comboCoins;
+      this.addCoins(totalEarned);
 
-    // Badge de advertencia si se usaron pistas
-    const hintsBadge = document.getElementById('lbl-hints-warning-badge');
-    if (hintsBadge) {
-      if (this.hintsUsedInLevel > 0) {
-        hintsBadge.classList.remove('hidden');
-      } else {
-        hintsBadge.classList.add('hidden');
-      }
-    }
-
-    // Resumen en modal
-    const movesEl = document.getElementById('lbl-vic-moves');
-    const timeEl = document.getElementById('lbl-vic-time');
-    const coinsEl = document.getElementById('lbl-vic-total-coins');
-    const starsCont = document.getElementById('victory-stars');
-    const comboEl = document.getElementById('lbl-vic-combo');
-
-    if (movesEl) movesEl.textContent = this.moves;
-    if (timeEl) timeEl.textContent = window.leaderboardManager ? window.leaderboardManager.formatTime(elapsedSecs) : `${elapsedSecs}s`;
-    if (coinsEl) coinsEl.textContent = `${totalEarned} 🪙`;
-    if (comboEl) comboEl.textContent = combo >= 2 ? `x${combo} ⭐` : '--';
-
-    // Render de Puntaje Alquímico y Desglose
-    const scoreEl = document.getElementById('lbl-vic-score');
-    const breakdownEl = document.getElementById('lbl-vic-score-breakdown');
-    if (scoreData) {
-      if (scoreEl) {
-        scoreEl.textContent = `${scoreData.totalScore.toLocaleString()} pts`;
-      }
-      if (breakdownEl) {
-        breakdownEl.innerHTML = `
-          <div><span class="text-slate-400">Base Victoria:</span> <span class="text-amber-200 font-semibold">+${scoreData.baseScore}</span></div>
-          <div><span class="text-slate-400">Eficiencia Movs:</span> <span class="text-emerald-300 font-semibold">+${scoreData.movesBonus}</span></div>
-          <div><span class="text-slate-400">Rapidez Tiempo:</span> <span class="text-sky-300 font-semibold">+${scoreData.timeBonus}</span></div>
-          <div><span class="text-slate-400">Combo Consecutivo:</span> <span class="${scoreData.comboBonus > 0 ? 'text-amber-300 font-bold' : 'text-slate-500'}">${scoreData.comboBonus > 0 ? '+' + scoreData.comboBonus + ' (x' + combo + ')' : '--'}</span></div>
-          <div><span class="text-slate-400">Desafíos (${scoreData.challengesCompleted}/${scoreData.totalChallenges}):</span> <span class="${scoreData.challengesBonus > 0 ? 'text-indigo-300 font-semibold' : 'text-slate-500'}">${scoreData.challengesBonus > 0 ? '+' + scoreData.challengesBonus : '--'}</span></div>
-          <div><span class="text-slate-400">Multiplicador ★:</span> <span class="text-amber-400 font-black">${scoreData.starMultiplier}x</span></div>
-        `;
-      }
-    }
-
-    const btnVicRoulette = document.getElementById('btn-vic-roulette');
-    if (btnVicRoulette) {
-      const span = btnVicRoulette.querySelector('span');
-      if (span) span.textContent = 'Multiplicar en Minijuego de Fortuna (🎯 / 🎡)';
-    }
-
-    // Render de estrellas
-    if (starsCont) {
-      starsCont.innerHTML = '';
-      for (let s = 0; s < 3; s++) {
-        starsCont.innerHTML += `
-          <i data-lucide="star" class="w-8 h-8 ${s < stars ? 'text-amber-400 fill-amber-400' : 'text-slate-600'}"></i>
-        `;
-      }
-    }
-
-    // Notificación de nuevo récord personal si aplica (solo si no se usaron pistas para mérito de récord)
-    const recordBadge = document.getElementById('lbl-new-record-badge');
-    if (recordBadge) {
-      if (!this.hintsUsedInLevel && recordResult && (recordResult.isNewBestTime || recordResult.isNewBestMoves || recordResult.isNewBestScore)) {
-        recordBadge.classList.remove('hidden');
-        if (recordResult.isNewBestScore) {
-          recordBadge.innerHTML = '<span>🏆 ¡NUEVO RÉCORD DE PUNTAJE! 🏆</span>';
+      // Badge de advertencia si se usaron pistas
+      const hintsBadge = document.getElementById('lbl-hints-warning-badge');
+      if (hintsBadge) {
+        if (this.hintsUsedInLevel > 0) {
+          hintsBadge.classList.remove('hidden');
         } else {
-          recordBadge.innerHTML = '<span>⭐ ¡NUEVO RÉCORD PERSONAL! ⭐</span>';
+          hintsBadge.classList.add('hidden');
         }
-      } else {
-        recordBadge.classList.add('hidden');
       }
-    }
 
-    // Comprobar si se desbloqueó el Desafío de Honor para esta sección
-    const honorBanner = document.getElementById('vic-honor-unlocked-banner');
-    if (honorBanner && window.HonorManager && window.stateManager && !this.customLevelTesting) {
-      const currentSec = window.HonorManager.getSectionForLevel(this.currentLevel);
-      const unlockStatus = window.HonorManager.checkSectionUnlockStatus(currentSec.id);
-      const honorState = window.stateManager.getHonorChallengeState(currentSec.id);
+      // Resumen en modal
+      const movesEl = document.getElementById('lbl-vic-moves');
+      const timeEl = document.getElementById('lbl-vic-time');
+      const coinsEl = document.getElementById('lbl-vic-total-coins');
+      const starsCont = document.getElementById('victory-stars');
+      const comboEl = document.getElementById('lbl-vic-combo');
 
-      if (unlockStatus.unlocked && !honorState.completed && honorState.canPlayToday) {
-        honorBanner.classList.remove('hidden');
-        const bannerText = document.getElementById('vic-honor-banner-text');
-        if (bannerText) {
-          bannerText.textContent = `¡Has completado con 3★ y todos los desafíos la Sección ${currentSec.id}: ${currentSec.name}! ¿Aceptas el reto de 3 vidas y 5:00 para ganar la Medalla de Honor?`;
+      if (movesEl) movesEl.textContent = this.moves;
+      if (timeEl) timeEl.textContent = window.leaderboardManager ? window.leaderboardManager.formatTime(elapsedSecs) : `${elapsedSecs}s`;
+      if (coinsEl) coinsEl.textContent = `${totalEarned} 🪙`;
+      if (comboEl) comboEl.textContent = combo >= 2 ? `x${combo} ⭐` : '--';
+
+      // Render de Puntaje Alquímico y Desglose
+      const scoreEl = document.getElementById('lbl-vic-score');
+      const breakdownEl = document.getElementById('lbl-vic-score-breakdown');
+      if (scoreData) {
+        if (scoreEl) {
+          scoreEl.textContent = `${scoreData.totalScore.toLocaleString()} pts`;
         }
-        const btnLaunch = document.getElementById('btn-vic-launch-honor');
-        if (btnLaunch) {
-          btnLaunch.onclick = () => {
-            if (this.modalVictory) this.modalVictory.classList.add('hidden');
-            this.startHonorChallenge(currentSec.id);
-          };
+        if (breakdownEl) {
+          breakdownEl.innerHTML = `
+            <div><span class="text-slate-400">Base Victoria:</span> <span class="text-amber-200 font-semibold">+${scoreData.baseScore}</span></div>
+            <div><span class="text-slate-400">Eficiencia Movs:</span> <span class="text-emerald-300 font-semibold">+${scoreData.movesBonus}</span></div>
+            <div><span class="text-slate-400">Rapidez Tiempo:</span> <span class="text-sky-300 font-semibold">+${scoreData.timeBonus}</span></div>
+            <div><span class="text-slate-400">Combo Consecutivo:</span> <span class="${scoreData.comboBonus > 0 ? 'text-amber-300 font-bold' : 'text-slate-500'}">${scoreData.comboBonus > 0 ? '+' + scoreData.comboBonus + ' (x' + combo + ')' : '--'}</span></div>
+            <div><span class="text-slate-400">Desafíos (${scoreData.challengesCompleted}/${scoreData.totalChallenges}):</span> <span class="${scoreData.challengesBonus > 0 ? 'text-indigo-300 font-semibold' : 'text-slate-500'}">${scoreData.challengesBonus > 0 ? '+' + scoreData.challengesBonus : '--'}</span></div>
+            <div><span class="text-slate-400">Multiplicador ★:</span> <span class="text-amber-400 font-black">${scoreData.starMultiplier}x</span></div>
+          `;
         }
-      } else {
+      }
+
+      const btnVicRoulette = document.getElementById('btn-vic-roulette');
+      if (btnVicRoulette) {
+        const span = btnVicRoulette.querySelector('span');
+        if (span) span.textContent = 'Multiplicar en Minijuego de Fortuna (🎯 / 🎡)';
+      }
+
+      // Render de estrellas
+      if (starsCont) {
+        starsCont.innerHTML = '';
+        for (let s = 0; s < 3; s++) {
+          starsCont.innerHTML += `
+            <i data-lucide="star" class="w-8 h-8 ${s < stars ? 'text-amber-400 fill-amber-400' : 'text-slate-600'}"></i>
+          `;
+        }
+      }
+
+      // Notificación de nuevo récord personal si aplica (solo si no se usaron pistas para mérito de récord)
+      const recordBadge = document.getElementById('lbl-new-record-badge');
+      if (recordBadge) {
+        if (!this.hintsUsedInLevel && recordResult && (recordResult.isNewBestTime || recordResult.isNewBestMoves || recordResult.isNewBestScore)) {
+          recordBadge.classList.remove('hidden');
+          if (recordResult.isNewBestScore) {
+            recordBadge.innerHTML = '<span>🏆 ¡NUEVO RÉCORD DE PUNTAJE! 🏆</span>';
+          } else {
+            recordBadge.innerHTML = '<span>⭐ ¡NUEVO RÉCORD PERSONAL! ⭐</span>';
+          }
+        } else {
+          recordBadge.classList.add('hidden');
+        }
+      }
+
+      // Comprobar si se desbloqueó el Desafío de Honor para esta sección
+      const honorBanner = document.getElementById('vic-honor-unlocked-banner');
+      if (honorBanner && window.HonorManager && window.stateManager && !this.customLevelTesting) {
+        const currentSec = window.HonorManager.getSectionForLevel(this.currentLevel);
+        const unlockStatus = window.HonorManager.checkSectionUnlockStatus(currentSec.id);
+        const honorState = window.stateManager.getHonorChallengeState(currentSec.id);
+
+        if (unlockStatus.unlocked && !honorState.completed && honorState.canPlayToday) {
+          honorBanner.classList.remove('hidden');
+          const bannerText = document.getElementById('vic-honor-banner-text');
+          if (bannerText) {
+            bannerText.textContent = `¡Has completado con 3★ y todos los desafíos la Sección ${currentSec.id}: ${currentSec.name}! ¿Aceptas el reto de 3 vidas y 5:00 para ganar la Medalla de Honor?`;
+          }
+          const btnLaunch = document.getElementById('btn-vic-launch-honor');
+          if (btnLaunch) {
+            btnLaunch.onclick = () => {
+              if (this.modalVictory) this.modalVictory.classList.add('hidden');
+              this.startHonorChallenge(currentSec.id);
+            };
+          }
+        } else {
+          honorBanner.classList.add('hidden');
+        }
+      } else if (honorBanner) {
         honorBanner.classList.add('hidden');
       }
-    } else if (honorBanner) {
-      honorBanner.classList.add('hidden');
-    }
 
-    // Evaluación y animación escalonada de desafíos del nivel
-    this.animateVictoryChallenges(elapsedSecs, totalEarned);
+      // Evaluación y animación escalonada de desafíos del nivel
+      this.animateVictoryChallenges(elapsedSecs, totalEarned);
 
-    // Detección y personalización para el Nivel 100 (Final de la Campaña)
-    const vicTitle = document.getElementById('vic-modal-title');
-    const vicSubtitle = document.getElementById('vic-modal-subtitle');
-    const btnVicNext = document.getElementById('btn-vic-next');
-    const completionBadge = document.getElementById('lbl-vic-completion-badge');
+      // Detección y personalización para el Nivel 100 (Final de la Campaña)
+      const vicTitle = document.getElementById('vic-modal-title');
+      const vicSubtitle = document.getElementById('vic-modal-subtitle');
+      const btnVicNext = document.getElementById('btn-vic-next');
+      const completionBadge = document.getElementById('lbl-vic-completion-badge');
 
-    if (this.isDailyChallenge) {
-      if (vicTitle) {
-        vicTitle.innerHTML = '👑 ¡DESAFÍO DIARIO SUPERADO!';
-        vicTitle.className = 'text-2xl font-black text-transparent bg-clip-text bg-gradient-to-r from-amber-300 via-yellow-300 to-amber-400 mb-1 animate-pulse';
-      }
-      if (vicSubtitle) {
-        vicSubtitle.innerHTML = '✨ ¡Medalla dorada del día conseguida en la Tabla de Clasificaciones!';
-        vicSubtitle.className = 'text-xs text-amber-200 font-bold mb-3';
-      }
-      if (completionBadge) completionBadge.classList.add('hidden');
-      if (btnVicNext) {
-        btnVicNext.className = 'btn-interactive w-full py-3 bg-gradient-to-r from-amber-500 to-yellow-500 hover:from-amber-400 hover:to-yellow-400 text-slate-950 font-black rounded-2xl transition-all flex items-center justify-center gap-2 shadow-md';
-        btnVicNext.innerHTML = '<span>👑 Ver Tabla de Clasificaciones</span><i data-lucide="award" class="w-4 h-4"></i>';
-      }
-      if (window.stateManager) {
-        const dateStr = this.levelData?.dateStr || new Date().toISOString().slice(0, 10);
-        window.stateManager.recordDailyChallenge(dateStr, {
-          score: this.lastLevelScore || 1000,
-          moves: this.moves,
-          time: elapsedSecs,
-          stars: 3
-        });
-        if (window.leaderboardManager) {
-          window.leaderboardManager.submitDailyScoreToGlobal({
-            dateStr,
+      if (this.isDailyChallenge) {
+        if (vicTitle) {
+          vicTitle.innerHTML = '👑 ¡DESAFÍO DIARIO SUPERADO!';
+          vicTitle.className = 'text-2xl font-black text-transparent bg-clip-text bg-gradient-to-r from-amber-300 via-yellow-300 to-amber-400 mb-1 animate-pulse';
+        }
+        if (vicSubtitle) {
+          vicSubtitle.innerHTML = '✨ ¡Medalla dorada del día conseguida en la Tabla de Clasificaciones!';
+          vicSubtitle.className = 'text-xs text-amber-200 font-bold mb-3';
+        }
+        if (completionBadge) completionBadge.classList.add('hidden');
+        if (btnVicNext) {
+          btnVicNext.className = 'btn-interactive w-full py-3 bg-gradient-to-r from-amber-500 to-yellow-500 hover:from-amber-400 hover:to-yellow-400 text-slate-950 font-black rounded-2xl transition-all flex items-center justify-center gap-2 shadow-md';
+          btnVicNext.innerHTML = '<span>👑 Ver Tabla de Clasificaciones</span><i data-lucide="award" class="w-4 h-4"></i>';
+        }
+        if (window.stateManager) {
+          const dateStr = this.levelData?.dateStr || new Date().toISOString().slice(0, 10);
+          window.stateManager.recordDailyChallenge(dateStr, {
             score: this.lastLevelScore || 1000,
             moves: this.moves,
             time: elapsedSecs,
-            combo: consecutiveCount,
             stars: 3
           });
-          window.leaderboardManager.submitHallOfFameScore();
-        }
-        const totalDaily = Object.values(window.stateManager.state.progress.dailyChallenges || {}).filter(d => d.completed).length;
-        if (window.achievementManager) {
-          window.achievementManager.check('daily_streak_7', totalDaily);
-        }
-      }
-    } else if (this.isCasualSandbox) {
-      if (vicTitle) {
-        vicTitle.innerHTML = '🎲 ¡NIVEL CASUAL RESUELTO!';
-        vicTitle.className = 'text-2xl font-black text-transparent bg-clip-text bg-gradient-to-r from-emerald-300 via-teal-200 to-sky-300 mb-1';
-      }
-      if (vicSubtitle) {
-        vicSubtitle.innerHTML = '✨ ¡Completado sin consumir vidas! Puzzles infinitos para relajarte.';
-        vicSubtitle.className = 'text-xs text-emerald-300 font-bold mb-3';
-      }
-      if (completionBadge) completionBadge.classList.add('hidden');
-      if (btnVicNext) {
-        btnVicNext.className = 'btn-interactive w-full py-3 bg-gradient-to-r from-emerald-500 to-teal-500 hover:from-emerald-400 hover:to-teal-400 text-slate-950 font-black rounded-2xl transition-all flex items-center justify-center gap-2 shadow-md';
-        btnVicNext.innerHTML = '<span>🎲 Siguiente Nivel Aleatorio</span><i data-lucide="refresh-cw" class="w-4 h-4"></i>';
-      }
-
-      // En Modo Infinito se oculta la ruleta de campaña para foco en puzzles continuos
-      const btnVicRoulette = document.getElementById('btn-vic-roulette');
-      if (btnVicRoulette) btnVicRoulette.classList.add('hidden');
-
-      // Tarjeta de sugerencia de publicación en el Taller
-      const sandboxPublishCard = document.getElementById('vic-sandbox-publish-card');
-      const canSuggestPublish = window.stateManager ? window.stateManager.isSandboxPublishPromptEnabled() : true;
-      if (sandboxPublishCard) {
-        if (canSuggestPublish) {
-          sandboxPublishCard.classList.remove('hidden');
-          const lvlTag = document.getElementById('vic-sandbox-level-tag');
-          const levelName = this.levelData?.name || `Alquimia Infinita #${(this.casualSandboxConfig?.seed || Math.floor(Math.random() * 99999)) % 100000}`;
-          if (lvlTag) lvlTag.textContent = levelName;
-
-          const btnPublish = document.getElementById('btn-vic-publish-sandbox');
-          if (btnPublish) {
-            btnPublish.onclick = () => {
-              this.hideModal(this.modalVictory);
-              // Cargar el nivel generado no resuelto en el editor
-              const savedTubes = this.initialSandboxTubes || this.levelData.tubes;
-              this.editorLevel.tubes = JSON.parse(JSON.stringify(savedTubes));
-              this.editorLevel.tubeCount = savedTubes.length;
-              this.editorLevel.name = levelName;
-              this.editorLevel.creator = window.stateManager?.state?.player?.nickname || 'Alquimista Viajero';
-              this.editorLevel.hasBeenPassed = true; // Ya validado con éxito en partida real
-
-              const nameInput = document.getElementById('editor-level-name');
-              const creatorInput = document.getElementById('editor-creator-name');
-              if (nameInput) nameInput.value = this.editorLevel.name;
-              if (creatorInput) creatorInput.value = this.editorLevel.creator;
-
-              this.openEditorModal('design');
-            };
+          if (window.leaderboardManager) {
+            window.leaderboardManager.submitDailyScoreToGlobal({
+              dateStr,
+              score: this.lastLevelScore || 1000,
+              moves: this.moves,
+              time: elapsedSecs,
+              combo: combo,
+              stars: 3
+            });
+            window.leaderboardManager.submitHallOfFameScore();
           }
-
-          const cbSuppressToday = document.getElementById('cb-suppress-sandbox-today');
-          if (cbSuppressToday) {
-            cbSuppressToday.checked = false;
-            cbSuppressToday.onchange = (e) => {
-              if (e.target.checked && window.stateManager) {
-                window.stateManager.suppressSandboxPublishForToday();
-              }
-            };
+          const totalDaily = Object.values(window.stateManager.state.progress.dailyChallenges || {}).filter(d => d.completed).length;
+          if (window.achievementManager) {
+            window.achievementManager.check('daily_streak_7', totalDaily);
           }
-        } else {
-          sandboxPublishCard.classList.add('hidden');
+        }
+      } else if (this.isCasualSandbox) {
+        if (vicTitle) {
+          vicTitle.innerHTML = '🎲 ¡NIVEL CASUAL RESUELTO!';
+          vicTitle.className = 'text-2xl font-black text-transparent bg-clip-text bg-gradient-to-r from-emerald-300 via-teal-200 to-sky-300 mb-1';
+        }
+        if (vicSubtitle) {
+          vicSubtitle.innerHTML = '✨ ¡Completado sin consumir vidas! Puzzles infinitos para relajarte.';
+          vicSubtitle.className = 'text-xs text-emerald-300 font-bold mb-3';
+        }
+        if (completionBadge) completionBadge.classList.add('hidden');
+        if (btnVicNext) {
+          btnVicNext.className = 'btn-interactive w-full py-3 bg-gradient-to-r from-emerald-500 to-teal-500 hover:from-emerald-400 hover:to-teal-400 text-slate-950 font-black rounded-2xl transition-all flex items-center justify-center gap-2 shadow-md';
+          btnVicNext.innerHTML = '<span>🎲 Siguiente Nivel Aleatorio</span><i data-lucide="refresh-cw" class="w-4 h-4"></i>';
+        }
+
+        // En Modo Infinito se oculta la ruleta de campaña para foco en puzzles continuos
+        const btnVicRoulette = document.getElementById('btn-vic-roulette');
+        if (btnVicRoulette) btnVicRoulette.classList.add('hidden');
+
+        // Tarjeta de sugerencia de publicación en el Taller
+        const sandboxPublishCard = document.getElementById('vic-sandbox-publish-card');
+        const canSuggestPublish = window.stateManager ? window.stateManager.isSandboxPublishPromptEnabled() : true;
+        if (sandboxPublishCard) {
+          if (canSuggestPublish) {
+            sandboxPublishCard.classList.remove('hidden');
+            const lvlTag = document.getElementById('vic-sandbox-level-tag');
+            const levelName = this.levelData?.name || `Alquimia Infinita #${(this.casualSandboxConfig?.seed || Math.floor(Math.random() * 99999)) % 100000}`;
+            if (lvlTag) lvlTag.textContent = levelName;
+
+            const btnPublish = document.getElementById('btn-vic-publish-sandbox');
+            if (btnPublish) {
+              btnPublish.onclick = () => {
+                this.hideModal(this.modalVictory);
+                // Cargar el nivel generado no resuelto en el editor
+                const savedTubes = this.initialSandboxTubes || this.levelData.tubes;
+                this.editorLevel.tubes = JSON.parse(JSON.stringify(savedTubes));
+                this.editorLevel.tubeCount = savedTubes.length;
+                this.editorLevel.name = levelName;
+                this.editorLevel.creator = window.stateManager?.state?.player?.nickname || 'Alquimista Viajero';
+                this.editorLevel.hasBeenPassed = true; // Ya validado con éxito en partida real
+
+                const nameInput = document.getElementById('editor-level-name');
+                const creatorInput = document.getElementById('editor-creator-name');
+                if (nameInput) nameInput.value = this.editorLevel.name;
+                if (creatorInput) creatorInput.value = this.editorLevel.creator;
+
+                this.openEditorModal('design');
+              };
+            }
+
+            const cbSuppressToday = document.getElementById('cb-suppress-sandbox-today');
+            if (cbSuppressToday) {
+              cbSuppressToday.checked = false;
+              cbSuppressToday.onchange = (e) => {
+                if (e.target.checked && window.stateManager) {
+                  window.stateManager.suppressSandboxPublishForToday();
+                }
+              };
+            }
+          } else {
+            sandboxPublishCard.classList.add('hidden');
+          }
+        }
+
+        if (window.stateManager) {
+          const total = window.stateManager.recordSandboxLevelCompleted();
+          if (window.achievementManager) {
+            window.achievementManager.check('casual_explorer_10', total);
+          }
+        }
+      } else if (this.currentLevel === 100) {
+        const btnVicRoulette = document.getElementById('btn-vic-roulette');
+        if (btnVicRoulette) btnVicRoulette.classList.remove('hidden');
+        const sandboxPublishCard = document.getElementById('vic-sandbox-publish-card');
+        if (sandboxPublishCard) sandboxPublishCard.classList.add('hidden');
+
+        const hasAllOneStar = this.hasAllLevelsAtLeastOneStar();
+        if (window.stateManager) {
+          window.stateManager.state.progress.hasCompletedAll100 = true;
+          window.stateManager.saveState();
+        }
+
+        if (vicTitle) {
+          vicTitle.innerHTML = '👑 ¡GRAN OBRA MAGNA SUPERADA!';
+          vicTitle.className = 'text-2xl font-black text-transparent bg-clip-text bg-gradient-to-r from-amber-300 via-yellow-300 to-amber-400 mb-1 animate-pulse';
+        }
+        if (vicSubtitle) {
+          if (hasAllOneStar) {
+            vicSubtitle.innerHTML = '✨ ¡FELICITACIONES! Has consumado la Gran Obra Magna Alquímica con estrellas.';
+          } else {
+            vicSubtitle.innerHTML = '✨ ¡Superaste el último nivel! Pero para desbloquear el Epílogo Alquímico, debes obtener al menos 1★ en cada nivel de campaña.';
+          }
+          vicSubtitle.className = 'text-xs text-amber-200 font-bold mb-3';
+        }
+        if (completionBadge) {
+          completionBadge.classList.remove('hidden');
+        }
+        if (btnVicNext) {
+          btnVicNext.className = 'btn-interactive w-full py-3.5 bg-gradient-to-r from-amber-500 via-yellow-400 to-amber-500 hover:from-amber-400 hover:to-yellow-300 text-slate-950 font-black rounded-2xl transition-all flex items-center justify-center gap-2 shadow-lg shadow-amber-500/30';
+          if (hasAllOneStar) {
+            btnVicNext.innerHTML = '<span>👑 Ver Consagración y Epílogo Final</span><i data-lucide="award" class="w-4 h-4"></i>';
+          } else {
+            btnVicNext.innerHTML = '<span>🗺️ Ver Mapa de Niveles</span><i data-lucide="map" class="w-4 h-4"></i>';
+          }
+        }
+
+        // Torrente continuado de confeti dorado
+        if (typeof confetti === 'function') {
+          const end = Date.now() + 4000;
+          const colors = ['#f59e0b', '#fde047', '#38bdf8', '#a855f7', '#ec4899', '#10b981'];
+          (function frame() {
+            confetti({ particleCount: 6, angle: 60, spread: 65, origin: { x: 0 }, colors: colors });
+            confetti({ particleCount: 6, angle: 120, spread: 65, origin: { x: 1 }, colors: colors });
+            if (Date.now() < end) requestAnimationFrame(frame);
+          }());
+        }
+        if (window.audio) {
+          window.audio.playWinFanfare();
+          setTimeout(() => window.audio.playCrowdCheer(), 450);
+        }
+      } else {
+        const btnVicRoulette = document.getElementById('btn-vic-roulette');
+        if (btnVicRoulette) btnVicRoulette.classList.remove('hidden');
+        const sandboxPublishCard = document.getElementById('vic-sandbox-publish-card');
+        if (sandboxPublishCard) sandboxPublishCard.classList.add('hidden');
+
+        if (vicTitle) {
+          vicTitle.innerHTML = '¡Nivel Completado!';
+          vicTitle.className = 'text-2xl font-black text-white mb-1';
+        }
+        if (vicSubtitle) {
+          vicSubtitle.innerHTML = 'Todos los colores han sido clasificados con maestría.';
+          vicSubtitle.className = 'text-xs text-slate-400 mb-3';
+        }
+        if (completionBadge) completionBadge.classList.add('hidden');
+        if (btnVicNext) {
+          btnVicNext.className = 'btn-interactive w-full py-3 bg-sky-600 hover:bg-sky-500 text-white font-bold rounded-2xl transition-all flex items-center justify-center gap-2 shadow-md';
+          btnVicNext.innerHTML = '<span>Siguiente Nivel</span><i data-lucide="arrow-right" class="w-4 h-4"></i>';
         }
       }
 
-      if (window.stateManager) {
-        const total = window.stateManager.recordSandboxLevelCompleted();
-        if (window.achievementManager) {
-          window.achievementManager.check('casual_explorer_10', total);
+      // --- EVALUACIÓN DE LOGROS GENERALES ---
+      if (window.achievementManager) {
+        if (window.stateManager && window.stateManager.isVisualComfortMode()) {
+          window.achievementManager.unlock('visual_comfort_win');
         }
-      }
-    } else if (this.currentLevel === 100) {
-      const btnVicRoulette = document.getElementById('btn-vic-roulette');
-      if (btnVicRoulette) btnVicRoulette.classList.remove('hidden');
-      const sandboxPublishCard = document.getElementById('vic-sandbox-publish-card');
-      if (sandboxPublishCard) sandboxPublishCard.classList.add('hidden');
-
-      const hasAllOneStar = this.hasAllLevelsAtLeastOneStar();
-      if (window.stateManager) {
-        window.stateManager.state.progress.hasCompletedAll100 = true;
-        window.stateManager.saveState();
-      }
-
-      if (vicTitle) {
-        vicTitle.innerHTML = '👑 ¡GRAN OBRA MAGNA SUPERADA!';
-        vicTitle.className = 'text-2xl font-black text-transparent bg-clip-text bg-gradient-to-r from-amber-300 via-yellow-300 to-amber-400 mb-1 animate-pulse';
-      }
-      if (vicSubtitle) {
-        if (hasAllOneStar) {
-          vicSubtitle.innerHTML = '✨ ¡FELICITACIONES! Has consumado la Gran Obra Magna Alquímica con estrellas.';
-        } else {
-          vicSubtitle.innerHTML = '✨ ¡Superaste el último nivel! Pero para desbloquear el Epílogo Alquímico, debes obtener al menos 1★ en cada nivel de campaña.';
+        if (combo >= 5) {
+          window.achievementManager.unlock('combo_streak_5');
         }
-        vicSubtitle.className = 'text-xs text-amber-200 font-bold mb-3';
-      }
-      if (completionBadge) {
-        completionBadge.classList.remove('hidden');
-      }
-      if (btnVicNext) {
-        btnVicNext.className = 'btn-interactive w-full py-3.5 bg-gradient-to-r from-amber-500 via-yellow-400 to-amber-500 hover:from-amber-400 hover:to-yellow-300 text-slate-950 font-black rounded-2xl transition-all flex items-center justify-center gap-2 shadow-lg shadow-amber-500/30';
-        if (hasAllOneStar) {
-          btnVicNext.innerHTML = '<span>👑 Ver Consagración y Epílogo Final</span><i data-lucide="award" class="w-4 h-4"></i>';
-        } else {
-          btnVicNext.innerHTML = '<span>🗺️ Ver Mapa de Niveles</span><i data-lucide="map" class="w-4 h-4"></i>';
+        if (this.undoCountInLevel === 0 && this.extraTubesUsed === 0) {
+          window.achievementManager.increment('no_undo_master', 1);
         }
+        if (stars === 3 && elapsedSecs <= 25) {
+          window.achievementManager.unlock('flawless_win');
+        }
+        if (this.currentLevel >= 10 && !this.isDailyChallenge && !this.isCasualSandbox) {
+          window.achievementManager.unlock('chapter_1_complete');
+        }
+        const totalStars = window.leaderboardManager ? window.leaderboardManager.getGlobalStats().totalStars : 0;
+        window.achievementManager.check('stars_150', totalStars);
       }
-
-      // Torrente continuado de confeti dorado
-      if (typeof confetti === 'function') {
-        const end = Date.now() + 4000;
-        const colors = ['#f59e0b', '#fde047', '#38bdf8', '#a855f7', '#ec4899', '#10b981'];
-        (function frame() {
-          confetti({ particleCount: 6, angle: 60, spread: 65, origin: { x: 0 }, colors: colors });
-          confetti({ particleCount: 6, angle: 120, spread: 65, origin: { x: 1 }, colors: colors });
-          if (Date.now() < end) requestAnimationFrame(frame);
-        }());
+    } catch (err) {
+      console.error('Error rendering victory modal details:', err);
+    } finally {
+      if (window.lucide) {
+        try { lucide.createIcons(); } catch (e) { console.warn(e); }
       }
-      if (window.audio) {
-        window.audio.playWinFanfare();
-        setTimeout(() => window.audio.playCrowdCheer(), 450);
-      }
-    } else {
-      const btnVicRoulette = document.getElementById('btn-vic-roulette');
-      if (btnVicRoulette) btnVicRoulette.classList.remove('hidden');
-      const sandboxPublishCard = document.getElementById('vic-sandbox-publish-card');
-      if (sandboxPublishCard) sandboxPublishCard.classList.add('hidden');
-
-      if (vicTitle) {
-        vicTitle.innerHTML = '¡Nivel Completado!';
-        vicTitle.className = 'text-2xl font-black text-white mb-1';
-      }
-      if (vicSubtitle) {
-        vicSubtitle.innerHTML = 'Todos los colores han sido clasificados con maestría.';
-        vicSubtitle.className = 'text-xs text-slate-400 mb-3';
-      }
-      if (completionBadge) completionBadge.classList.add('hidden');
-      if (btnVicNext) {
-        btnVicNext.className = 'btn-interactive w-full py-3 bg-sky-600 hover:bg-sky-500 text-white font-bold rounded-2xl transition-all flex items-center justify-center gap-2 shadow-md';
-        btnVicNext.innerHTML = '<span>Siguiente Nivel</span><i data-lucide="arrow-right" class="w-4 h-4"></i>';
-      }
+      this.showModal(this.modalVictory);
     }
-
-    // --- EVALUACIÓN DE LOGROS GENERALES ---
-    if (window.achievementManager) {
-      if (window.stateManager && window.stateManager.isVisualComfortMode()) {
-        window.achievementManager.unlock('visual_comfort_win');
-      }
-      if (consecutiveCount >= 5) {
-        window.achievementManager.unlock('combo_streak_5');
-      }
-      if (this.undoCountInLevel === 0 && this.extraTubesUsed === 0) {
-        window.achievementManager.increment('no_undo_master', 1);
-      }
-      if (starCount === 3 && elapsedSecs <= 25) {
-        window.achievementManager.unlock('flawless_win');
-      }
-      if (this.currentLevel >= 10 && !this.isDailyChallenge && !this.isCasualSandbox) {
-        window.achievementManager.unlock('chapter_1_complete');
-      }
-      const totalStars = window.leaderboardManager ? window.leaderboardManager.getGlobalStats().totalStars : 0;
-      window.achievementManager.check('stars_150', totalStars);
-    }
-
-    if (window.lucide) lucide.createIcons();
-    this.showModal(this.modalVictory);
   }
 
   // --- ANIMACIÓN SECUENCIAL Y EVALUACIÓN DE DESAFÍOS AL GANAR EL NIVEL ---
