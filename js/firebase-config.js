@@ -14,12 +14,13 @@
  *    o ingrésalos directamente desde la ventana "Guardado en la Nube" en el juego.
  */
 window.DEFAULT_FIREBASE_CONFIG = {
-  apiKey: "",
-  authDomain: "",
-  projectId: "",
-  storageBucket: "",
-  messagingSenderId: "",
-  appId: ""
+  apiKey: "AIzaSyD1fnQYF3NHo8H-kqARJTvuheSZFuTo6Tg",
+  authDomain: "aquasort-deluxe.firebaseapp.com",
+  projectId: "aquasort-deluxe",
+  storageBucket: "aquasort-deluxe.firebasestorage.app",
+  messagingSenderId: "152482552171",
+  appId: "1:152482552171:web:c9e8e8c42bf2e75d37d42e",
+  measurementId: "G-237B9S34SJ"
 };
 
 /**
