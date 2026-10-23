@@ -11,6 +11,8 @@
 class MinigameEngine {
   constructor() {
     this.currentMode = 'diana'; // 'diana' | 'moving_targets' | 'roulette'
+    this.fromVictory = false;
+    this.isTrainingMode = true;
 
     // --- CARTAS ALQUÍMICAS ---
     this.activeCard = null; // 'dianaFavor' | 'rouletteFavor' | 'doubleOrNothing' | 'calmAtmosphere'
@@ -108,6 +110,7 @@ class MinigameEngine {
     this.resetMovingTargets();
     this.updateCardsUI();
     this.updateRulesText();
+    this.updateTrainingModeUI();
     if (this.currentMode === 'roulette') {
       this.startTimingBar();
     }
@@ -1695,9 +1698,65 @@ class MinigameEngine {
     setTimeout(() => popup.remove(), 1700);
   }
 
+  updateTrainingModeUI() {
+    const btnCashout = document.getElementById('btn-cashout-roulette');
+    const bannerEl = document.getElementById('minigame-assigned-banner');
+
+    if (this.isTrainingMode) {
+      if (btnCashout) {
+        btnCashout.innerHTML = `
+          <i data-lucide="door-open" class="w-4 h-4 text-rose-200"></i>
+          <span>Cobrar y Salir (Modo Entrenamiento)</span>
+        `;
+      }
+      if (bannerEl) {
+        bannerEl.innerHTML = `🎯 ¡Modo Entrenamiento Libre! Practica y gana bonos sin restricciones`;
+        bannerEl.className = 'mb-1 py-1 px-3 rounded-xl text-[11px] font-black bg-gradient-to-r from-emerald-500/20 via-sky-500/20 to-indigo-500/20 text-emerald-300 border border-emerald-500/40 flex items-center justify-center gap-1.5 shadow-sm';
+      }
+    } else {
+      if (btnCashout) {
+        btnCashout.innerHTML = `
+          <i data-lucide="shield-check" class="w-4 h-4 text-rose-200"></i>
+          <span>Cobrar Seguro y Siguiente Nivel</span>
+        `;
+      }
+      if (bannerEl) {
+        bannerEl.innerHTML = `🎲 ¡Minijuego de Bonificación por Victoria!`;
+        bannerEl.className = 'mb-1 py-1 px-3 rounded-xl text-[11px] font-black bg-slate-800 text-amber-300 border border-amber-500/30 flex items-center justify-center gap-1.5 shadow-sm';
+      }
+    }
+    if (window.lucide && typeof window.lucide.createIcons === 'function') {
+      window.lucide.createIcons();
+    }
+  }
+
   // --- CIERRE DE RONDA Y RETORNO AL JUEGO ---
   finalizeRound(winningSlice, modalBox) {
-    // Aumento de tiempo de visualización para ver claramente el premio ganado (~4.2s)
+    if (this.isTrainingMode) {
+      // En Modo Entrenamiento / Libre: Dejar que disfrute el premio y permitir seguir jugando
+      setTimeout(() => {
+        if (modalBox) modalBox.classList.remove('roulette-lose-glow');
+        if (winningSlice) winningSlice.classList.remove('winner-slice');
+        if (this.btnSpin) this.btnSpin.disabled = false;
+
+        this.stopTimingBar();
+        this.stopMovingTargetsAnim();
+        this.activeCard = null;
+        this.calmAtmosphereBenefit = null;
+        this.extraShotAvailable = false;
+
+        // Reiniciar para la siguiente tirada libre
+        this.initRound();
+
+        if (this.timingFeedbackLbl) {
+          this.timingFeedbackLbl.innerHTML = '🎯 ¡Tiro completado! Toca para seguir practicando o pulsa "Cobrar y Salir".';
+          this.timingFeedbackLbl.className = 'text-center text-[11px] font-black text-emerald-300 mt-1 min-h-[16px] animate-pulse';
+        }
+      }, 3200);
+      return;
+    }
+
+    // Modo Victoria: Aumento de tiempo de visualización para ver claramente el premio ganado (~4.2s)
     setTimeout(() => {
       const modal = document.getElementById('modal-roulette');
       if (modal) {
@@ -1725,7 +1784,9 @@ class MinigameEngine {
     }, 4200);
   }
 
-  openModal(coins = 50) {
+  openModal(coins = 50, fromVictory = false) {
+    this.fromVictory = Boolean(fromVictory);
+    this.isTrainingMode = !this.fromVictory;
     if (!this.wheelGroup) this.initDOM();
     const modal = document.getElementById('modal-roulette');
     if (modal) {
@@ -1736,6 +1797,7 @@ class MinigameEngine {
         modal.style.setProperty('display', 'flex', 'important');
       }
     }
+    this.updateTrainingModeUI();
     this.initRound();
   }
 }

@@ -3697,11 +3697,24 @@ class GameController {
   }
 
   onRouletteClosed() {
-    if (this.currentLevel >= 100) {
-      this.showGameCompletionModal();
-    } else {
-      this.loadLevel(this.currentLevel + 1);
+    this.resumeGameMusic();
+    if (this.modalRoulette) {
+      this.hideModal(this.modalRoulette);
     }
+    if (window.rouletteEngine && window.rouletteEngine.fromVictory) {
+      window.rouletteEngine.fromVictory = false;
+      if (this.currentLevel >= 100) {
+        this.showGameCompletionModal();
+      } else {
+        const nextLvl = this.currentLevel + 1;
+        if (this.isLevelUnlocked(nextLvl)) {
+          this.loadLevel(nextLvl);
+        } else {
+          this.openMapModal();
+        }
+      }
+    }
+    // Modo Entrenamiento / Libre: No se realiza ninguna validación de nivel ni se avanza el nivel.
   }
 
   // --- DESHACER (UNDO) Y PISTAS (HINTS) ---
@@ -5154,22 +5167,28 @@ class GameController {
     if (btnVicRoulette) {
       this.bindTapOrClick(btnVicRoulette, () => {
         this.hideModal(this.modalVictory);
-        this.showModal(this.modalRoulette);
-        if (window.rouletteEngine) window.rouletteEngine.initRound();
+        if (window.rouletteEngine) {
+          window.rouletteEngine.openModal(50, true);
+        } else {
+          this.showModal(this.modalRoulette);
+        }
         if (window.audio) window.audio.playMusic('roulette');
       });
     }
 
-    // Salir de la ruleta sin girar
+    // Salir de la ruleta / Cobrar
     const btnCashout = document.getElementById('btn-cashout-roulette');
     if (btnCashout) {
       this.bindTapOrClick(btnCashout, () => {
-        this.hideModal(this.modalRoulette);
-        this.resumeGameMusic();
-        if (this.currentLevel >= 100) {
-          this.showGameCompletionModal();
-        } else {
-          this.loadLevel(this.currentLevel + 1);
+        this.onRouletteClosed();
+      });
+    }
+
+    const btnCloseRoulette = document.getElementById('btn-close-roulette');
+    if (btnCloseRoulette) {
+      this.bindTapOrClick(btnCloseRoulette, () => {
+        if (!window.rouletteEngine?.isSpinning && !window.rouletteEngine?.isDartFlying) {
+          this.onRouletteClosed();
         }
       });
     }
@@ -5259,9 +5278,8 @@ class GameController {
     });
     this.setupBackdropClose(this.modalApocalypse, () => this.restartFromApocalypse());
     this.setupBackdropClose(this.modalRoulette, () => {
-      if (this.modalRoulette && !window.rouletteEngine?.isSpinning) {
-        this.hideModal(this.modalRoulette);
-        this.resumeGameMusic();
+      if (this.modalRoulette && !window.rouletteEngine?.isSpinning && !window.rouletteEngine?.isDartFlying) {
+        this.onRouletteClosed();
       }
     });
 

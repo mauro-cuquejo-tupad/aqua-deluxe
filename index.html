@@ -46,10 +46,10 @@
   <link rel="icon" type="image/svg+xml" href="icons/icon.svg">
 
   <!-- Modular Stylesheets -->
-  <link rel="stylesheet" href="css/main.css?v=43">
-  <link rel="stylesheet" href="css/tubes.css?v=43">
-  <link rel="stylesheet" href="css/roulette.css?v=43">
-  <link rel="stylesheet" href="css/accessibility.css?v=43">
+  <link rel="stylesheet" href="css/main.css?v=44">
+  <link rel="stylesheet" href="css/tubes.css?v=44">
+  <link rel="stylesheet" href="css/roulette.css?v=44">
+  <link rel="stylesheet" href="css/accessibility.css?v=44">
 </head>
 <body class="min-h-screen flex flex-col justify-between select-none relative">
 
@@ -695,6 +695,11 @@
        ========================================================================== -->
   <div id="modal-roulette" class="fixed inset-0 bg-slate-950/90 backdrop-blur-md z-50 hidden flex items-center justify-center p-3 sm:p-5 modal-overlay">
     <div class="bg-slate-900 border border-slate-700 rounded-3xl max-w-md w-full p-4 sm:p-5 shadow-2xl text-center relative modal-content max-h-[94vh] overflow-y-auto">
+      <!-- Botón de Cerrar Modal en Modo Libre / Entrenamiento -->
+      <button id="btn-close-roulette" type="button" class="absolute top-3.5 right-3.5 p-1.5 text-slate-400 hover:text-white rounded-xl bg-slate-800/80 hover:bg-slate-700 transition-colors z-20" title="Cerrar Minijuego">
+        <i data-lucide="x" class="w-4 h-4"></i>
+      </button>
+
       <!-- Selector de Modo de Minijuego (3 Modos Alquímicos) -->
       <div id="tab-minigame-selector" class="flex items-center gap-1.5 mb-2 p-1 rounded-2xl bg-slate-950/80 border border-slate-800">
         <button id="tab-game-diana" type="button" class="flex-1 py-1.5 px-2 rounded-xl text-xs font-black bg-gradient-to-r from-sky-500 to-indigo-600 text-white shadow-md transition-all text-center">
@@ -1022,7 +1027,7 @@
       <!-- BOTÓN SECUNDARIO DE RETIRADA SEGURA (VISIBLE EN AMBOS MODOS) -->
       <button id="btn-cashout-roulette" class="w-full py-2.5 bg-gradient-to-r from-rose-600 to-red-600 hover:from-rose-500 hover:to-red-500 active:scale-95 text-white font-bold rounded-2xl shadow-md text-xs sm:text-sm tracking-wide transition-all uppercase flex items-center justify-center gap-2">
         <i data-lucide="shield-check" class="w-4 h-4 text-rose-200"></i>
-        Cobrar Seguro y Continuar (Sin Riesgo)
+        <span>Cobrar Seguro y Continuar (Sin Riesgo)</span>
       </button>
     </div>
   </div>
@@ -2194,19 +2199,19 @@
   <input type="file" id="input-save-file" accept=".json" class="hidden">
 
   <!-- Scripts modulares -->
-  <script src="js/firebase-config.js?v=43"></script>
-  <script src="js/cloud-sync.js?v=43"></script>
-  <script src="js/audio.js?v=43"></script>
-  <script src="js/palette.js?v=43"></script>
-  <script src="js/levels.js?v=43"></script>
-  <script src="js/challenges.js?v=43"></script>
-  <script src="js/honor.js?v=43"></script>
-  <script src="js/state.js?v=43"></script>
-  <script src="js/achievements.js?v=43"></script>
-  <script src="js/leaderboard.js?v=43"></script>
-  <script src="js/roulette.js?v=43"></script>
-  <script src="js/story.js?v=43"></script>
-  <script src="js/game.js?v=43"></script>
+  <script src="js/firebase-config.js?v=44"></script>
+  <script src="js/cloud-sync.js?v=44"></script>
+  <script src="js/audio.js?v=44"></script>
+  <script src="js/palette.js?v=44"></script>
+  <script src="js/levels.js?v=44"></script>
+  <script src="js/challenges.js?v=44"></script>
+  <script src="js/honor.js?v=44"></script>
+  <script src="js/state.js?v=44"></script>
+  <script src="js/achievements.js?v=44"></script>
+  <script src="js/leaderboard.js?v=44"></script>
+  <script src="js/roulette.js?v=44"></script>
+  <script src="js/story.js?v=44"></script>
+  <script src="js/game.js?v=44"></script>
 
   <!-- Registro de Service Worker PWA -->
   <script>
