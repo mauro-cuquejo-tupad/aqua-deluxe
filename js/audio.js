@@ -1263,6 +1263,34 @@ class ProceduralAudioEngine {
     });
   }
 
+  playVictory() {
+    this.playWinFanfare();
+  }
+
+  playLevelUp() {
+    if (!this.ready()) return;
+    const now = this.ctx.currentTime;
+    const notes = [
+      { f: 440.00, t: 0.0, d: 0.12 },
+      { f: 554.37, t: 0.10, d: 0.12 },
+      { f: 659.25, t: 0.20, d: 0.14 },
+      { f: 880.00, t: 0.32, d: 0.45 }
+    ];
+    notes.forEach(note => {
+      const osc = this.ctx.createOscillator();
+      const gain = this.ctx.createGain();
+      const start = now + note.t;
+      osc.type = 'triangle';
+      osc.frequency.setValueAtTime(note.f, start);
+      gain.gain.setValueAtTime(0.3, start);
+      gain.gain.exponentialRampToValueAtTime(0.001, start + note.d);
+      osc.connect(gain);
+      gain.connect(this.sfxGain);
+      osc.start(start);
+      osc.stop(start + note.d + 0.05);
+    });
+  }
+
   playFailSound() {
     if (!this.ready()) return;
     const now = this.ctx.currentTime;

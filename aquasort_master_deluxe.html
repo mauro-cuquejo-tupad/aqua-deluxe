@@ -46,10 +46,10 @@
   <link rel="icon" type="image/svg+xml" href="icons/icon.svg">
 
   <!-- Modular Stylesheets -->
-  <link rel="stylesheet" href="css/main.css?v=35">
-  <link rel="stylesheet" href="css/tubes.css?v=35">
-  <link rel="stylesheet" href="css/roulette.css?v=35">
-  <link rel="stylesheet" href="css/accessibility.css?v=35">
+  <link rel="stylesheet" href="css/main.css?v=37">
+  <link rel="stylesheet" href="css/tubes.css?v=37">
+  <link rel="stylesheet" href="css/roulette.css?v=37">
+  <link rel="stylesheet" href="css/accessibility.css?v=37">
 </head>
 <body class="min-h-screen flex flex-col justify-between select-none relative">
 
@@ -234,6 +234,9 @@
         <i data-lucide="x" class="w-4 h-4"></i>
       </button>
     </div>
+
+    <!-- CONTENEDOR HUD CONTRARRELOJ (TELEMETRÍA DE DERRAME) -->
+    <div id="time-attack-hud-container" class="w-full flex items-center justify-center mb-2 hidden"></div>
 
     <!-- CONTENEDOR CENTRAL DE FRASCOS Y CANVAS DE CHORRO -->
     <div class="relative w-full flex-1 flex items-center justify-center min-h-[380px] py-4">
@@ -2191,19 +2194,19 @@
   <input type="file" id="input-save-file" accept=".json" class="hidden">
 
   <!-- Scripts modulares -->
-  <script src="js/firebase-config.js?v=35"></script>
-  <script src="js/cloud-sync.js?v=35"></script>
-  <script src="js/audio.js?v=35"></script>
-  <script src="js/palette.js?v=35"></script>
-  <script src="js/levels.js?v=35"></script>
-  <script src="js/challenges.js?v=35"></script>
-  <script src="js/honor.js?v=35"></script>
-  <script src="js/state.js?v=35"></script>
-  <script src="js/achievements.js?v=35"></script>
-  <script src="js/leaderboard.js?v=35"></script>
-  <script src="js/roulette.js?v=35"></script>
-  <script src="js/story.js?v=35"></script>
-  <script src="js/game.js?v=35"></script>
+  <script src="js/firebase-config.js?v=37"></script>
+  <script src="js/cloud-sync.js?v=37"></script>
+  <script src="js/audio.js?v=37"></script>
+  <script src="js/palette.js?v=37"></script>
+  <script src="js/levels.js?v=37"></script>
+  <script src="js/challenges.js?v=37"></script>
+  <script src="js/honor.js?v=37"></script>
+  <script src="js/state.js?v=37"></script>
+  <script src="js/achievements.js?v=37"></script>
+  <script src="js/leaderboard.js?v=37"></script>
+  <script src="js/roulette.js?v=37"></script>
+  <script src="js/story.js?v=37"></script>
+  <script src="js/game.js?v=37"></script>
 
   <!-- Registro de Service Worker PWA -->
   <script>

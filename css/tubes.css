@@ -722,9 +722,9 @@
   100% { transform: translateX(-50%) scale(1.08); box-shadow: 0 4px 20px rgba(245, 158, 11, 0.9); }
 }
 
-.test-tube.tube-liquid-drain .tube-liquids {
-  animation: taLiquidDrain 0.5s cubic-bezier(0.4, 0, 0.2, 1) forwards;
-  transform-origin: bottom;
+.test-tube.tube-liquid-drain .liquid-segment {
+  animation: taLiquidDrain 0.45s cubic-bezier(0.4, 0, 0.2, 1) forwards;
+  transform-origin: bottom center;
 }
 
 @keyframes taLiquidDrain {
@@ -881,6 +881,184 @@
     transform: translateX(-50%) translateY(-42px) scale(0.85);
   }
 }
+
+/* Previsualización de bloques que caerán sobre los tubos (Incoming Drops) */
+.ta-incoming-marker {
+  position: absolute;
+  top: -38px;
+  left: 50%;
+  transform: translateX(-50%);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  z-index: 65;
+  pointer-events: none;
+  animation: taMarkerFloat 1.2s ease-in-out infinite alternate;
+}
+
+.ta-incoming-arrow {
+  font-size: 11px;
+  line-height: 1;
+  color: #facc15;
+  filter: drop-shadow(0 2px 4px rgba(0,0,0,0.8));
+  animation: taArrowBounce 0.6s ease-in-out infinite alternate;
+}
+
+.ta-incoming-pills {
+  display: flex;
+  align-items: center;
+  gap: 3px;
+  background: rgba(15, 23, 42, 0.9);
+  padding: 2px 4px;
+  border-radius: 9999px;
+  border: 1.5px solid rgba(250, 204, 21, 0.7);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.6), 0 0 10px rgba(250, 204, 21, 0.35);
+}
+
+.ta-incoming-pill {
+  width: 22px;
+  height: 22px;
+  border-radius: 6px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+  font-size: 11px;
+  font-weight: 900;
+  border: 1.5px solid rgba(255, 255, 255, 0.85);
+  box-shadow: inset 0 1px 2px rgba(255, 255, 255, 0.4), 0 2px 4px rgba(0, 0, 0, 0.5);
+}
+
+/* Estado urgente cuando faltan <= 4 segundos para el derrame */
+.ta-incoming-marker.ta-urgent {
+  animation: taMarkerUrgent 0.35s ease-in-out infinite alternate;
+}
+
+.ta-incoming-marker.ta-urgent .ta-incoming-arrow {
+  color: #ef4444;
+  filter: drop-shadow(0 0 6px rgba(239, 68, 68, 0.9));
+}
+
+.ta-incoming-marker.ta-urgent .ta-incoming-pills {
+  border-color: #ef4444;
+  box-shadow: 0 0 16px rgba(239, 68, 68, 0.85);
+}
+
+@keyframes taMarkerFloat {
+  0% { transform: translateX(-50%) translateY(0); }
+  100% { transform: translateX(-50%) translateY(-4px); }
+}
+
+@keyframes taArrowBounce {
+  0% { transform: translateY(-1px); }
+  100% { transform: translateY(2px); }
+}
+
+@keyframes taMarkerUrgent {
+  0% { transform: translateX(-50%) scale(0.95); }
+  100% { transform: translateX(-50%) scale(1.18); filter: brightness(1.2); }
+}
+
+/* Banner HUD General de Derrame / Nivel */
+.ta-drop-hud {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-wrap: wrap;
+  gap: 8px;
+  background: linear-gradient(135deg, rgba(30, 41, 59, 0.95), rgba(15, 23, 42, 0.98));
+  border: 1.5px solid rgba(245, 158, 11, 0.55);
+  border-radius: 9999px;
+  padding: 5px 16px;
+  margin: 0 auto 10px auto;
+  box-shadow: 0 4px 18px rgba(0, 0, 0, 0.5), inset 0 1px 2px rgba(255, 255, 255, 0.12);
+  font-size: 12px;
+  font-weight: 800;
+  color: #f1f5f9;
+  z-index: 30;
+  backdrop-filter: blur(10px);
+}
+
+.ta-drop-hud .ta-hud-level {
+  color: #38bdf8;
+  font-weight: 900;
+}
+
+.ta-drop-hud .ta-hud-timer {
+  color: #fbbf24;
+  font-family: monospace;
+  font-size: 13px;
+  font-weight: 900;
+}
+
+.ta-drop-hud .ta-hud-previews {
+  display: inline-flex;
+  align-items: center;
+  gap: 3px;
+  margin-left: 4px;
+}
+
+.ta-drop-hud .ta-hud-pill {
+  width: 17px;
+  height: 17px;
+  border-radius: 4px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 9.5px;
+  font-weight: 900;
+  font-family: monospace;
+  border: 1px solid rgba(255, 255, 255, 0.7);
+}
+
+.ta-drop-hud.ta-hud-urgent {
+  border-color: #ef4444;
+  box-shadow: 0 0 20px rgba(239, 68, 68, 0.7);
+  animation: taHudPulse 0.45s ease-in-out infinite alternate;
+}
+
+@keyframes taHudPulse {
+  0% { transform: scale(0.98); }
+  100% { transform: scale(1.02); }
+}
+
+/* Banner de Aumento de Nivel (Estilo Tetris) */
+.ta-levelup-banner {
+  position: fixed;
+  top: 36%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  background: linear-gradient(135deg, #1e1b4b, #312e81, #4338ca);
+  border: 3.5px solid #facc15;
+  border-radius: 24px;
+  padding: 18px 34px;
+  text-align: center;
+  box-shadow: 0 12px 45px rgba(0, 0, 0, 0.85), 0 0 40px rgba(250, 204, 21, 0.75);
+  z-index: 1000;
+  pointer-events: none;
+  animation: taLevelUpPop 2.4s cubic-bezier(0.175, 0.885, 0.32, 1.275) forwards;
+}
+
+@keyframes taLevelUpPop {
+  0% { transform: translate(-50%, -50%) scale(0.3); opacity: 0; }
+  15% { transform: translate(-50%, -50%) scale(1.12); opacity: 1; }
+  25% { transform: translate(-50%, -50%) scale(1); }
+  75% { transform: translate(-50%, -50%) scale(1); opacity: 1; }
+  100% { transform: translate(-50%, -50%) translateY(-35px) scale(0.85); opacity: 0; }
+}
+
+/* Efecto de sacudida de pantalla (Screen Shake) */
+.anim-screen-shake {
+  animation: screenShake 0.55s cubic-bezier(0.36, 0.07, 0.19, 0.97) both;
+}
+
+@keyframes screenShake {
+  10%, 90% { transform: translate3d(-3px, 0, 0); }
+  20%, 80% { transform: translate3d(5px, -3px, 0); }
+  30%, 50%, 70% { transform: translate3d(-7px, 4px, 0); }
+  40%, 60% { transform: translate3d(7px, -2px, 0); }
+}
+
 
 
 
