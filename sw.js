@@ -3,7 +3,7 @@
    Soporte Offline, Caché Rápida y Experiencia de App Nativa Móvil
    ========================================================================== */
 
-const CACHE_NAME = 'aquasort-deluxe-v4.7';
+const CACHE_NAME = 'aquasort-deluxe-v4.8';
 
 const PRECACHE_ASSETS = [
   './',
@@ -13,7 +13,7 @@ const PRECACHE_ASSETS = [
   './icons/icon-512.png',
   './icons/icon.svg',
   './css/main.css?v=46',
-  './css/tubes.css?v=47',
+  './css/tubes.css?v=48',
   './css/roulette.css?v=46',
   './css/accessibility.css?v=46',
   './js/firebase-config.js?v=46',
