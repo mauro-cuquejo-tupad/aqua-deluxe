@@ -114,3 +114,32 @@ body.high-contrast-mode .test-tube.selected .tube-lip {
   background-image: conic-gradient(rgba(255,255,255,0.25) 90deg, transparent 90deg 180deg, rgba(255,255,255,0.25) 180deg 270deg, transparent 270deg) !important;
   background-size: 12px 12px !important;
 }
+
+/* 4. ICONOS Y LETRAS IDENTIFICADORAS DE ACCESIBILIDAD */
+.shape-icon,
+.letter-icon {
+  user-select: none;
+  pointer-events: none;
+  line-height: 1;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.shape-icon {
+  filter: drop-shadow(0 1px 2px rgba(0, 0, 0, 0.85));
+}
+
+.letter-icon {
+  font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace;
+  font-weight: 900;
+  letter-spacing: -0.02em;
+  text-transform: uppercase;
+  filter: drop-shadow(0 1px 2px rgba(0, 0, 0, 0.85));
+}
+
+body.low-vision-mode .letter-icon {
+  font-size: 1.6rem !important;
+  font-weight: 900 !important;
+  filter: drop-shadow(0 0 4px #000) drop-shadow(0 0 6px #000) drop-shadow(0 0 2px #fff) !important;
+}

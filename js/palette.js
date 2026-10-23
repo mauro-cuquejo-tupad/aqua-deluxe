@@ -4,59 +4,61 @@
    ========================================================================== */
 
 const AAA_PALETTE = [
-  { id: 0, name: 'Carmesí Radiante', hex: '#ff334b', shape: '●', pattern: 'pattern-stripes', textHex: '#ffffff' },
-  { id: 1, name: 'Cielo Alquímico', hex: '#38bdf8', shape: '▲', pattern: 'pattern-dots', textHex: '#000000' },
-  { id: 2, name: 'Verde Esmeralda', hex: '#10b981', shape: '■', pattern: 'pattern-grid', textHex: '#000000' },
-  { id: 3, name: 'Oro Supremo', hex: '#facc15', shape: '★', pattern: 'pattern-diagonal-left', textHex: '#000000' },
-  { id: 4, name: 'Violeta Eléctrico', hex: '#c084fc', shape: '◆', pattern: 'pattern-horizontal', textHex: '#000000' },
-  { id: 5, name: 'Naranja Mandarina', hex: '#fb923c', shape: '✚', pattern: 'pattern-vertical', textHex: '#000000' },
-  { id: 6, name: 'Rosa Neón Flúor', hex: '#f472b6', shape: '♥', pattern: 'pattern-cross', textHex: '#000000' },
-  { id: 7, name: 'Cian Glaciar', hex: '#22d3ee', shape: '✦', pattern: 'pattern-zigzag', textHex: '#000000' },
-  { id: 8, name: 'Ámbar Cálido', hex: '#f59e0b', shape: '⬟', pattern: 'pattern-checker', textHex: '#000000' },
-  { id: 9, name: 'Lima Brillante', hex: '#a3e635', shape: '⬢', pattern: 'pattern-dots', textHex: '#000000' },
-  { id: 10, name: 'Índigo Astral', hex: '#818cf8', shape: '✿', pattern: 'pattern-stripes', textHex: '#000000' },
-  { id: 11, name: 'Blanco Ópalo Puro', hex: '#f8fafc', shape: '❄', pattern: 'pattern-grid', textHex: '#000000' },
-  { id: 12, name: 'Turquesa Mar', hex: '#2dd4bf', shape: '✪', pattern: 'pattern-horizontal', textHex: '#000000' },
-  { id: 13, name: 'Rubí Encendido', hex: '#e11d48', shape: '⯁', pattern: 'pattern-vertical', textHex: '#ffffff' },
-  { id: 14, name: 'Coral Solar', hex: '#fb7185', shape: '🞛', pattern: 'pattern-cross', textHex: '#000000' },
-  { id: 15, name: 'Azul Real', hex: '#2563eb', shape: '🞗', pattern: 'pattern-zigzag', textHex: '#ffffff' }
+  { id: 0, name: 'Carmesí Radiante', hex: '#ff334b', letter: 'R', shape: '●', pattern: 'pattern-stripes', textHex: '#ffffff' },
+  { id: 1, name: 'Cielo Alquímico', hex: '#38bdf8', letter: 'C', shape: '▲', pattern: 'pattern-dots', textHex: '#000000' },
+  { id: 2, name: 'Verde Esmeralda', hex: '#10b981', letter: 'V', shape: '■', pattern: 'pattern-grid', textHex: '#000000' },
+  { id: 3, name: 'Oro Supremo', hex: '#facc15', letter: 'A', shape: '★', pattern: 'pattern-diagonal-left', textHex: '#000000' },
+  { id: 4, name: 'Violeta Eléctrico', hex: '#c084fc', letter: 'P', shape: '◆', pattern: 'pattern-horizontal', textHex: '#000000' },
+  { id: 5, name: 'Naranja Mandarina', hex: '#fb923c', letter: 'N', shape: '✚', pattern: 'pattern-vertical', textHex: '#000000' },
+  { id: 6, name: 'Rosa Neón Flúor', hex: '#f472b6', letter: 'F', shape: '♥', pattern: 'pattern-cross', textHex: '#000000' },
+  { id: 7, name: 'Cian Glaciar', hex: '#22d3ee', letter: 'G', shape: '✦', pattern: 'pattern-zigzag', textHex: '#000000' },
+  { id: 8, name: 'Ámbar Cálido', hex: '#f59e0b', letter: 'X', shape: '⬟', pattern: 'pattern-checker', textHex: '#000000' },
+  { id: 9, name: 'Lima Brillante', hex: '#a3e635', letter: 'L', shape: '⬢', pattern: 'pattern-dots', textHex: '#000000' },
+  { id: 10, name: 'Índigo Astral', hex: '#818cf8', letter: 'I', shape: '✿', pattern: 'pattern-stripes', textHex: '#000000' },
+  { id: 11, name: 'Blanco Ópalo Puro', hex: '#f8fafc', letter: 'B', shape: '❄', pattern: 'pattern-grid', textHex: '#000000' },
+  { id: 12, name: 'Turquesa Mar', hex: '#2dd4bf', letter: 'T', shape: '✪', pattern: 'pattern-horizontal', textHex: '#000000' },
+  { id: 13, name: 'Rubí Encendido', hex: '#e11d48', letter: 'U', shape: '⯁', pattern: 'pattern-vertical', textHex: '#ffffff' },
+  { id: 14, name: 'Coral Solar', hex: '#fb7185', letter: 'S', shape: '🞛', pattern: 'pattern-cross', textHex: '#000000' },
+  { id: 15, name: 'Azul Real', hex: '#2563eb', letter: 'Z', shape: '🞗', pattern: 'pattern-zigzag', textHex: '#ffffff' }
 ];
 
 const COLORBLIND_PALETTE = [
-  { id: 0, name: 'Azul Intenso', hex: '#0072b2', shape: '●', pattern: 'pattern-stripes', textHex: '#ffffff' },
-  { id: 1, name: 'Naranja Vivo', hex: '#e69f00', shape: '▲', pattern: 'pattern-dots', textHex: '#000000' },
-  { id: 2, name: 'Cielo Claro', hex: '#56b4e9', shape: '■', pattern: 'pattern-grid', textHex: '#000000' },
-  { id: 3, name: 'Amarillo Seguro', hex: '#f0e442', shape: '★', pattern: 'pattern-diagonal-left', textHex: '#000000' },
-  { id: 4, name: 'Bermejo / Carmín', hex: '#d55e00', shape: '◆', pattern: 'pattern-horizontal', textHex: '#ffffff' },
-  { id: 5, name: 'Púrpura Rojizo', hex: '#cc79a7', shape: '✚', pattern: 'pattern-vertical', textHex: '#000000' },
-  { id: 6, name: 'Verde Azulado', hex: '#009e73', shape: '♥', pattern: 'pattern-cross', textHex: '#ffffff' },
-  { id: 7, name: 'Gris Perla', hex: '#e2e8f0', shape: '✦', pattern: 'pattern-zigzag', textHex: '#000000' }
+  { id: 0, name: 'Azul Intenso', hex: '#0072b2', letter: 'A', shape: '●', pattern: 'pattern-stripes', textHex: '#ffffff' },
+  { id: 1, name: 'Naranja Vivo', hex: '#e69f00', letter: 'N', shape: '▲', pattern: 'pattern-dots', textHex: '#000000' },
+  { id: 2, name: 'Cielo Claro', hex: '#56b4e9', letter: 'C', shape: '■', pattern: 'pattern-grid', textHex: '#000000' },
+  { id: 3, name: 'Amarillo Seguro', hex: '#f0e442', letter: 'Y', shape: '★', pattern: 'pattern-diagonal-left', textHex: '#000000' },
+  { id: 4, name: 'Bermejo / Carmín', hex: '#d55e00', letter: 'R', shape: '◆', pattern: 'pattern-horizontal', textHex: '#ffffff' },
+  { id: 5, name: 'Púrpura Rojizo', hex: '#cc79a7', letter: 'P', shape: '✚', pattern: 'pattern-vertical', textHex: '#000000' },
+  { id: 6, name: 'Verde Azulado', hex: '#009e73', letter: 'V', shape: '♥', pattern: 'pattern-cross', textHex: '#ffffff' },
+  { id: 7, name: 'Gris Perla', hex: '#e2e8f0', letter: 'G', shape: '✦', pattern: 'pattern-zigzag', textHex: '#000000' }
 ];
 
-// PALETA DESCANSO VISUAL (Calibrada para Lentes con Filtro Amarillo / Protección de Luz Azul)
-// Resuelve la confusión naranja/rosa y celeste/verde con alto contraste de luminosidad y saturación
+// PALETA DESCANSO VISUAL (Calibrada para Lentes con Filtro Sepia / Bloqueo de Luz Azul)
+// Bajo lentes sepia, los tonos cálidos (amarillo, naranja, rojo) y oscuros (negro, marrón, grafito)
+// mantienen máxima nitidez y contraste, mientras que los azules y violetas se atenúan.
 const VISUAL_COMFORT_PALETTE = [
-  { id: 0, name: 'Azul Cobalto Intenso', hex: '#1d4ed8', shape: '●', pattern: 'pattern-stripes', textHex: '#ffffff' },
-  { id: 1, name: 'Naranja Fuego Vivo', hex: '#ea580c', shape: '▲', pattern: 'pattern-dots', textHex: '#ffffff' },
-  { id: 2, name: 'Verde Bosque Oscuro', hex: '#064e3b', shape: '■', pattern: 'pattern-grid', textHex: '#ffffff' },
-  { id: 3, name: 'Amarillo Limón Puro', hex: '#fde047', shape: '★', pattern: 'pattern-diagonal-left', textHex: '#000000' },
-  { id: 4, name: 'Violeta Púrpura Imperial', hex: '#6b21a8', shape: '◆', pattern: 'pattern-horizontal', textHex: '#ffffff' },
-  { id: 5, name: 'Blanco Nieve Puro', hex: '#ffffff', shape: '✚', pattern: 'pattern-vertical', textHex: '#000000' },
-  { id: 6, name: 'Cian Turquesa Neón', hex: '#06b6d4', shape: '♥', pattern: 'pattern-cross', textHex: '#000000' },
-  { id: 7, name: 'Magenta Fucsia Intenso', hex: '#db2777', shape: '✦', pattern: 'pattern-zigzag', textHex: '#ffffff' },
-  { id: 8, name: 'Negro Grafito Profundo', hex: '#18181b', shape: '⬟', pattern: 'pattern-checker', textHex: '#ffffff' },
-  { id: 9, name: 'Verde Lima Fluorescente', hex: '#84cc16', shape: '⬢', pattern: 'pattern-dots', textHex: '#000000' },
-  { id: 10, name: 'Rojo Carmesí Rubí', hex: '#991b1b', shape: '✿', pattern: 'pattern-stripes', textHex: '#ffffff' },
-  { id: 11, name: 'Chocolate Bronce', hex: '#78350f', shape: '❄', pattern: 'pattern-grid', textHex: '#ffffff' },
-  { id: 12, name: 'Gris Platino Claro', hex: '#cbd5e1', shape: '✪', pattern: 'pattern-horizontal', textHex: '#000000' },
-  { id: 13, name: 'Índigo Medianoche', hex: '#1e1b4b', shape: '⯁', pattern: 'pattern-vertical', textHex: '#ffffff' },
-  { id: 14, name: 'Ámbar Solar Dorado', hex: '#f59e0b', shape: '🞛', pattern: 'pattern-cross', textHex: '#000000' },
-  { id: 15, name: 'Rosa Ciruela Profundo', hex: '#831843', shape: '🞗', pattern: 'pattern-zigzag', textHex: '#ffffff' }
+  { id: 0, name: 'Amarillo Oro Solar', hex: '#fbbf24', letter: 'A', shape: '★', pattern: 'pattern-diagonal-left', textHex: '#000000' },
+  { id: 1, name: 'Rojo Escarlata Vivo', hex: '#dc2626', letter: 'R', shape: '▲', pattern: 'pattern-dots', textHex: '#ffffff' },
+  { id: 2, name: 'Negro Ónix Profundo', hex: '#09090b', letter: 'N', shape: '●', pattern: 'pattern-stripes', textHex: '#ffffff' },
+  { id: 3, name: 'Verde Lima Eléctrico', hex: '#84cc16', letter: 'L', shape: '■', pattern: 'pattern-grid', textHex: '#000000' },
+  { id: 4, name: 'Naranja Mandarina', hex: '#ea580c', letter: 'F', shape: '◆', pattern: 'pattern-horizontal', textHex: '#ffffff' },
+  { id: 5, name: 'Marrón Chocolate Café', hex: '#451a03', letter: 'M', shape: '✚', pattern: 'pattern-vertical', textHex: '#ffffff' },
+  { id: 6, name: 'Rojo Carmesí Rubí', hex: '#991b1b', letter: 'C', shape: '♥', pattern: 'pattern-cross', textHex: '#ffffff' },
+  { id: 7, name: 'Mostaza Ocre Dorado', hex: '#ca8a04', letter: 'O', shape: '✦', pattern: 'pattern-zigzag', textHex: '#000000' },
+  { id: 8, name: 'Gris Carbón Grafito', hex: '#27272a', letter: 'G', shape: '⬟', pattern: 'pattern-checker', textHex: '#ffffff' },
+  { id: 9, name: 'Terracota Teja Cálido', hex: '#c2410c', letter: 'T', shape: '⬢', pattern: 'pattern-dots', textHex: '#ffffff' },
+  { id: 10, name: 'Verde Oliva Cálido', hex: '#4d7c0f', letter: 'V', shape: '✿', pattern: 'pattern-stripes', textHex: '#ffffff' },
+  { id: 11, name: 'Ámbar Cálido Intenso', hex: '#f59e0b', letter: 'X', shape: '❄', pattern: 'pattern-grid', textHex: '#000000' },
+  { id: 12, name: 'Marrón Bronce Rústico', hex: '#78350f', letter: 'B', shape: '✪', pattern: 'pattern-horizontal', textHex: '#ffffff' },
+  { id: 13, name: 'Vino Borgoña Oscuro', hex: '#701a75', letter: 'P', shape: '⯁', pattern: 'pattern-vertical', textHex: '#ffffff' },
+  { id: 14, name: 'Amarillo Limón Brillante', hex: '#fde047', letter: 'Y', shape: '🞛', pattern: 'pattern-cross', textHex: '#000000' },
+  { id: 15, name: 'Café Espresso Profundo', hex: '#1c1007', letter: 'E', shape: '🞗', pattern: 'pattern-zigzag', textHex: '#ffffff' }
 ];
 
 const DEFAULT_PALETTE = AAA_PALETTE;
 
 const AVAILABLE_SHAPES = ['●', '▲', '■', '★', '◆', '✚', '♥', '✦', '⬟', '⬢', '✿', '❄', '✪', '⯁', '🞛', '🞗'];
+const AVAILABLE_LETTERS = ['A', 'R', 'N', 'L', 'F', 'M', 'C', 'O', 'G', 'T', 'V', 'X', 'B', 'P', 'Y', 'E'];
 
 class PaletteManager {
   constructor() {
@@ -65,12 +67,23 @@ class PaletteManager {
   }
 
   loadCustomPalette() {
+    if (window.stateManager && window.stateManager.isVisualComfortMode()) {
+      this.palette = JSON.parse(JSON.stringify(VISUAL_COMFORT_PALETTE));
+      return;
+    }
     try {
       const stored = localStorage.getItem('aquasort_custom_palette');
       if (stored) {
         const parsed = JSON.parse(stored);
         if (Array.isArray(parsed) && parsed.length > 0) {
-          this.palette = DEFAULT_PALETTE.map((def, idx) => parsed[idx] || def);
+          this.palette = DEFAULT_PALETTE.map((def, idx) => {
+            const p = parsed[idx] || {};
+            return {
+              ...def,
+              ...p,
+              letter: (p.letter && !AVAILABLE_SHAPES.includes(p.letter)) ? p.letter : (def.letter || AVAILABLE_LETTERS[idx % AVAILABLE_LETTERS.length])
+            };
+          });
         }
       }
     } catch (e) {
@@ -89,18 +102,37 @@ class PaletteManager {
   }
 
   getColor(index) {
-    return this.palette[index % this.palette.length];
+    if (index === 'chameleon') {
+      return { id: 'chameleon', name: 'Camaleón', hex: 'chameleon', shape: '★', letter: '★', pattern: null, textHex: '#ffffff' };
+    }
+    const idx = typeof index === 'number' ? index : parseInt(index, 10);
+    if (!isNaN(idx) && idx >= 0) {
+      const col = this.palette[idx % this.palette.length];
+      if (col && (!col.letter || AVAILABLE_SHAPES.includes(col.letter))) {
+        col.letter = AVAILABLE_LETTERS[idx % AVAILABLE_LETTERS.length] || 'A';
+      }
+      return col;
+    }
+    return this.palette[0];
   }
 
   getColorByHex(hex) {
-    return this.palette.find(c => c.hex.toLowerCase() === hex.toLowerCase()) || this.palette[0];
+    const found = this.palette.find(c => c.hex.toLowerCase() === hex?.toLowerCase());
+    if (found) {
+      if (!found.letter || AVAILABLE_SHAPES.includes(found.letter)) {
+        found.letter = AVAILABLE_LETTERS[found.id % AVAILABLE_LETTERS.length] || 'A';
+      }
+      return found;
+    }
+    return this.palette[0];
   }
 
-  updateColor(index, newHex, newShape, newName) {
+  updateColor(index, newHex, newShape, newName, newLetter) {
     if (index >= 0 && index < this.palette.length) {
       this.palette[index].hex = newHex || this.palette[index].hex;
       if (newShape) this.palette[index].shape = newShape;
       if (newName) this.palette[index].name = newName;
+      if (newLetter) this.palette[index].letter = newLetter;
       this.palette[index].textHex = this.getContrastColor(this.palette[index].hex);
       this.savePalette();
     }
@@ -204,26 +236,29 @@ class PaletteManager {
     colorsList.className = 'space-y-2';
     container.appendChild(colorsList);
 
+    const isLetters = window.stateManager ? window.stateManager.isAccessibilityLettersMode() : false;
+
     this.palette.forEach((col, idx) => {
       const row = document.createElement('div');
       row.className = 'flex items-center justify-between p-2 rounded-2xl bg-slate-800/80 border border-slate-700/80 gap-3';
+      const displayChar = isLetters ? (col.letter || col.shape) : col.shape;
 
       row.innerHTML = `
         <div class="flex items-center gap-2.5">
-          <div id="preview-col-${idx}" class="w-9 h-9 rounded-xl flex items-center justify-center font-black shadow-md ${col.pattern}"
+          <div id="preview-col-${idx}" class="w-9 h-9 rounded-xl flex items-center justify-center font-mono font-black shadow-md ${col.pattern}"
                style="background-color: ${col.hex}; color: ${col.textHex};">
-            <span class="text-sm">${col.shape}</span>
+            <span class="text-sm font-black">${displayChar}</span>
           </div>
           <div>
             <div class="text-xs font-bold text-white">${col.name}</div>
-            <div class="text-[10px] text-slate-400 font-mono">Ranura #${idx + 1}</div>
+            <div class="text-[10px] text-slate-400 font-mono">Ranura #${idx + 1} • Letra: <strong class="text-amber-300">${col.letter || col.shape}</strong></div>
           </div>
         </div>
 
         <div class="flex items-center gap-2">
           <input type="color" id="input-hex-${idx}" value="${col.hex}"
                  class="w-7 h-7 rounded-lg cursor-pointer border border-slate-600 bg-transparent" title="Cambiar color">
-          <select id="select-shape-${idx}" class="bg-slate-900 text-xs text-sky-200 border border-slate-700 rounded-lg p-1 focus:outline-none">
+          <select id="select-shape-${idx}" class="bg-slate-900 text-xs text-sky-200 border border-slate-700 rounded-lg p-1 focus:outline-none" title="Cambiar símbolo">
             ${AVAILABLE_SHAPES.map(s => `<option value="${s}" ${s === col.shape ? 'selected' : ''}>${s}</option>`).join('')}
           </select>
         </div>

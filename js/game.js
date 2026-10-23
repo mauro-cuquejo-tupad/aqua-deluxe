@@ -52,6 +52,7 @@ class GameController {
     this.isLowVision = false;
     this.isHighContrast = false;
     this.showAccessibilityPatterns = window.stateManager?.state?.settings?.showAccessibilityPatterns || false;
+    this.showAccessibilityLetters = window.stateManager?.isAccessibilityLettersMode ? window.stateManager.isAccessibilityLettersMode() : false;
 
     // Editor de Niveles
     this.editorLevel = {
@@ -538,6 +539,7 @@ class GameController {
           color: col.hex,
           name: col.name,
           shape: col.shape,
+          letter: col.letter || col.shape,
           pattern: col.pattern,
           textHex: col.textHex,
           isMystery: false,
@@ -842,6 +844,7 @@ class GameController {
         color: randomCol.hex,
         name: randomCol.name,
         shape: randomCol.shape,
+        letter: randomCol.letter || randomCol.shape,
         pattern: randomCol.pattern,
         textHex: randomCol.textHex,
         isMystery: false,
@@ -1031,7 +1034,7 @@ class GameController {
     this.loadLevel('casual_sandbox', 0, data);
   }
 
-  // --- MODO DESCANSO VISUAL (FILTRO AMARILLO / LENTES) ---
+  // --- MODO DESCANSO VISUAL (FILTRO AMARILLO / LENTES SEPIA) ---
   toggleVisualComfortMode(forceValue = null) {
     const sm = window.stateManager;
     const currentVal = sm ? sm.isVisualComfortMode() : false;
@@ -1049,9 +1052,56 @@ class GameController {
 
     const cbComfort = document.getElementById('toggle-visual-comfort-mode');
     if (cbComfort) cbComfort.checked = nextVal;
+    const cbPatterns = document.getElementById('toggle-accessibility-patterns');
+    if (cbPatterns) cbPatterns.checked = this.showAccessibilityPatterns;
 
     this.refreshBoardVisuals();
     if (window.audio) window.audio.playSelect();
+  }
+
+  // --- IDENTIFICADOR DE LETRAS EN LÍQUIDOS ---
+  toggleAccessibilityLetters(forceValue = null) {
+    const sm = window.stateManager;
+    const currentVal = sm ? sm.isAccessibilityLettersMode() : false;
+    const nextVal = (forceValue !== null) ? !!forceValue : !currentVal;
+
+    if (sm) sm.setAccessibilityLettersMode(nextVal);
+    this.showAccessibilityLetters = nextVal;
+
+    const cb = document.getElementById('toggle-accessibility-letters');
+    if (cb) cb.checked = nextVal;
+
+    this.refreshBoardVisuals();
+    if (window.audio) window.audio.playSelect();
+  }
+
+  // Actualiza los colores, nombres, formas y letras de los líquidos en el tablero según la paleta activa
+  refreshBoardVisuals() {
+    if (!this.tubes) return;
+    const pm = window.paletteManager;
+    if (pm) {
+      this.tubes.forEach(tube => {
+        tube.liquids.forEach(liq => {
+          if (!liq.isMystery && !liq.isChameleon) {
+            let col = null;
+            if (liq.colorIndex !== undefined && liq.colorIndex !== null) {
+              col = pm.getColor(liq.colorIndex);
+            } else if (liq.color) {
+              col = pm.getColorByHex(liq.color);
+            }
+            if (col) {
+              liq.color = col.hex;
+              liq.name = col.name;
+              liq.shape = col.shape;
+              liq.letter = col.letter;
+              liq.pattern = col.pattern;
+              liq.textHex = col.textHex;
+            }
+          }
+        });
+      });
+    }
+    this.renderTubes();
   }
 
   updateMovesUI() {
@@ -1305,7 +1355,8 @@ class GameController {
           segment.innerHTML = `<span>?</span>`;
         } else {
           // Capa de color normal o camaleón
-          const shouldShowPatterns = this.showAccessibilityPatterns || (window.stateManager && window.stateManager.isVisualComfortMode());
+          const useLetters = this.showAccessibilityLetters || (window.stateManager && window.stateManager.isAccessibilityLettersMode());
+          const shouldShowPatterns = this.showAccessibilityPatterns || useLetters || (window.stateManager && window.stateManager.isVisualComfortMode());
           if (liq.isChameleon) {
             segment.classList.add('liquid-chameleon');
           } else {
@@ -1318,11 +1369,35 @@ class GameController {
           bubble.className = 'bubble w-1.5 h-1.5 left-3';
           segment.appendChild(bubble);
 
-          // Símbolos y etiquetas de color (activos en modo accesibilidad o descanso visual)
-          if (shouldShowPatterns && liq.shape) {
+          // Símbolos o letras y etiquetas de color (activos en modo accesibilidad o descanso visual)
+          if (shouldShowPatterns && (liq.shape || liq.letter)) {
+            const shapesList = ['●', '▲', '■', '★', '◆', '✚', '♥', '✦', '⬟', '⬢', '✿', '❄', '✪', '⯁', '🞛', '🞗'];
+            let displayChar = liq.shape;
+            if (useLetters) {
+              if (liq.letter && !shapesList.includes(liq.letter)) {
+                displayChar = liq.letter;
+              } else if (window.paletteManager) {
+                const col = (liq.colorIndex !== undefined && liq.colorIndex !== null)
+                  ? window.paletteManager.getColor(liq.colorIndex)
+                  : window.paletteManager.getColorByHex(liq.color);
+                displayChar = (col && col.letter && !shapesList.includes(col.letter)) ? col.letter : null;
+              }
+              if (!displayChar || shapesList.includes(displayChar)) {
+                const letterFallback = ['A', 'R', 'N', 'L', 'F', 'M', 'C', 'O', 'G', 'T', 'V', 'X', 'B', 'P', 'Y', 'E'];
+                const idx = typeof liq.colorIndex === 'number' ? liq.colorIndex : 0;
+                displayChar = letterFallback[idx % letterFallback.length];
+              }
+            }
+            const isDarkText = liq.textHex === '#000000' || liq.textHex === '#111111';
+            const textShadowStyle = isDarkText
+              ? 'text-shadow: 0 0 3px rgba(255,255,255,0.95), 0 0 1px #ffffff;'
+              : 'text-shadow: 0 1px 3px rgba(0,0,0,0.9), 0 0 2px #000000;';
+            const iconClass = useLetters ? 'letter-icon font-mono font-black' : 'shape-icon';
+            const fontSize = useLetters ? '1.25rem' : '1.15rem';
+
             segment.innerHTML += `
-              <span class="shape-icon" style="color: ${liq.textHex || '#fff'}; font-size: 1.15rem;">
-                ${liq.shape}
+              <span class="${iconClass}" style="color: ${liq.textHex || '#fff'}; font-size: ${fontSize}; ${textShadowStyle}">
+                ${displayChar}
               </span>
               <span class="color-text-label hidden font-mono">
                 ${liq.name}
@@ -4480,6 +4555,13 @@ class GameController {
           this.renderTubes();
         });
       }
+      const cbComfort = document.getElementById('toggle-visual-comfort-mode');
+      if (cbComfort) cbComfort.checked = window.stateManager ? window.stateManager.isVisualComfortMode() : false;
+      const cbPat = document.getElementById('toggle-accessibility-patterns');
+      if (cbPat) cbPat.checked = this.showAccessibilityPatterns;
+      const cbLet = document.getElementById('toggle-accessibility-letters');
+      if (cbLet) cbLet.checked = window.stateManager ? window.stateManager.isAccessibilityLettersMode() : false;
+
       this.renderDifficultyMechanicsSettings();
       this.renderMusicSettingsUI();
       this.showModal(this.modalSettings);
@@ -4517,6 +4599,11 @@ class GameController {
     if (cbPatterns) {
       cbPatterns.checked = this.showAccessibilityPatterns;
       cbPatterns.addEventListener('change', (e) => this.toggleAccessibilityPatterns(e.target.checked));
+    }
+    const cbLetters = document.getElementById('toggle-accessibility-letters');
+    if (cbLetters) {
+      cbLetters.checked = window.stateManager ? window.stateManager.isAccessibilityLettersMode() : false;
+      cbLetters.addEventListener('change', (e) => this.toggleAccessibilityLetters(e.target.checked));
     }
     const cbVisualComfort = document.getElementById('toggle-visual-comfort-mode');
     if (cbVisualComfort) {

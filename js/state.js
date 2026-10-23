@@ -41,6 +41,7 @@ const DEFAULT_STATE = {
   },
   settings: {
     showAccessibilityPatterns: false, // Por defecto desactivado: líquidos puros y limpios
+    showAccessibilityLetters: false,  // True = mostrar letras en vez de símbolos geométricos
     disabledMechanics: [],            // Mecánicas deshabilitadas por personalización de dificultad
     visualComfortMode: false,         // Modo Descanso Visual / Filtro Lentes Amarillos
     disabledMusicTracks: []           // IDs de temas musicales desactivados por el usuario
@@ -312,6 +313,17 @@ class StateManager {
   setVisualComfortMode(enabled) {
     if (!this.state.settings) this.state.settings = {};
     this.state.settings.visualComfortMode = !!enabled;
+    this.saveState();
+  }
+
+  // --- IDENTIFICADOR DE LETRAS EN LÍQUIDOS ---
+  isAccessibilityLettersMode() {
+    return !!this.state.settings?.showAccessibilityLetters;
+  }
+
+  setAccessibilityLettersMode(enabled) {
+    if (!this.state.settings) this.state.settings = {};
+    this.state.settings.showAccessibilityLetters = !!enabled;
     this.saveState();
   }
 

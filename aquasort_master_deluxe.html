@@ -46,10 +46,10 @@
   <link rel="icon" type="image/svg+xml" href="icons/icon.svg">
 
   <!-- Modular Stylesheets -->
-  <link rel="stylesheet" href="css/main.css?v=33">
-  <link rel="stylesheet" href="css/tubes.css?v=33">
-  <link rel="stylesheet" href="css/roulette.css?v=33">
-  <link rel="stylesheet" href="css/accessibility.css?v=33">
+  <link rel="stylesheet" href="css/main.css?v=35">
+  <link rel="stylesheet" href="css/tubes.css?v=35">
+  <link rel="stylesheet" href="css/roulette.css?v=35">
+  <link rel="stylesheet" href="css/accessibility.css?v=35">
 </head>
 <body class="min-h-screen flex flex-col justify-between select-none relative">
 
@@ -429,14 +429,29 @@
             </label>
           </div>
 
-          <!-- Toggle Modo Descanso Visual (Filtro Amarillo / Lentes de Protección) -->
+          <!-- Toggle Letras Identificadoras en Líquidos -->
+          <div class="flex items-center justify-between pt-2 border-t border-slate-700/60">
+            <div>
+              <div class="text-sm font-bold text-white flex items-center gap-1.5">
+                <span class="w-4 h-4 flex items-center justify-center font-mono font-black text-xs text-sky-300 bg-sky-500/20 rounded border border-sky-400/40">A</span>
+                Identificar Colores con Letras
+              </div>
+              <p class="text-[11px] text-slate-400">Muestra letras legibles (A, R, N, L, etc.) en cada líquido para una distinción rápida sin ambigüedad cromática.</p>
+            </div>
+            <label class="relative inline-flex items-center cursor-pointer">
+              <input type="checkbox" id="toggle-accessibility-letters" class="sr-only peer">
+              <div class="w-11 h-6 bg-slate-700 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-slate-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-sky-500"></div>
+            </label>
+          </div>
+
+          <!-- Toggle Modo Descanso Visual (Filtro Sepia / Lentes de Protección) -->
           <div class="flex items-center justify-between pt-2.5 border-t border-slate-700/60 bg-amber-500/10 -mx-3.5 px-3.5 py-2 rounded-xl border border-amber-500/30">
             <div>
               <div class="text-sm font-black text-amber-200 flex items-center gap-1.5">
                 <span>👓</span>
-                <span>Modo Descanso Visual (Lentes Filtro Amarillo)</span>
+                <span>Modo Descanso Visual (Lentes Filtro Sepia)</span>
               </div>
-              <p class="text-[11px] text-slate-300">Colores de máxima separación por luminosidad y patrones activos que evitan la confusión naranja/rosa y celeste/verde bajo lentes ámbar.</p>
+              <p class="text-[11px] text-slate-300">Calibrado para lentes de bloqueo de luz azul con filtro sepia/ámbar. Utiliza tonos cálidos vibrantes (amarillos, naranjas, rojos) y oscuros profundos (negro ónix, marrón chocolate, grafito) que conservan máxima visibilidad, evitando tonos fríos atenuados.</p>
             </div>
             <label class="relative inline-flex items-center cursor-pointer shrink-0 ml-2">
               <input type="checkbox" id="toggle-visual-comfort-mode" class="sr-only peer">
@@ -2176,19 +2191,19 @@
   <input type="file" id="input-save-file" accept=".json" class="hidden">
 
   <!-- Scripts modulares -->
-  <script src="js/firebase-config.js?v=33"></script>
-  <script src="js/cloud-sync.js?v=33"></script>
-  <script src="js/audio.js?v=33"></script>
-  <script src="js/palette.js?v=33"></script>
-  <script src="js/levels.js?v=33"></script>
-  <script src="js/challenges.js?v=33"></script>
-  <script src="js/honor.js?v=33"></script>
-  <script src="js/state.js?v=33"></script>
-  <script src="js/achievements.js?v=33"></script>
-  <script src="js/leaderboard.js?v=33"></script>
-  <script src="js/roulette.js?v=33"></script>
-  <script src="js/story.js?v=33"></script>
-  <script src="js/game.js?v=33"></script>
+  <script src="js/firebase-config.js?v=35"></script>
+  <script src="js/cloud-sync.js?v=35"></script>
+  <script src="js/audio.js?v=35"></script>
+  <script src="js/palette.js?v=35"></script>
+  <script src="js/levels.js?v=35"></script>
+  <script src="js/challenges.js?v=35"></script>
+  <script src="js/honor.js?v=35"></script>
+  <script src="js/state.js?v=35"></script>
+  <script src="js/achievements.js?v=35"></script>
+  <script src="js/leaderboard.js?v=35"></script>
+  <script src="js/roulette.js?v=35"></script>
+  <script src="js/story.js?v=35"></script>
+  <script src="js/game.js?v=35"></script>
 
   <!-- Registro de Service Worker PWA -->
   <script>
