@@ -1749,7 +1749,7 @@ class GameController {
 
         // Etiqueta de durabilidad / estado
         const durabilityTag = document.createElement('span');
-        durabilityTag.className = 'absolute -bottom-5 text-[10px] font-bold tracking-wider whitespace-nowrap';
+        durabilityTag.className = 'durability-tag absolute -bottom-5 text-[10px] font-bold tracking-wider whitespace-nowrap';
         if (tube.isBroken) {
           durabilityTag.className += ' text-red-400';
           durabilityTag.textContent = '💥 ROTO';
@@ -1761,6 +1761,7 @@ class GameController {
           durabilityTag.className += remaining <= 1 ? ' text-red-400' : ' text-purple-300';
           durabilityTag.textContent = `${remaining}/${tube.maxCracks || 3} 🛡️`;
         }
+        durabilityTag.dataset.defaultText = durabilityTag.textContent;
         tubeEl.appendChild(durabilityTag);
       }
 
@@ -1865,6 +1866,7 @@ class GameController {
 
     if (window.lucide) lucide.createIcons();
     if (this.isTimeAttack) this.renderTimeAttackDropHUD();
+    this.updateVolatileFeedback();
   }
 
   showFluorBadge(tubeEl, tube) {
@@ -1896,6 +1898,7 @@ class GameController {
     const currEl = this.tubesGrid?.querySelector(`[data-index="${idx}"]`);
     if (currEl) currEl.classList.add('selected');
     if (window.audio) window.audio.playSelect();
+    this.updateVolatileFeedback();
   }
 
   deselectTube(playAudio = false) {
@@ -1905,7 +1908,77 @@ class GameController {
       this.selectedTubeIndex = null;
       this.lastInvalidTargetIdx = null;
       if (playAudio && window.audio) window.audio.playSelect();
+      this.updateVolatileFeedback();
     }
+  }
+
+  // --- INDICACIÓN VISUAL EN FRASCO VOLÁTIL / AFINIDAD AL SELECCIONAR LÍQUIDO ---
+  updateVolatileFeedback() {
+    if (!this.tubesGrid || !this.tubes) return;
+    const allTubeEls = this.tubesGrid.querySelectorAll('.test-tube');
+
+    const fromIdx = this.selectedTubeIndex;
+    const fromTube = (fromIdx !== null && fromIdx >= 0 && fromIdx < this.tubes.length) ? this.tubes[fromIdx] : null;
+    const topLiquid = (fromTube && fromTube.liquids.length > 0)
+      ? fromTube.liquids[fromTube.liquids.length - 1]
+      : null;
+
+    this.tubes.forEach((tube, idx) => {
+      const tubeEl = allTubeEls[idx];
+      if (!tubeEl) return;
+
+      // Limpiar clases y estados dinámicos previos
+      tubeEl.classList.remove('tube-affinity-compatible', 'tube-affinity-incompatible');
+
+      const durTag = tubeEl.querySelector('.durability-tag');
+      if (durTag && durTag.dataset.defaultText) {
+        durTag.textContent = durTag.dataset.defaultText;
+      }
+
+      // Solo aplica a tubos volátiles / afinidad activos no rotos
+      const isVolatile = (tube.isAffinity || tube.isFragile || tube.isSuperFragile) && !tube.isBroken;
+      if (!isVolatile) return;
+
+      // Si no hay líquido seleccionado o es el mismo tubo seleccionado
+      if (!topLiquid || fromIdx === idx) return;
+
+      // Evaluar afinidad de color con el tubo volátil
+      const isChameleon = topLiquid.isChameleon || topLiquid.color === 'chameleon';
+      const isColorAllowed = Array.isArray(tube.allowedColors) && tube.allowedColors.includes(topLiquid.color);
+      const isAffinityMatch = isChameleon || isColorAllowed;
+
+      // Evaluar compatibilidad de apilado si el tubo volátil ya tiene líquido dentro
+      let isStackCompatible = true;
+      if (tube.liquids.length > 0) {
+        const topTo = tube.liquids[tube.liquids.length - 1];
+        if (topTo && !topTo.isChameleon && topTo.color !== 'chameleon') {
+          if (!isChameleon && topLiquid.color !== topTo.color) {
+            isStackCompatible = false;
+          }
+        }
+      }
+
+      // No puede recibir si está lleno
+      const isNotFull = tube.liquids.length < tube.capacity;
+
+      const isCompatible = isAffinityMatch && isStackCompatible && isNotFull;
+
+      if (isCompatible) {
+        // Se torna verdoso: líquido compatible
+        tubeEl.classList.add('tube-affinity-compatible');
+        if (durTag) {
+          if (!durTag.dataset.defaultText) durTag.dataset.defaultText = durTag.textContent;
+          durTag.textContent = `✓ Compatible (${durTag.dataset.defaultText})`;
+        }
+      } else {
+        // Se torna rojizo: líquido incompatible (evita confusión por colores parecidos)
+        tubeEl.classList.add('tube-affinity-incompatible');
+        if (durTag) {
+          if (!durTag.dataset.defaultText) durTag.dataset.defaultText = durTag.textContent;
+          durTag.textContent = `✕ Incompatible (${durTag.dataset.defaultText})`;
+        }
+      }
+    });
   }
 
   // --- LÓGICA DE MOVIMIENTOS Y VERTIDO CON ANIMACIONES COMPLETAS ---
@@ -2184,6 +2257,8 @@ class GameController {
   executePour(fromIdx, toIdx) {
     this.saveStateForUndo();
     this.isPouringAnimation = true;
+    this.selectedTubeIndex = null;
+    this.updateVolatileFeedback();
 
     if (this.touchedTubeIndices) {
       this.touchedTubeIndices.add(fromIdx);
