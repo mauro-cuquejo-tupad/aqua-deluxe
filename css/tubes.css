@@ -329,15 +329,130 @@
   50% { opacity: 1; transform: scale(1.15); filter: drop-shadow(0 0 6px rgba(255, 255, 255, 0.6)); }
 }
 
-/* Líquido Camaleón */
+/* Líquido Camaleón Puro / Solo:
+   Efecto radiante, brillante y con colores cambiantes espectrales */
 .liquid-chameleon {
-  background: linear-gradient(135deg, #f43f5e, #8b5cf6, #06b6d4, #10b981) !important;
-  background-size: 300% 300% !important;
-  animation: chameleonShift 3.5s ease infinite alternate !important;
+  background: linear-gradient(
+    135deg,
+    #ff007f 0%,
+    #a855f7 18%,
+    #38bdf8 36%,
+    #2dd4bf 54%,
+    #fbbf24 72%,
+    #f43f5e 90%,
+    #ff007f 100%
+  ) !important;
+  background-size: 350% 350% !important;
+  box-shadow: inset 0 0 14px rgba(255, 255, 255, 0.7),
+              inset 0 2px 6px rgba(255, 255, 255, 0.95),
+              0 0 14px rgba(168, 85, 247, 0.55) !important;
+  animation: chameleonShift 4s ease-in-out infinite alternate,
+             chameleonGlow 2.8s ease-in-out infinite alternate !important;
+  position: relative;
+  overflow: hidden;
 }
+
+/* Brillo cristalino cambiante y destello prismático cuando está solo */
+.liquid-chameleon::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: radial-gradient(ellipse at 50% 20%, rgba(255, 255, 255, 0.75) 0%, transparent 60%),
+              radial-gradient(circle at 80% 80%, rgba(255, 255, 255, 0.4) 0%, transparent 45%);
+  pointer-events: none;
+  animation: chameleonSheen 3.2s ease-in-out infinite alternate;
+  z-index: 4;
+}
+
 @keyframes chameleonShift {
-  0% { background-position: 0% 50%; }
-  100% { background-position: 100% 50%; }
+  0% {
+    background-position: 0% 20%;
+    filter: hue-rotate(0deg) brightness(1.12);
+  }
+  50% {
+    background-position: 100% 80%;
+    filter: hue-rotate(180deg) brightness(1.24);
+  }
+  100% {
+    background-position: 20% 100%;
+    filter: hue-rotate(360deg) brightness(1.15);
+  }
+}
+
+@keyframes chameleonGlow {
+  0% {
+    box-shadow: inset 0 0 10px rgba(255, 255, 255, 0.5),
+                inset 0 2px 4px rgba(255, 255, 255, 0.8),
+                0 0 8px rgba(56, 189, 248, 0.4);
+  }
+  100% {
+    box-shadow: inset 0 0 16px rgba(255, 255, 255, 0.85),
+                inset 0 3px 8px rgba(255, 255, 255, 1),
+                0 0 16px rgba(236, 72, 153, 0.7);
+  }
+}
+
+@keyframes chameleonSheen {
+  0% {
+    opacity: 0.45;
+    transform: scale(0.95);
+  }
+  100% {
+    opacity: 0.9;
+    transform: scale(1.05);
+  }
+}
+
+/* Líquido Camaleón al imitar:
+   El relleno adquiere el color del objetivo con un patrón orgánico de sutiles variaciones de luminosidad (sin rayas) */
+.liquid-chameleon-imitating {
+  position: relative;
+  overflow: hidden;
+  box-shadow: inset 0 2px 5px rgba(255, 255, 255, 0.45),
+              inset 0 -2px 6px rgba(0, 0, 0, 0.35) !important;
+  animation: chameleonLuminancePulse 3.6s ease-in-out infinite alternate !important;
+}
+
+/* Patrón orgánico de variación de luminosidad / cáusticas líquidas suaves (sin rayas adicionales) */
+.liquid-chameleon-imitating::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: radial-gradient(circle at 30% 25%, rgba(255, 255, 255, 0.32) 0%, transparent 45%),
+              radial-gradient(circle at 75% 70%, rgba(255, 255, 255, 0.22) 0%, transparent 50%),
+              radial-gradient(circle at 50% 50%, rgba(0, 0, 0, 0.18) 0%, transparent 60%);
+  background-size: 160% 160%;
+  pointer-events: none;
+  mix-blend-mode: overlay;
+  animation: chameleonLuminanceShift 4.8s ease-in-out infinite alternate;
+  z-index: 4;
+}
+
+@keyframes chameleonLuminancePulse {
+  0% {
+    filter: brightness(0.93) saturate(0.97);
+  }
+  50% {
+    filter: brightness(1.12) saturate(1.04);
+  }
+  100% {
+    filter: brightness(0.96) saturate(1.0);
+  }
+}
+
+@keyframes chameleonLuminanceShift {
+  0% {
+    background-position: 5% 15%;
+    opacity: 0.6;
+  }
+  50% {
+    background-position: 85% 75%;
+    opacity: 0.95;
+  }
+  100% {
+    background-position: 25% 85%;
+    opacity: 0.65;
+  }
 }
 
 /* Candado */

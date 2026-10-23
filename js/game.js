@@ -1600,8 +1600,17 @@ class GameController {
         } else {
           // Capa de color normal o camaleón
           const shouldShowPatterns = this.showAccessibilityPatterns || (window.stateManager && window.stateManager.isAccessibilityPatternsMode && window.stateManager.isAccessibilityPatternsMode());
-          if (liq.isChameleon) {
+          
+          const isChamWild = liq.isChameleon && (!liq.adaptedToColor || liq.color === 'chameleon');
+          const isChamImitating = liq.isChameleon && !isChamWild;
+
+          if (isChamWild) {
+            // Cuando está solo: efecto brillante y colores cambiantes espectrales
             segment.classList.add('liquid-chameleon');
+          } else if (isChamImitating) {
+            // Al imitar: adquiere el color del objetivo con un patrón orgánico de variaciones de luminosidad (sin rayas)
+            segment.style.backgroundColor = liq.color;
+            segment.classList.add('liquid-chameleon-imitating');
           } else {
             segment.style.backgroundColor = liq.color;
             if (shouldShowPatterns && liq.pattern) segment.classList.add(liq.pattern);
@@ -2189,7 +2198,17 @@ class GameController {
     // Contar cuántos bloques contiguos se pueden mover:
     // EL LÍQUIDO CAMALEÓN ES INDIVIDUAL: Se mueve siempre solo (1 unidad)
     // y NUNCA arrastra el líquido que esté debajo.
-    const pourColor = topFrom.isChameleon ? '#ec4899' : topFrom.color;
+    let pourColor = '#ec4899';
+    if (topFrom.isChameleon) {
+      if (toTube.liquids.length > 0) {
+        const targetTop = toTube.liquids[toTube.liquids.length - 1];
+        pourColor = (targetTop.color !== 'chameleon') ? targetTop.color : (targetTop.adaptedToColor || '#ec4899');
+      } else {
+        pourColor = '#ec4899';
+      }
+    } else {
+      pourColor = topFrom.color;
+    }
     let count = 0;
     if (topFrom.isChameleon) {
       count = 1;
@@ -2257,7 +2276,14 @@ class GameController {
           const totalPourTime = unitsToMove * portionDuration;
 
           if (window.audio) window.audio.playPourSound();
-          const streamColor = topFrom.isChameleon ? '#ec4899' : (topFrom.color === 'chameleon' ? '#ec4899' : topFrom.color);
+          let streamColor = '#ec4899';
+          if (topFrom.isChameleon) {
+            streamColor = (topFrom.adaptedToColor && topFrom.adaptedToColor !== 'chameleon')
+              ? topFrom.adaptedToColor
+              : (toTube.liquids.length > 0 && toTube.liquids[toTube.liquids.length - 1].color !== 'chameleon' ? toTube.liquids[toTube.liquids.length - 1].color : '#ec4899');
+          } else {
+            streamColor = (topFrom.color === 'chameleon') ? '#ec4899' : topFrom.color;
+          }
           this.drawPourStream(fRect, tRect, streamColor, isTargetToTheRight, totalPourTime + 80);
 
           // PASO 5: Animación secuencial de vaciado porción por porción con transformaciones de fluido
@@ -2281,7 +2307,16 @@ class GameController {
               if (toGlass) {
                 const incomingSeg = document.createElement('div');
                 incomingSeg.className = 'liquid-segment top-liquid liquid-bounce';
-                incomingSeg.style.backgroundColor = pourColor;
+                if (topFrom.isChameleon) {
+                  if (toTube.liquids.length > 0) {
+                    incomingSeg.classList.add('liquid-chameleon-imitating');
+                    incomingSeg.style.backgroundColor = pourColor;
+                  } else {
+                    incomingSeg.classList.add('liquid-chameleon');
+                  }
+                } else {
+                  incomingSeg.style.backgroundColor = pourColor;
+                }
                 incomingSeg.style.height = '0%';
                 incomingSeg.style.transition = `height ${portionDuration * 0.85}ms cubic-bezier(0.2, 0.9, 0.3, 1.2)`;
                 toGlass.appendChild(incomingSeg);
@@ -2325,22 +2360,36 @@ class GameController {
                   if (item.isChameleon) {
                     if (toTube.liquids.length > 0) {
                       const targetTop = toTube.liquids[toTube.liquids.length - 1];
-                      if (!targetTop.isChameleon && targetTop.color !== 'chameleon') {
-                        item.color = targetTop.color;
+                      const targetColor = (targetTop.color !== 'chameleon') ? targetTop.color : targetTop.adaptedToColor;
+                      if (targetColor) {
+                        item.color = targetColor;
                         item.name = targetTop.name;
                         item.shape = targetTop.shape;
-                        item.pattern = targetTop.pattern;
+                        item.pattern = null; // No con rayas adicionales: sutiles variaciones de luminosidad
                         item.textHex = targetTop.textHex;
-                        item.adaptedToColor = targetTop.color;
+                        item.adaptedToColor = targetColor;
                       }
                     } else {
-                      // Al vaciarse en un frasco limpio, vuelve a su estado comodín puro
+                      // Al vaciarse en un frasco limpio, vuelve a su estado comodín puro (cuando está solo)
                       item.color = 'chameleon';
                       item.name = 'Camaleón';
                       item.shape = '★';
                       item.pattern = null;
                       item.textHex = '#ffffff';
                       item.adaptedToColor = null;
+                    }
+                  } else {
+                    // Si se vierte un color sobre un camaleón comodín que estaba solo en el tubo receptor:
+                    if (toTube.liquids.length > 0) {
+                      const underItem = toTube.liquids[toTube.liquids.length - 1];
+                      if (underItem && underItem.isChameleon && (!underItem.adaptedToColor || underItem.color === 'chameleon')) {
+                        underItem.color = item.color;
+                        underItem.name = item.name;
+                        underItem.shape = item.shape;
+                        underItem.pattern = null; // Sin rayas adicionales
+                        underItem.textHex = item.textHex;
+                        underItem.adaptedToColor = item.color;
+                      }
                     }
                   }
                   toTube.liquids.push(item);
