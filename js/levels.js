@@ -627,6 +627,7 @@ class LevelGenerator {
       level: 'casual_sandbox',
       isCasualSandbox: true,
       title: `Modo Casual (${totalTubes} Tubos, ${numColors} Colores)`,
+      name: `Alquimia Infinita #${actualSeed % 100000}`,
       mechanicTag: activeMechanicNames.length > 0 ? activeMechanicNames.join(' • ') : 'Puro y Relajante',
       optimalMoves: numColors * 3 + 4,
       totalTubes: totalTubes,

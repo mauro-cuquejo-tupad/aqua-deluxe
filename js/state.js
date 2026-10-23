@@ -44,7 +44,9 @@ const DEFAULT_STATE = {
     showAccessibilityLetters: false,  // True = mostrar letras en vez de símbolos geométricos
     disabledMechanics: [],            // Mecánicas deshabilitadas por personalización de dificultad
     visualComfortMode: false,         // Modo Descanso Visual / Filtro Lentes Amarillos
-    disabledMusicTracks: []           // IDs de temas musicales desactivados por el usuario
+    disabledMusicTracks: [],          // IDs de temas musicales desactivados por el usuario
+    sandboxPublishPrompt: true,       // True = sugerir publicar en el taller tras ganar nivel en modo infinito
+    suppressSandboxPublishUntil: null // Fecha en formato toDateString() para silenciar publicación por hoy
   },
   secretEasterEgg: {
     discoveredNames: [],              // Nombres descubiertos por 5s tap: ['mirko', 'tom', 'nina', 'matilda', 'bianca', 'zoila', 'freya']
@@ -331,6 +333,31 @@ class StateManager {
   setAccessibilityLettersMode(enabled) {
     if (!this.state.settings) this.state.settings = {};
     this.state.settings.showAccessibilityLetters = !!enabled;
+    this.saveState();
+  }
+
+  // --- MODO INFINITO / CASUAL SANDBOX - SUGERENCIA DE PUBLICACIÓN ---
+  isSandboxPublishPromptEnabled() {
+    if (this.state.settings?.sandboxPublishPrompt === false) return false;
+    const suppressUntil = this.state.settings?.suppressSandboxPublishUntil;
+    if (suppressUntil) {
+      const todayStr = new Date().toDateString();
+      if (suppressUntil === todayStr) {
+        return false;
+      }
+    }
+    return true;
+  }
+
+  setSandboxPublishPromptEnabled(enabled) {
+    if (!this.state.settings) this.state.settings = {};
+    this.state.settings.sandboxPublishPrompt = !!enabled;
+    this.saveState();
+  }
+
+  suppressSandboxPublishForToday() {
+    if (!this.state.settings) this.state.settings = {};
+    this.state.settings.suppressSandboxPublishUntil = new Date().toDateString();
     this.saveState();
   }
 

@@ -4,22 +4,22 @@
    ========================================================================== */
 
 const AAA_PALETTE = [
-  { id: 0, name: 'Carmesí Radiante', hex: '#ff334b', letter: 'R', shape: '●', pattern: 'pattern-stripes', textHex: '#ffffff' },
+  { id: 0, name: 'Carmesí Radiante', hex: '#ef4444', letter: 'R', shape: '●', pattern: 'pattern-stripes', textHex: '#ffffff' },
   { id: 1, name: 'Cielo Alquímico', hex: '#38bdf8', letter: 'C', shape: '▲', pattern: 'pattern-dots', textHex: '#000000' },
   { id: 2, name: 'Verde Esmeralda', hex: '#10b981', letter: 'V', shape: '■', pattern: 'pattern-grid', textHex: '#000000' },
   { id: 3, name: 'Oro Supremo', hex: '#facc15', letter: 'A', shape: '★', pattern: 'pattern-diagonal-left', textHex: '#000000' },
-  { id: 4, name: 'Violeta Eléctrico', hex: '#c084fc', letter: 'P', shape: '◆', pattern: 'pattern-horizontal', textHex: '#000000' },
-  { id: 5, name: 'Naranja Mandarina', hex: '#fb923c', letter: 'N', shape: '✚', pattern: 'pattern-vertical', textHex: '#000000' },
+  { id: 4, name: 'Violeta Eléctrico', hex: '#a855f7', letter: 'P', shape: '◆', pattern: 'pattern-horizontal', textHex: '#ffffff' },
+  { id: 5, name: 'Naranja Mandarina', hex: '#f97316', letter: 'N', shape: '✚', pattern: 'pattern-vertical', textHex: '#000000' },
   { id: 6, name: 'Rosa Neón Flúor', hex: '#f472b6', letter: 'F', shape: '♥', pattern: 'pattern-cross', textHex: '#000000' },
-  { id: 7, name: 'Cian Glaciar', hex: '#22d3ee', letter: 'G', shape: '✦', pattern: 'pattern-zigzag', textHex: '#000000' },
-  { id: 8, name: 'Ámbar Cálido', hex: '#f59e0b', letter: 'X', shape: '⬟', pattern: 'pattern-checker', textHex: '#000000' },
-  { id: 9, name: 'Lima Brillante', hex: '#a3e635', letter: 'L', shape: '⬢', pattern: 'pattern-dots', textHex: '#000000' },
-  { id: 10, name: 'Índigo Astral', hex: '#818cf8', letter: 'I', shape: '✿', pattern: 'pattern-stripes', textHex: '#000000' },
-  { id: 11, name: 'Blanco Ópalo Puro', hex: '#f8fafc', letter: 'B', shape: '❄', pattern: 'pattern-grid', textHex: '#000000' },
-  { id: 12, name: 'Turquesa Mar', hex: '#2dd4bf', letter: 'T', shape: '✪', pattern: 'pattern-horizontal', textHex: '#000000' },
-  { id: 13, name: 'Rubí Encendido', hex: '#e11d48', letter: 'U', shape: '⯁', pattern: 'pattern-vertical', textHex: '#ffffff' },
-  { id: 14, name: 'Coral Solar', hex: '#fb7185', letter: 'S', shape: '🞛', pattern: 'pattern-cross', textHex: '#000000' },
-  { id: 15, name: 'Azul Real', hex: '#2563eb', letter: 'Z', shape: '🞗', pattern: 'pattern-zigzag', textHex: '#ffffff' }
+  { id: 7, name: 'Azul Marino Noche', hex: '#1d4ed8', letter: 'Z', shape: '✦', pattern: 'pattern-zigzag', textHex: '#ffffff' },
+  { id: 8, name: 'Marrón Café Alquímico', hex: '#78350f', letter: 'M', shape: '⬟', pattern: 'pattern-checker', textHex: '#ffffff' },
+  { id: 9, name: 'Lima Neón Brillante', hex: '#84cc16', letter: 'L', shape: '⬢', pattern: 'pattern-dots', textHex: '#000000' },
+  { id: 10, name: 'Blanco Nieve Ópalo', hex: '#f8fafc', letter: 'B', shape: '❄', pattern: 'pattern-grid', textHex: '#000000' },
+  { id: 11, name: 'Gris Carbón Grafito', hex: '#334155', letter: 'G', shape: '✿', pattern: 'pattern-stripes', textHex: '#ffffff' },
+  { id: 12, name: 'Burdeos / Vino Tinto', hex: '#881337', letter: 'U', shape: '✪', pattern: 'pattern-horizontal', textHex: '#ffffff' },
+  { id: 13, name: 'Turquesa Menta', hex: '#2dd4bf', letter: 'T', shape: '⯁', pattern: 'pattern-vertical', textHex: '#000000' },
+  { id: 14, name: 'Coral Salmón', hex: '#fb7185', letter: 'S', shape: '🞛', pattern: 'pattern-cross', textHex: '#000000' },
+  { id: 15, name: 'Lavanda Pastel', hex: '#c4b5fd', letter: 'I', shape: '🞗', pattern: 'pattern-zigzag', textHex: '#000000' }
 ];
 
 const COLORBLIND_PALETTE = [
@@ -30,7 +30,15 @@ const COLORBLIND_PALETTE = [
   { id: 4, name: 'Bermejo / Carmín', hex: '#d55e00', letter: 'R', shape: '◆', pattern: 'pattern-horizontal', textHex: '#ffffff' },
   { id: 5, name: 'Púrpura Rojizo', hex: '#cc79a7', letter: 'P', shape: '✚', pattern: 'pattern-vertical', textHex: '#000000' },
   { id: 6, name: 'Verde Azulado', hex: '#009e73', letter: 'V', shape: '♥', pattern: 'pattern-cross', textHex: '#ffffff' },
-  { id: 7, name: 'Gris Perla', hex: '#e2e8f0', letter: 'G', shape: '✦', pattern: 'pattern-zigzag', textHex: '#000000' }
+  { id: 7, name: 'Gris Perla', hex: '#e2e8f0', letter: 'G', shape: '✦', pattern: 'pattern-zigzag', textHex: '#000000' },
+  { id: 8, name: 'Negro Ónix', hex: '#111827', letter: 'O', shape: '⬟', pattern: 'pattern-checker', textHex: '#ffffff' },
+  { id: 9, name: 'Marrón Ocre', hex: '#78350f', letter: 'M', shape: '⬢', pattern: 'pattern-dots', textHex: '#ffffff' },
+  { id: 10, name: 'Azul Marino Profundo', hex: '#1e3a8a', letter: 'Z', shape: '❄', pattern: 'pattern-grid', textHex: '#ffffff' },
+  { id: 11, name: 'Mostaza Suave', hex: '#ca8a04', letter: 'X', shape: '✿', pattern: 'pattern-stripes', textHex: '#ffffff' },
+  { id: 12, name: 'Blanco Plata', hex: '#f8fafc', letter: 'B', shape: '✪', pattern: 'pattern-horizontal', textHex: '#000000' },
+  { id: 13, name: 'Vino Tinto Borgoña', hex: '#701a75', letter: 'U', shape: '⯁', pattern: 'pattern-vertical', textHex: '#ffffff' },
+  { id: 14, name: 'Verde Oliva', hex: '#4d7c0f', letter: 'L', shape: '🞛', pattern: 'pattern-cross', textHex: '#ffffff' },
+  { id: 15, name: 'Lavanda Suave', hex: '#c4b5fd', letter: 'I', shape: '🞗', pattern: 'pattern-zigzag', textHex: '#000000' }
 ];
 
 // PALETA DESCANSO VISUAL (Calibrada para Lentes con Filtro Sepia / Bloqueo de Luz Azul)
@@ -78,9 +86,22 @@ class PaletteManager {
         if (Array.isArray(parsed) && parsed.length > 0) {
           this.palette = DEFAULT_PALETTE.map((def, idx) => {
             const p = parsed[idx] || {};
+            let hex = p.hex || def.hex;
+            let name = p.name || def.name;
+            // Migración automática de colores legados ambiguos / duplicados
+            if (idx === 7 && hex.toLowerCase() === '#22d3ee') {
+              hex = def.hex; // Migrar al Azul Marino Noche #1d4ed8
+              name = def.name;
+            } else if (idx === 8 && hex.toLowerCase() === '#f59e0b') {
+              hex = def.hex; // Migrar al Marrón Café Alquímico #78350f
+              name = def.name;
+            }
             return {
               ...def,
               ...p,
+              hex: hex,
+              name: name,
+              textHex: this.getContrastColor(hex),
               letter: (p.letter && !AVAILABLE_SHAPES.includes(p.letter)) ? p.letter : (def.letter || AVAILABLE_LETTERS[idx % AVAILABLE_LETTERS.length])
             };
           });

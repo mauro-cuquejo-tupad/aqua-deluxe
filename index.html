@@ -46,10 +46,10 @@
   <link rel="icon" type="image/svg+xml" href="icons/icon.svg">
 
   <!-- Modular Stylesheets -->
-  <link rel="stylesheet" href="css/main.css?v=44">
-  <link rel="stylesheet" href="css/tubes.css?v=44">
-  <link rel="stylesheet" href="css/roulette.css?v=44">
-  <link rel="stylesheet" href="css/accessibility.css?v=44">
+  <link rel="stylesheet" href="css/main.css?v=45">
+  <link rel="stylesheet" href="css/tubes.css?v=45">
+  <link rel="stylesheet" href="css/roulette.css?v=45">
+  <link rel="stylesheet" href="css/accessibility.css?v=45">
 </head>
 <body class="min-h-screen flex flex-col justify-between select-none relative">
 
@@ -461,6 +461,21 @@
               <div class="w-11 h-6 bg-slate-700 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-slate-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-amber-500"></div>
             </label>
           </div>
+
+          <!-- Toggle Sugerir Publicar Niveles en Modo Infinito -->
+          <div class="flex items-center justify-between pt-2 border-t border-slate-700/60">
+            <div>
+              <div class="text-sm font-bold text-white flex items-center gap-1.5">
+                <i data-lucide="share-2" class="w-4 h-4 text-purple-400"></i>
+                Publicación en Modo Infinito
+              </div>
+              <p class="text-[11px] text-slate-400">Sugerir publicar en el Taller los niveles procedurales superados (Desactiva si juegas de viaje o partidas continuas).</p>
+            </div>
+            <label class="relative inline-flex items-center cursor-pointer shrink-0 ml-2">
+              <input type="checkbox" id="toggle-sandbox-publish-prompt" class="sr-only peer">
+              <div class="w-11 h-6 bg-slate-700 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-slate-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-purple-600"></div>
+            </label>
+          </div>
         </div>
 
         <!-- Dificultad Personalizada / Filtro de Mecánicas Desbloqueadas -->
@@ -667,6 +682,30 @@
           <i data-lucide="shield" class="w-4 h-4"></i>
           <span>Jugar Desafío de Honor Ahora</span>
         </button>
+      </div>
+
+      <!-- Tarjeta Especial de Publicación en Modo Infinito / Casual Sandbox -->
+      <div id="vic-sandbox-publish-card" class="hidden mb-3 p-3.5 bg-gradient-to-r from-purple-950/60 via-indigo-950/50 to-purple-950/60 border border-purple-500/40 rounded-2xl text-left shadow-lg">
+        <div class="flex items-center justify-between text-purple-300 font-black text-xs mb-1.5">
+          <span class="flex items-center gap-1.5">
+            <i data-lucide="sparkles" class="w-4 h-4 text-purple-400"></i>
+            <span>¡Nivel Validado para el Taller!</span>
+          </span>
+          <span id="vic-sandbox-level-tag" class="text-[10px] px-2 py-0.5 rounded-full bg-purple-500/20 text-purple-200 font-mono">Infinito #12345</span>
+        </div>
+        <p class="text-[11px] text-slate-300 mb-2.5">
+          Has demostrado que este nivel procedural tiene solución. ¿Deseas publicarlo en el Taller de la Comunidad para que otros jugadores lo jueguen?
+        </p>
+        <div class="flex flex-col gap-1.5">
+          <button id="btn-vic-publish-sandbox" type="button" class="btn-interactive w-full py-2.5 bg-gradient-to-r from-purple-600 to-indigo-600 hover:from-purple-500 hover:to-indigo-500 text-white font-black rounded-xl text-xs shadow-md flex items-center justify-center gap-1.5 transition-all">
+            <i data-lucide="share-2" class="w-4 h-4"></i>
+            <span>Publicar Nivel en el Taller</span>
+          </button>
+          <label class="flex items-center gap-2 mt-1 px-1 cursor-pointer select-none text-[10px] text-slate-400 hover:text-slate-300">
+            <input type="checkbox" id="cb-suppress-sandbox-today" class="rounded border-slate-700 bg-slate-800 text-purple-500 focus:ring-0">
+            <span>No sugerir publicar por hoy (Modo Viaje / Solo jugar)</span>
+          </label>
+        </div>
       </div>
 
       <!-- Botones de Acción -->
@@ -2141,6 +2180,17 @@
             </label>
           </div>
         </div>
+        <!-- Opción rápida de sugerencia de publicación -->
+        <label class="flex items-center justify-between p-2.5 rounded-xl bg-slate-800/40 border border-slate-700/60 cursor-pointer select-none">
+          <div class="flex items-center gap-2">
+            <i data-lucide="share-2" class="w-4 h-4 text-purple-400"></i>
+            <div>
+              <div class="text-xs font-bold text-white">Sugerir publicar al ganar</div>
+              <div class="text-[10px] text-slate-400">Desactívalo si estás jugando de viaje en el tren</div>
+            </div>
+          </div>
+          <input type="checkbox" id="cb-sandbox-suggest-publish" class="rounded border-slate-700 bg-slate-900 text-purple-500 focus:ring-0" checked>
+        </label>
       </div>
 
       <div class="mt-4 pt-3 border-t border-slate-800 flex gap-2">
@@ -2199,19 +2249,19 @@
   <input type="file" id="input-save-file" accept=".json" class="hidden">
 
   <!-- Scripts modulares -->
-  <script src="js/firebase-config.js?v=44"></script>
-  <script src="js/cloud-sync.js?v=44"></script>
-  <script src="js/audio.js?v=44"></script>
-  <script src="js/palette.js?v=44"></script>
-  <script src="js/levels.js?v=44"></script>
-  <script src="js/challenges.js?v=44"></script>
-  <script src="js/honor.js?v=44"></script>
-  <script src="js/state.js?v=44"></script>
-  <script src="js/achievements.js?v=44"></script>
-  <script src="js/leaderboard.js?v=44"></script>
-  <script src="js/roulette.js?v=44"></script>
-  <script src="js/story.js?v=44"></script>
-  <script src="js/game.js?v=44"></script>
+  <script src="js/firebase-config.js?v=45"></script>
+  <script src="js/cloud-sync.js?v=45"></script>
+  <script src="js/audio.js?v=45"></script>
+  <script src="js/palette.js?v=45"></script>
+  <script src="js/levels.js?v=45"></script>
+  <script src="js/challenges.js?v=45"></script>
+  <script src="js/honor.js?v=45"></script>
+  <script src="js/state.js?v=45"></script>
+  <script src="js/achievements.js?v=45"></script>
+  <script src="js/leaderboard.js?v=45"></script>
+  <script src="js/roulette.js?v=45"></script>
+  <script src="js/story.js?v=45"></script>
+  <script src="js/game.js?v=45"></script>
 
   <!-- Registro de Service Worker PWA -->
   <script>

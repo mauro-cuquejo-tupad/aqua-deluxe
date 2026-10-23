@@ -410,9 +410,17 @@ class GameController {
     if (customLevelData) {
       this.levelData = customLevelData;
       this.tubes = JSON.parse(JSON.stringify(customLevelData.tubes));
-      this.customLevelTesting = customLevelData;
+      if (customLevelData.isCasualSandbox || lvl === 'casual_sandbox') {
+        this.isCasualSandbox = true;
+        this.customLevelTesting = null;
+        this.initialSandboxTubes = JSON.parse(JSON.stringify(customLevelData.tubes));
+      } else {
+        this.isCasualSandbox = false;
+        this.customLevelTesting = customLevelData;
+      }
     } else {
       this.customLevelTesting = null;
+      this.isCasualSandbox = false;
       this.levelData = window.LevelGenerator.generate(this.currentLevel, this.seedVariation);
       this.tubes = this.levelData.tubes;
     }
@@ -1157,6 +1165,10 @@ class GameController {
   openCasualSandboxModal() {
     const modal = document.getElementById('modal-casual-sandbox');
     if (!modal) return;
+    const cbSuggest = document.getElementById('cb-sandbox-suggest-publish');
+    if (cbSuggest) {
+      cbSuggest.checked = window.stateManager ? window.stateManager.isSandboxPublishPromptEnabled() : true;
+    }
     modal.classList.remove('hidden');
     if (window.audio) window.audio.playSelect();
   }
@@ -1169,6 +1181,10 @@ class GameController {
   }
 
   startCasualSandbox(config = null) {
+    const cbSuggest = document.getElementById('cb-sandbox-suggest-publish');
+    if (cbSuggest && window.stateManager) {
+      window.stateManager.setSandboxPublishPromptEnabled(cbSuggest.checked);
+    }
     this.closeCasualSandboxModal();
     this.isCasualSandbox = true;
     this.isTimeAttack = false;
@@ -3328,6 +3344,56 @@ class GameController {
         btnVicNext.className = 'btn-interactive w-full py-3 bg-gradient-to-r from-emerald-500 to-teal-500 hover:from-emerald-400 hover:to-teal-400 text-slate-950 font-black rounded-2xl transition-all flex items-center justify-center gap-2 shadow-md';
         btnVicNext.innerHTML = '<span>🎲 Siguiente Nivel Aleatorio</span><i data-lucide="refresh-cw" class="w-4 h-4"></i>';
       }
+
+      // En Modo Infinito se oculta la ruleta de campaña para foco en puzzles continuos
+      const btnVicRoulette = document.getElementById('btn-vic-roulette');
+      if (btnVicRoulette) btnVicRoulette.classList.add('hidden');
+
+      // Tarjeta de sugerencia de publicación en el Taller
+      const sandboxPublishCard = document.getElementById('vic-sandbox-publish-card');
+      const canSuggestPublish = window.stateManager ? window.stateManager.isSandboxPublishPromptEnabled() : true;
+      if (sandboxPublishCard) {
+        if (canSuggestPublish) {
+          sandboxPublishCard.classList.remove('hidden');
+          const lvlTag = document.getElementById('vic-sandbox-level-tag');
+          const levelName = this.levelData?.name || `Alquimia Infinita #${(this.casualSandboxConfig?.seed || Math.floor(Math.random() * 99999)) % 100000}`;
+          if (lvlTag) lvlTag.textContent = levelName;
+
+          const btnPublish = document.getElementById('btn-vic-publish-sandbox');
+          if (btnPublish) {
+            btnPublish.onclick = () => {
+              this.hideModal(this.modalVictory);
+              // Cargar el nivel generado no resuelto en el editor
+              const savedTubes = this.initialSandboxTubes || this.levelData.tubes;
+              this.editorLevel.tubes = JSON.parse(JSON.stringify(savedTubes));
+              this.editorLevel.tubeCount = savedTubes.length;
+              this.editorLevel.name = levelName;
+              this.editorLevel.creator = window.stateManager?.state?.player?.nickname || 'Alquimista Viajero';
+              this.editorLevel.hasBeenPassed = true; // Ya validado con éxito en partida real
+
+              const nameInput = document.getElementById('editor-level-name');
+              const creatorInput = document.getElementById('editor-creator-name');
+              if (nameInput) nameInput.value = this.editorLevel.name;
+              if (creatorInput) creatorInput.value = this.editorLevel.creator;
+
+              this.openEditorModal('design');
+            };
+          }
+
+          const cbSuppressToday = document.getElementById('cb-suppress-sandbox-today');
+          if (cbSuppressToday) {
+            cbSuppressToday.checked = false;
+            cbSuppressToday.onchange = (e) => {
+              if (e.target.checked && window.stateManager) {
+                window.stateManager.suppressSandboxPublishForToday();
+              }
+            };
+          }
+        } else {
+          sandboxPublishCard.classList.add('hidden');
+        }
+      }
+
       if (window.stateManager) {
         const total = window.stateManager.recordSandboxLevelCompleted();
         if (window.achievementManager) {
@@ -3335,6 +3401,11 @@ class GameController {
         }
       }
     } else if (this.currentLevel === 100) {
+      const btnVicRoulette = document.getElementById('btn-vic-roulette');
+      if (btnVicRoulette) btnVicRoulette.classList.remove('hidden');
+      const sandboxPublishCard = document.getElementById('vic-sandbox-publish-card');
+      if (sandboxPublishCard) sandboxPublishCard.classList.add('hidden');
+
       const hasAllOneStar = this.hasAllLevelsAtLeastOneStar();
       if (window.stateManager) {
         window.stateManager.state.progress.hasCompletedAll100 = true;
@@ -3380,6 +3451,11 @@ class GameController {
         setTimeout(() => window.audio.playCrowdCheer(), 450);
       }
     } else {
+      const btnVicRoulette = document.getElementById('btn-vic-roulette');
+      if (btnVicRoulette) btnVicRoulette.classList.remove('hidden');
+      const sandboxPublishCard = document.getElementById('vic-sandbox-publish-card');
+      if (sandboxPublishCard) sandboxPublishCard.classList.add('hidden');
+
       if (vicTitle) {
         vicTitle.innerHTML = '¡Nivel Completado!';
         vicTitle.className = 'text-2xl font-black text-white mb-1';
@@ -4970,6 +5046,8 @@ class GameController {
       if (cbPat) cbPat.checked = this.showAccessibilityPatterns;
       const cbLet = document.getElementById('toggle-accessibility-letters');
       if (cbLet) cbLet.checked = window.stateManager ? window.stateManager.isAccessibilityLettersMode() : false;
+      const cbSandboxPrompt = document.getElementById('toggle-sandbox-publish-prompt');
+      if (cbSandboxPrompt) cbSandboxPrompt.checked = window.stateManager ? window.stateManager.isSandboxPublishPromptEnabled() : true;
 
       this.renderDifficultyMechanicsSettings();
       this.renderMusicSettingsUI();
@@ -5018,6 +5096,13 @@ class GameController {
     if (cbVisualComfort) {
       cbVisualComfort.checked = window.stateManager ? window.stateManager.isVisualComfortMode() : false;
       cbVisualComfort.addEventListener('change', (e) => this.toggleVisualComfortMode(e.target.checked));
+    }
+    const cbSandboxPrompt = document.getElementById('toggle-sandbox-publish-prompt');
+    if (cbSandboxPrompt) {
+      cbSandboxPrompt.checked = window.stateManager ? window.stateManager.isSandboxPublishPromptEnabled() : true;
+      cbSandboxPrompt.addEventListener('change', (e) => {
+        if (window.stateManager) window.stateManager.setSandboxPublishPromptEnabled(e.target.checked);
+      });
     }
 
     // Botones de Modos en Home Screen
@@ -5112,6 +5197,9 @@ class GameController {
         this.hideModal(this.modalVictory);
         if (this.isDailyChallenge) {
           this.launchDailyChallenge();
+        } else if (this.isCasualSandbox && this.casualSandboxConfig) {
+          const data = window.LevelGenerator.generateCasualSandbox(this.casualSandboxConfig);
+          this.loadLevel('casual_sandbox', 0, data);
         } else {
           this.loadLevel(this.currentLevel);
         }
