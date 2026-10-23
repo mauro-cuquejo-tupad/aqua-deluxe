@@ -374,6 +374,11 @@ class GameController {
       }
       const dropHud = document.getElementById('ta-drop-hud');
       if (dropHud) dropHud.remove();
+      const hudContainer = document.getElementById('time-attack-hud-container');
+      if (hudContainer) {
+        hudContainer.classList.add('hidden');
+        hudContainer.innerHTML = '';
+      }
     }
     this.moves = 0;
     this.moveHistory = [];
@@ -426,9 +431,13 @@ class GameController {
     }
     this.renderChallengesHUD();
 
-    // Iniciar temporizador en vivo
+    // Iniciar temporizador en vivo (desactivado en Contrarreloj)
     if (window.leaderboardManager) {
-      window.leaderboardManager.startTimer('lbl-timer');
+      if (lvl === 'time_attack' || this.isTimeAttack) {
+        window.leaderboardManager.stopTimer();
+      } else {
+        window.leaderboardManager.startTimer('lbl-timer');
+      }
     }
 
     // Actualizar música de fondo
@@ -4005,6 +4014,12 @@ class GameController {
 
   // --- PANTALLA DE INICIO (HOME SCREEN) ---
   openHomeModal() {
+    // Si estaba en Time Attack, pausar el intervalo mientras el menú está abierto
+    if (this.isTimeAttack && this.timeAttackInterval) {
+      clearInterval(this.timeAttackInterval);
+      this.timeAttackInterval = null;
+    }
+
     this.updateCoinsUI();
     const statLvl = document.getElementById('home-stat-level');
     const statCoins = document.getElementById('home-stat-coins');
@@ -4019,7 +4034,11 @@ class GameController {
       statCd.className = `text-xs sm:text-sm font-black mt-1 ${cd > 0 ? 'text-amber-400' : 'text-emerald-400'}`;
     }
     if (playText) {
-      playText.textContent = `Continuar Nivel ${this.currentLevel}`;
+      if (this.isTimeAttack && this.timeAttackSecondsRemaining > 0) {
+        playText.textContent = `Continuar Contrarreloj (⏳ ${this.timeAttackSecondsRemaining}s)`;
+      } else {
+        playText.textContent = `Continuar Nivel ${this.currentLevel}`;
+      }
     }
 
     this.showModal(this.modalHome);
@@ -4533,15 +4552,61 @@ class GameController {
 
     // Modal Inicio (Home) botones internos
     const btnCloseHome = document.getElementById('btn-close-home');
-    if (btnCloseHome) this.bindTapOrClick(btnCloseHome, () => this.closeHomeModal());
+    if (btnCloseHome) {
+      this.bindTapOrClick(btnCloseHome, () => {
+        this.closeHomeModal();
+        if (this.isTimeAttack) {
+          if (this.timeAttackSecondsRemaining > 0 && !this.timeAttackInterval) {
+            this.timeAttackInterval = setInterval(() => {
+              if (!this.isTimeAttack) {
+                if (this.timeAttackInterval) {
+                  clearInterval(this.timeAttackInterval);
+                  this.timeAttackInterval = null;
+                }
+                return;
+              }
+              this.tickTimeAttack();
+            }, 1000);
+          } else {
+            this.isTimeAttack = false;
+            this.loadLevel(this.currentLevel);
+          }
+        }
+      });
+    }
 
     const btnHomePlay = document.getElementById('btn-home-play');
-    if (btnHomePlay) this.bindTapOrClick(btnHomePlay, () => this.closeHomeModal());
+    if (btnHomePlay) {
+      this.bindTapOrClick(btnHomePlay, () => {
+        this.closeHomeModal();
+        if (this.isTimeAttack) {
+          if (this.timeAttackSecondsRemaining > 0 && !this.timeAttackInterval) {
+            this.timeAttackInterval = setInterval(() => {
+              if (!this.isTimeAttack) {
+                if (this.timeAttackInterval) {
+                  clearInterval(this.timeAttackInterval);
+                  this.timeAttackInterval = null;
+                }
+                return;
+              }
+              this.tickTimeAttack();
+            }, 1000);
+          } else {
+            this.isTimeAttack = false;
+            this.loadLevel(this.currentLevel);
+          }
+        }
+      });
+    }
 
     const btnHomeMap = document.getElementById('btn-home-map');
     if (btnHomeMap) {
       this.bindTapOrClick(btnHomeMap, () => {
         this.closeHomeModal();
+        if (this.isTimeAttack) {
+          this.isTimeAttack = false;
+          this.loadLevel(this.currentLevel);
+        }
         this.openMapModal();
         if (window.audio) window.audio.playMusic('map');
       });
@@ -4946,6 +5011,8 @@ class GameController {
       this.bindTapOrClick(btnTaHome, () => {
         const m = document.getElementById('modal-time-attack-gameover');
         if (m) m.classList.add('hidden');
+        this.isTimeAttack = false;
+        this.loadLevel(this.currentLevel);
         this.openHomeModal();
       });
     }
@@ -5240,6 +5307,11 @@ class GameController {
 
   // --- MODAL DE CONFIRMACIÓN DE REINICIO CON SEED REROLL Y CONSUMO DE VIDA ---
   openRestartConfirmModal() {
+    if (this.isTimeAttack) {
+      this.startTimeAttack();
+      if (window.audio) window.audio.playSelect();
+      return;
+    }
     if (!window.stateManager) {
       this.loadLevel(this.currentLevel);
       return;
