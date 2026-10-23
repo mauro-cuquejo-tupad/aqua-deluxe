@@ -625,7 +625,7 @@ class GameController {
     const pal = window.paletteManager ? window.paletteManager.getPalette() : [];
     const activeColors = pal.slice(0, Math.min(6, 4 + Math.floor(this.timeAttackTubesCleared / 5)));
 
-    const slots = this.tubes.map(t => (!t.isCountingDown ? Math.max(0, t.capacity - t.liquids.length) : 0));
+    const slots = this.tubes.map(t => (!t.isCountingDown && !t.isDraining ? Math.max(0, t.capacity - t.liquids.length) : 0));
 
     this.timeAttackPendingDrops = [];
     for (let i = 0; i < 4; i++) {
@@ -641,7 +641,7 @@ class GameController {
       } else {
         const nonCounting = [];
         this.tubes.forEach((t, idx) => {
-          if (!t.isCountingDown) nonCounting.push(idx);
+          if (!t.isCountingDown && !t.isDraining) nonCounting.push(idx);
         });
         targetIdx = nonCounting.length > 0 ? nonCounting[Math.floor(Math.random() * nonCounting.length)] : 0;
       }
@@ -665,13 +665,13 @@ class GameController {
   // Rebalancea los reactivos telegrafiados si el jugador llena un tubo antes del derrame
   rebalancePendingDrops() {
     if (!this.isTimeAttack || !this.timeAttackPendingDrops || this.timeAttackPendingDrops.length === 0) return;
-    const eligibleTubes = this.tubes.filter(t => !t.isCountingDown && t.liquids.length < t.capacity);
+    const eligibleTubes = this.tubes.filter(t => !t.isCountingDown && !t.isDraining && t.liquids.length < t.capacity);
     if (eligibleTubes.length === 0) return;
 
     let changed = false;
     this.timeAttackPendingDrops.forEach(drop => {
       const currentTarget = this.tubes[drop.targetTubeIdx];
-      if (!currentTarget || currentTarget.isCountingDown || currentTarget.liquids.length >= currentTarget.capacity) {
+      if (!currentTarget || currentTarget.isCountingDown || currentTarget.isDraining || currentTarget.liquids.length >= currentTarget.capacity) {
         const newTarget = eligibleTubes[Math.floor(Math.random() * eligibleTubes.length)];
         drop.targetTubeIdx = this.tubes.indexOf(newTarget);
         changed = true;
@@ -768,33 +768,8 @@ class GameController {
       }
     }
 
-    // Actualizar tubos en cuenta regresiva de 5 segundos
-    if (this.timeAttackActiveCountdowns && this.timeAttackActiveCountdowns.size > 0) {
-      const toFinish = [];
-      for (const idx of Array.from(this.timeAttackActiveCountdowns)) {
-        const tube = this.tubes[idx];
-        if (!tube || !tube.isCountingDown) {
-          this.timeAttackActiveCountdowns.delete(idx);
-          continue;
-        }
-        tube.countdownSeconds = (tube.countdownSeconds !== undefined ? tube.countdownSeconds : 5) - 1;
-
-        // Actualizar visualmente el número del badge sin recrear el DOM
-        const tubeEl = this.tubesGrid?.querySelector(`[data-index="${idx}"]`);
-        if (tubeEl) {
-          const numEl = tubeEl.querySelector('.ta-countdown-num');
-          if (numEl) numEl.textContent = Math.max(0, tube.countdownSeconds);
-        }
-
-        if (tube.countdownSeconds <= 0) {
-          toFinish.push(idx);
-        }
-      }
-
-      for (const idx of toFinish) {
-        this.finalizeTubeClear(idx);
-      }
-    }
+    // En Contrarreloj, comprobar y vaciar inmediatamente los tubos que se hayan llenado
+    this.checkTimeAttackTubes();
 
     this.updateMovesUI();
   }
@@ -804,76 +779,25 @@ class GameController {
     let anyComplete = false;
     for (let i = 0; i < this.tubes.length; i++) {
       const tube = this.tubes[i];
-      if (tube.liquids.length === tube.capacity && !tube.isCountingDown && this.isTubeComplete(tube, { allowChameleon: true })) {
-        this.startTubeCountdown(i);
+      if (tube.liquids.length === tube.capacity && !tube.isDraining && this.isTubeComplete(tube, { allowChameleon: true })) {
+        this.clearTimeAttackTubeImmediately(i);
         anyComplete = true;
       }
     }
     return anyComplete;
   }
 
-  startTubeCountdown(tubeIdx) {
+  // Vaciado inmediato al completar tubo en Contrarreloj (timer de 5s desactivado temporalmente)
+  clearTimeAttackTubeImmediately(tubeIdx) {
     const tube = this.tubes[tubeIdx];
-    if (!tube || tube.isCountingDown) return;
+    if (!tube || tube.isDraining) return;
 
-    tube.isCountingDown = true;
-    tube.countdownSeconds = 5;
-
-    // Detectar si hay combos adyacentes con otros tubos en cuenta regresiva
-    const otherCountingIndices = Array.from(this.timeAttackActiveCountdowns || []).filter(
-      idx => idx !== tubeIdx && this.tubes[idx]?.isCountingDown
-    );
-    const adjacentActive = otherCountingIndices.filter(otherIdx => this.areTubesAdjacent(tubeIdx, otherIdx));
-
-    this.timeAttackActiveCountdowns.add(tubeIdx);
-
-    const tubeEl = this.tubesGrid?.querySelector(`[data-index="${tubeIdx}"]`);
-
-    if (tubeEl) {
-      tubeEl.classList.add('tube-countdown-active');
-      let badge = tubeEl.querySelector('.ta-countdown-badge');
-      if (!badge) {
-        badge = document.createElement('div');
-        badge.className = 'ta-countdown-badge';
-        badge.innerHTML = `<span class="ta-countdown-num">5</span><span class="ta-countdown-sub">s</span>`;
-        tubeEl.appendChild(badge);
-      }
+    tube.isDraining = true;
+    tube.isCountingDown = false;
+    tube.countdownSeconds = undefined;
+    if (this.timeAttackActiveCountdowns) {
+      this.timeAttackActiveCountdowns.delete(tubeIdx);
     }
-
-    // COMBO: "Si en el periodo de esos 5 segundos yo completo otro tubo adyacente al tubo completado, genera un combo, añadiendo 10 segundos extra por la cantidad de tubos que complete en combo."
-    if (adjacentActive.length > 0) {
-      const comboCount = adjacentActive.length + 1;
-      const extraSeconds = 10 * comboCount;
-      this.timeAttackSecondsRemaining += extraSeconds;
-      this.timeAttackScore += extraSeconds * 100;
-
-      this.showTimeAttackComboBanner(tubeIdx, comboCount, extraSeconds);
-      if (window.audio && typeof window.audio.playWinFanfare === 'function') {
-        window.audio.playWinFanfare();
-      }
-    } else {
-      if (window.audio && typeof window.audio.playSelect === 'function') {
-        window.audio.playSelect();
-      }
-    }
-  }
-
-  showTimeAttackComboBanner(tubeIdx, comboCount, extraSeconds) {
-    const tubeEl = this.tubesGrid?.querySelector(`[data-index="${tubeIdx}"]`);
-    if (!tubeEl) return;
-
-    const banner = document.createElement('div');
-    banner.className = 'ta-combo-banner-float';
-    banner.innerHTML = `🔥 COMBO x${comboCount}! +${extraSeconds}s ⚡`;
-    tubeEl.appendChild(banner);
-    setTimeout(() => banner.remove(), 1400);
-  }
-
-  finalizeTubeClear(tubeIdx) {
-    const tube = this.tubes[tubeIdx];
-    if (!tube) return;
-
-    this.timeAttackActiveCountdowns.delete(tubeIdx);
 
     const tubeEl = this.tubesGrid?.querySelector(`[data-index="${tubeIdx}"]`);
     if (tubeEl) {
@@ -881,43 +805,45 @@ class GameController {
       const badge = tubeEl.querySelector('.ta-countdown-badge');
       if (badge) badge.remove();
       tubeEl.classList.add('tube-liquid-drain', 'tube-vaporize-complete');
+
+      // Mostrar flotante de tiempo y puntos inmediatamente
+      const floatTag = document.createElement('div');
+      floatTag.className = 'time-attack-bonus-float';
+      floatTag.innerHTML = `+30s ⏱️ +3,000 pts ✨`;
+      tubeEl.appendChild(floatTag);
+      setTimeout(() => floatTag.remove(), 1300);
     }
+
+    // Sumar tiempo fijo de 30 segundos, puntos y contador de tubos vaciados
+    this.timeAttackSecondsRemaining += 30;
+    this.timeAttackScore += 3000;
+    this.timeAttackTubesCleared++;
+    this.updateMovesUI();
 
     if (window.audio) {
-      if (typeof window.audio.playVictory === 'function') window.audio.playVictory();
-      else if (typeof window.audio.playWinFanfare === 'function') window.audio.playWinFanfare();
+      if (typeof window.audio.playVictory === 'function') {
+        window.audio.playVictory();
+      } else if (typeof window.audio.playWinFanfare === 'function') {
+        window.audio.playWinFanfare();
+      }
     }
 
-    // Efecto de drenaje del líquido antes de vaciar completamente
+    // Efecto de drenaje del líquido (420ms) y vaciado completo
     setTimeout(() => {
-      // 1. Vaciar el tubo para permitir volver a usarlo
+      // 1. Vaciar el tubo para permitir volver a usarlo como frasco libre
       tube.liquids = [];
+      tube.isDraining = false;
       tube.isCountingDown = false;
-      this.timeAttackActiveCountdowns.delete(tubeIdx);
+      tube.countdownSeconds = undefined;
 
-      // 2. Sumar puntos, segundos (+30s) y tubos vaciados
-      this.timeAttackSecondsRemaining += 30;
-      this.timeAttackScore += 3000;
-      this.timeAttackTubesCleared++;
-
-      // 3. Rebalancear drops planificados si es necesario
+      // 2. Rebalancear drops planificados si es necesario
       this.rebalancePendingDrops();
 
-      // 4. Re-renderizar tubos para que el tubo quede completamente limpio y disponible
+      // 3. Re-renderizar tubos para que quede completamente limpio y disponible
       this.renderTubes();
       this.updateMovesUI();
 
-      // 5. Mostrar flotante "+30s ⏱️ +3,000 pts ✨"
-      const refreshedTubeEl = this.tubesGrid?.querySelector(`[data-index="${tubeIdx}"]`);
-      if (refreshedTubeEl) {
-        const floatTag = document.createElement('div');
-        floatTag.className = 'time-attack-bonus-float';
-        floatTag.innerHTML = `+30s ⏱️ +3,000 pts ✨`;
-        refreshedTubeEl.appendChild(floatTag);
-        setTimeout(() => floatTag.remove(), 1250);
-      }
-
-      // 6. Comprobar Aumento de Nivel (Cada 10 tubos estilo Tetris)
+      // 4. Comprobar Aumento de Nivel (Cada 10 tubos estilo Tetris)
       const calculatedLevel = 1 + Math.floor(this.timeAttackTubesCleared / 10);
       if (calculatedLevel > this.timeAttackLevel) {
         this.triggerTimeAttackLevelUp(calculatedLevel);
@@ -936,7 +862,7 @@ class GameController {
 
       // BONIFICACIÓN PANTALLA LIMPIA:
       // "Si logra vaciar todos los tubos de la pantalla antes que caigan nuevos liquidos, se le dan 50 segundos extra."
-      const allEmpty = this.tubes.every(t => t.liquids.length === 0 && !t.isCountingDown);
+      const allEmpty = this.tubes.every(t => t.liquids.length === 0 && !t.isCountingDown && !t.isDraining);
       if (allEmpty) {
         this.timeAttackSecondsRemaining += 50;
         this.timeAttackScore += 10000;
@@ -954,12 +880,18 @@ class GameController {
             this.triggerTimeAttackDrop();
           }
         }, 1500);
-      }
-
-      if (!allEmpty) {
+      } else {
         this.checkTimeAttackDeadlock();
       }
-    }, 450);
+    }, 420);
+  }
+
+  finalizeTubeClear(tubeIdx) {
+    this.clearTimeAttackTubeImmediately(tubeIdx);
+  }
+
+  startTubeCountdown(tubeIdx) {
+    this.clearTimeAttackTubeImmediately(tubeIdx);
   }
 
   // Aumento de nivel estilo Tetris cada 10 tubos completados
@@ -1032,7 +964,7 @@ class GameController {
 
     // "Solo deben caer si existen cuatro espacios disponibles."
     const totalFreeSpaces = this.tubes.reduce((acc, t) => {
-      if (t.isCountingDown) return acc;
+      if (t.isCountingDown || t.isDraining) return acc;
       return acc + Math.max(0, t.capacity - t.liquids.length);
     }, 0);
 
@@ -1050,9 +982,9 @@ class GameController {
     // Ejecutar la caída de los reactivos planificados
     for (const drop of this.timeAttackPendingDrops) {
       let target = this.tubes[drop.targetTubeIdx];
-      // Si el objetivo se llenó, reasignar dinámicamente a otro tubo libre
-      if (!target || target.isCountingDown || target.liquids.length >= target.capacity) {
-        const eligible = this.tubes.filter(t => !t.isCountingDown && t.liquids.length < t.capacity);
+      // Si el objetivo se llenó o está vaciándose, reasignar dinámicamente a otro tubo libre
+      if (!target || target.isCountingDown || target.isDraining || target.liquids.length >= target.capacity) {
+        const eligible = this.tubes.filter(t => !t.isCountingDown && !t.isDraining && t.liquids.length < t.capacity);
         if (eligible.length > 0) {
           target = eligible[Math.floor(Math.random() * eligible.length)];
         }
@@ -1114,13 +1046,13 @@ class GameController {
   hasPossibleMoves() {
     for (let i = 0; i < this.tubes.length; i++) {
       const fromTube = this.tubes[i];
-      if (fromTube.liquids.length === 0 || fromTube.isCountingDown) continue;
+      if (fromTube.liquids.length === 0 || fromTube.isCountingDown || fromTube.isDraining) continue;
       if (this.isTubeComplete(fromTube)) continue;
 
       for (let j = 0; j < this.tubes.length; j++) {
         if (i === j) continue;
         const toTube = this.tubes[j];
-        if (toTube.isCountingDown) continue;
+        if (toTube.isCountingDown || toTube.isDraining) continue;
         if (toTube.liquids.length >= toTube.capacity) continue;
 
         if (this.canPour(i, j)) {
@@ -1135,8 +1067,8 @@ class GameController {
     if (!this.isTimeAttack) return false;
 
     // Si algún tubo se está vaciando, liberará huecos en segundos
-    const hasCountingDownTubes = this.tubes.some(t => t.isCountingDown);
-    if (hasCountingDownTubes) return false;
+    const hasBusyTubes = this.tubes.some(t => t.isCountingDown || t.isDraining);
+    if (hasBusyTubes) return false;
 
     // "Si se llenan los tubos con liquidos incorrectos y no se puede mover, o si se acaba el tiempo, se finaliza el reto."
     if (!this.hasPossibleMoves()) {
@@ -1351,6 +1283,17 @@ class GameController {
       if (this.lblMoves) this.lblMoves.textContent = `${this.timeAttackScore.toLocaleString()} pts`;
       if (this.lblOptimalMoves) {
         this.lblOptimalMoves.textContent = `${this.timeAttackTubesCleared}/100 | Caída: ${this.timeAttackDropTimer}s`;
+      }
+      const timerEl = document.getElementById('lbl-timer');
+      if (timerEl) {
+        timerEl.textContent = window.leaderboardManager
+          ? window.leaderboardManager.formatTime(Math.max(0, this.timeAttackSecondsRemaining))
+          : `${this.timeAttackSecondsRemaining}s`;
+        if (this.timeAttackSecondsRemaining <= 15) {
+          timerEl.className = 'font-mono font-black text-rose-400 text-sm animate-pulse';
+        } else {
+          timerEl.className = 'font-mono font-black text-amber-300 text-sm';
+        }
       }
       this.updateButtonsUI();
       return;
@@ -1793,13 +1736,9 @@ class GameController {
         }
       }
 
-      // Modo Ataque: Indicador de cuenta regresiva de 5 segundos para vaciado
-      if (this.isTimeAttack && tube.isCountingDown) {
-        tubeEl.classList.add('tube-countdown-active');
-        const badge = document.createElement('div');
-        badge.className = 'ta-countdown-badge';
-        badge.innerHTML = `<span class="ta-countdown-num">${tube.countdownSeconds ?? 5}</span><span class="ta-countdown-sub">s</span>`;
-        tubeEl.appendChild(badge);
+      // Modo Ataque: Estado de drenaje/vaciado inmediato (timer desactivado temporalmente)
+      if (this.isTimeAttack && tube.isDraining) {
+        tubeEl.classList.add('tube-liquid-drain', 'tube-vaporize-complete');
       }
 
       // Rol y accesibilidad táctil para dispositivos móviles y lectores
@@ -2020,8 +1959,8 @@ class GameController {
         return;
       }
 
-      // Modo Ataque: Frasco en cuenta regresiva para vaciado
-      if (this.isTimeAttack && clickedTube.isCountingDown) {
+      // Modo Ataque: Frasco en cuenta regresiva o vaciado
+      if (this.isTimeAttack && (clickedTube.isCountingDown || clickedTube.isDraining)) {
         this.triggerInvalidMove(idx, '⏳ Vaciándose en breve...');
         return;
       }
@@ -2042,8 +1981,8 @@ class GameController {
     const fromTube = this.tubes[fromIdx];
     const toTube = this.tubes[toIdx];
 
-    // Modo Ataque: Frasco receptor en cuenta regresiva para vaciado
-    if (this.isTimeAttack && toTube.isCountingDown) {
+    // Modo Ataque: Frasco receptor en vaciado
+    if (this.isTimeAttack && (toTube.isCountingDown || toTube.isDraining)) {
       this.triggerInvalidMove(toIdx, '⏳ Tubo en vaciado');
       this.deselectTube();
       return;
@@ -2129,7 +2068,7 @@ class GameController {
     if (!fromTube || !toTube) return '🚫 Movimiento inválido';
 
     if (toTube.isBroken || fromTube.isBroken) return '💥 ¡Frasco destruido!';
-    if (this.isTimeAttack && (fromTube.isCountingDown || toTube.isCountingDown)) return '⏳ ¡Tubo en vaciado!';
+    if (this.isTimeAttack && (fromTube.isCountingDown || toTube.isCountingDown || fromTube.isDraining || toTube.isDraining)) return '⏳ ¡Tubo en vaciado!';
     if (toTube.isLocked) return '🔒 Llave requerida';
     if (toTube.liquids.length >= toTube.capacity) return '🚫 ¡Tubo lleno!';
     if (fromTube.isGlued) return '🪨 ¡Frasco inamovible!';
@@ -2200,7 +2139,7 @@ class GameController {
     const toTube = this.tubes[toIdx];
 
     if (fromTube.isBroken || toTube.isBroken) return false;
-    if (this.isTimeAttack && (fromTube.isCountingDown || toTube.isCountingDown)) return false;
+    if (this.isTimeAttack && (fromTube.isCountingDown || toTube.isCountingDown || fromTube.isDraining || toTube.isDraining)) return false;
     if (toTube.isLocked || fromTube.liquids.length === 0) return false;
     if (toTube.liquids.length >= toTube.capacity) return false;
 
