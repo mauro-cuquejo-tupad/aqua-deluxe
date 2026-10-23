@@ -33,6 +33,8 @@ class GameController {
     this.timeAttackScore = 0;
     this.timeAttackTubesCleared = 0;
     this.timeAttackInterval = null;
+    this.timeAttackDropTimer = 20;
+    this.timeAttackActiveCountdowns = new Set();
 
     // Modo Casual Infinito (Sandbox)
     this.isCasualSandbox = false;
@@ -357,7 +359,16 @@ class GameController {
     }
     if (lvl !== 'daily') this.isDailyChallenge = false;
     if (lvl !== 'casual_sandbox') this.isCasualSandbox = false;
-    if (lvl !== 'time_attack') this.isTimeAttack = false;
+    if (lvl !== 'time_attack') {
+      this.isTimeAttack = false;
+      if (this.timeAttackInterval) {
+        clearInterval(this.timeAttackInterval);
+        this.timeAttackInterval = null;
+      }
+      if (this.timeAttackActiveCountdowns) {
+        this.timeAttackActiveCountdowns.clear();
+      }
+    }
     this.moves = 0;
     this.moveHistory = [];
     this.selectedTubeIndex = null;
@@ -506,6 +517,8 @@ class GameController {
     this.timeAttackSecondsRemaining = 60;
     this.timeAttackScore = 0;
     this.timeAttackTubesCleared = 0;
+    this.timeAttackDropTimer = 20;
+    this.timeAttackActiveCountdowns = new Set();
 
     if (this.timeAttackInterval) {
       clearInterval(this.timeAttackInterval);
@@ -552,7 +565,7 @@ class GameController {
     const movesLbl = document.getElementById('lbl-moves');
     const optimalLbl = document.getElementById('lbl-optimal-moves');
     if (movesLbl) movesLbl.textContent = '0 pts';
-    if (optimalLbl) optimalLbl.textContent = '0 tubos';
+    if (optimalLbl) optimalLbl.textContent = '0/100 | Caída: 20s';
 
     const timerEl = document.getElementById('lbl-timer');
     if (timerEl) {
@@ -561,23 +574,76 @@ class GameController {
     }
 
     this.timeAttackInterval = setInterval(() => {
-      this.timeAttackSecondsRemaining--;
-      if (timerEl) {
-        timerEl.textContent = window.leaderboardManager
-          ? window.leaderboardManager.formatTime(Math.max(0, this.timeAttackSecondsRemaining))
-          : `${this.timeAttackSecondsRemaining}s`;
-        if (this.timeAttackSecondsRemaining <= 15) {
-          timerEl.className = 'font-mono font-black text-rose-400 text-sm animate-pulse';
-        } else {
-          timerEl.className = 'font-mono font-black text-amber-300 text-sm';
+      if (!this.isTimeAttack) {
+        if (this.timeAttackInterval) {
+          clearInterval(this.timeAttackInterval);
+          this.timeAttackInterval = null;
         }
+        return;
       }
-      if (this.timeAttackSecondsRemaining <= 0) {
-        this.endTimeAttack();
-      }
+      this.tickTimeAttack();
     }, 1000);
 
     if (window.audio) window.audio.playWinFanfare();
+  }
+
+  tickTimeAttack() {
+    this.timeAttackSecondsRemaining--;
+
+    const timerEl = document.getElementById('lbl-timer');
+    if (timerEl) {
+      timerEl.textContent = window.leaderboardManager
+        ? window.leaderboardManager.formatTime(Math.max(0, this.timeAttackSecondsRemaining))
+        : `${this.timeAttackSecondsRemaining}s`;
+      if (this.timeAttackSecondsRemaining <= 15) {
+        timerEl.className = 'font-mono font-black text-rose-400 text-sm animate-pulse';
+      } else {
+        timerEl.className = 'font-mono font-black text-amber-300 text-sm';
+      }
+    }
+
+    if (this.timeAttackSecondsRemaining <= 0) {
+      this.endTimeAttack('timeout');
+      return;
+    }
+
+    // Temporizador de caída de 4 reactivos cada 20 segundos
+    this.timeAttackDropTimer--;
+    if (this.timeAttackDropTimer <= 0) {
+      this.timeAttackDropTimer = 20;
+      this.triggerTimeAttackDrop();
+    }
+
+    // Actualizar tubos en cuenta regresiva de 5 segundos
+    if (this.timeAttackActiveCountdowns && this.timeAttackActiveCountdowns.size > 0) {
+      const toFinish = [];
+      for (const idx of Array.from(this.timeAttackActiveCountdowns)) {
+        const tube = this.tubes[idx];
+        if (!tube || !tube.isCountingDown) {
+          this.timeAttackActiveCountdowns.delete(idx);
+          continue;
+        }
+        tube.countdownSeconds = (tube.countdownSeconds !== undefined ? tube.countdownSeconds : 5) - 1;
+
+        // Actualizar visualmente el número del badge sin recrear el DOM
+        const tubeEl = this.tubesGrid?.querySelector(`[data-index="${idx}"]`);
+        if (tubeEl) {
+          const numEl = tubeEl.querySelector('.ta-countdown-num');
+          if (numEl) numEl.textContent = Math.max(0, tube.countdownSeconds);
+        }
+
+        if (tube.countdownSeconds <= 0) {
+          toFinish.push(idx);
+        }
+      }
+
+      for (const idx of toFinish) {
+        this.timeAttackActiveCountdowns.delete(idx);
+        this.finalizeTubeClear(idx);
+      }
+    }
+
+    this.updateMovesUI();
   }
 
   checkTimeAttackTubes() {
@@ -585,15 +651,70 @@ class GameController {
     let anyComplete = false;
     for (let i = 0; i < this.tubes.length; i++) {
       const tube = this.tubes[i];
-      if (tube.liquids.length === tube.capacity && this.isTubeComplete(tube, { allowChameleon: true })) {
-        this.dissolveTimeAttackTube(i);
+      if (tube.liquids.length === tube.capacity && !tube.isCountingDown && this.isTubeComplete(tube, { allowChameleon: true })) {
+        this.startTubeCountdown(i);
         anyComplete = true;
       }
     }
     return anyComplete;
   }
 
-  dissolveTimeAttackTube(tubeIdx) {
+  startTubeCountdown(tubeIdx) {
+    const tube = this.tubes[tubeIdx];
+    if (!tube || tube.isCountingDown) return;
+
+    tube.isCountingDown = true;
+    tube.countdownSeconds = 5;
+
+    // Detectar si hay combos adyacentes con otros tubos en cuenta regresiva
+    const otherCountingIndices = Array.from(this.timeAttackActiveCountdowns || []).filter(
+      idx => idx !== tubeIdx && this.tubes[idx]?.isCountingDown
+    );
+    const adjacentActive = otherCountingIndices.filter(otherIdx => this.areTubesAdjacent(tubeIdx, otherIdx));
+
+    this.timeAttackActiveCountdowns.add(tubeIdx);
+
+    const allTubeEls = this.tubesGrid.querySelectorAll('.test-tube');
+    const tubeEl = allTubeEls[tubeIdx];
+
+    if (tubeEl) {
+      tubeEl.classList.add('tube-countdown-active');
+      let badge = tubeEl.querySelector('.ta-countdown-badge');
+      if (!badge) {
+        badge = document.createElement('div');
+        badge.className = 'ta-countdown-badge';
+        badge.innerHTML = `<span class="ta-countdown-num">5</span><span class="ta-countdown-sub">s</span>`;
+        tubeEl.appendChild(badge);
+      }
+    }
+
+    // COMBO: "Si en el periodo de esos 5 segundos yo completo otro tubo adyacente al tubo completado, genera un combo, añadiendo 10 segundos extra por la cantidad de tubos que complete en combo."
+    if (adjacentActive.length > 0) {
+      const comboCount = adjacentActive.length + 1;
+      const extraSeconds = 10 * comboCount;
+      this.timeAttackSecondsRemaining += extraSeconds;
+      this.timeAttackScore += extraSeconds * 100;
+
+      this.showTimeAttackComboBanner(tubeIdx, comboCount, extraSeconds);
+      if (window.audio) window.audio.playWinFanfare();
+    } else {
+      if (window.audio) window.audio.playSelect();
+    }
+  }
+
+  showTimeAttackComboBanner(tubeIdx, comboCount, extraSeconds) {
+    const allTubeEls = this.tubesGrid.querySelectorAll('.test-tube');
+    const tubeEl = allTubeEls[tubeIdx];
+    if (!tubeEl) return;
+
+    const banner = document.createElement('div');
+    banner.className = 'ta-combo-banner-float';
+    banner.innerHTML = `🔥 COMBO x${comboCount}! +${extraSeconds}s ⚡`;
+    tubeEl.appendChild(banner);
+    setTimeout(() => banner.remove(), 1400);
+  }
+
+  finalizeTubeClear(tubeIdx) {
     const tube = this.tubes[tubeIdx];
     if (!tube) return;
 
@@ -601,90 +722,254 @@ class GameController {
     const tubeEl = allTubeEls[tubeIdx];
 
     if (tubeEl) {
-      tubeEl.classList.add('tube-vaporize-complete');
-      setTimeout(() => tubeEl.classList.remove('tube-vaporize-complete'), 750);
-
-      // Flotante "+15s ⏱️ +1,500 pts ✨"
-      const floatTag = document.createElement('div');
-      floatTag.className = 'time-attack-bonus-float';
-      floatTag.innerHTML = `+15s ⏱️ +1,500 pts ✨`;
-      tubeEl.appendChild(floatTag);
-      setTimeout(() => floatTag.remove(), 1250);
+      tubeEl.classList.remove('tube-countdown-active');
+      const badge = tubeEl.querySelector('.ta-countdown-badge');
+      if (badge) badge.remove();
+      tubeEl.classList.add('tube-liquid-drain', 'tube-vaporize-complete');
     }
 
     if (window.audio) {
       window.audio.playVictory();
     }
 
-    // Sumar puntos y segundos
-    this.timeAttackSecondsRemaining += 15;
-    this.timeAttackScore += 1500;
-    this.timeAttackTubesCleared++;
-
-    // Vaciar el tubo
-    tube.liquids = [];
-
-    // Comprobar logro de puntuación Time Attack
-    if (this.timeAttackScore >= 10000 && window.achievementManager) {
-      window.achievementManager.unlock('time_attack_survivor');
-    }
-
-    // Inyectar líquidos nuevos de la reserva mágica en tubos disponibles
+    // Efecto de drenaje del líquido antes de vaciar
     setTimeout(() => {
-      const pal = window.paletteManager ? window.paletteManager.getPalette() : [];
-      const activeColors = pal.slice(0, Math.min(6, 4 + Math.floor(this.timeAttackTubesCleared / 3)));
-      const countToDrop = 3;
+      tube.liquids = [];
+      tube.isCountingDown = false;
+      this.timeAttackActiveCountdowns.delete(tubeIdx);
 
-      for (let d = 0; d < countToDrop; d++) {
-        const randomCol = activeColors[Math.floor(Math.random() * activeColors.length)];
-        const eligibleTubes = this.tubes.filter(t => t.liquids.length < t.capacity);
-        if (eligibleTubes.length > 0) {
-          const target = eligibleTubes[Math.floor(Math.random() * eligibleTubes.length)];
-          target.liquids.push({
-            colorIndex: randomCol.id,
-            color: randomCol.hex,
-            name: randomCol.name,
-            shape: randomCol.shape,
-            pattern: randomCol.pattern,
-            textHex: randomCol.textHex,
-            isMystery: false,
-            revealed: true
-          });
-        }
+      if (tubeEl) {
+        tubeEl.classList.remove('tube-liquid-drain', 'tube-vaporize-complete');
+
+        // Flotante "+30s ⏱️ +3,000 pts ✨"
+        const floatTag = document.createElement('div');
+        floatTag.className = 'time-attack-bonus-float';
+        floatTag.innerHTML = `+30s ⏱️ +3,000 pts ✨`;
+        tubeEl.appendChild(floatTag);
+        setTimeout(() => floatTag.remove(), 1250);
+      }
+
+      // Sumar puntos, segundos (+30s) y tubos vaciados
+      this.timeAttackSecondsRemaining += 30;
+      this.timeAttackScore += 3000;
+      this.timeAttackTubesCleared++;
+
+      // Logro
+      if (this.timeAttackScore >= 10000 && window.achievementManager) {
+        window.achievementManager.unlock('time_attack_survivor');
+      }
+
+      // CONDICIÓN DE VICTORIA: Si consigue vaciar 100 tubos, gana
+      if (this.timeAttackTubesCleared >= 100) {
+        this.endTimeAttack('victory');
+        return;
+      }
+
+      // BONIFICACIÓN PANTALLA LIMPIA:
+      // "Si logra vaciar todos los tubos de la pantalla antes que caigan nuevos liquidos, se le dan 50 segundos extra."
+      const allEmpty = this.tubes.every(t => t.liquids.length === 0 && !t.isCountingDown);
+      if (allEmpty) {
+        this.timeAttackSecondsRemaining += 50;
+        this.timeAttackScore += 10000;
+        this.showTimeAttackCleanScreenBanner();
+        if (window.audio) window.audio.playWinFanfare();
+
+        // Reiniciar ciclo de caída e inyectar 4 reactivos tras una breve pausa para continuar
+        this.timeAttackDropTimer = 20;
+        setTimeout(() => {
+          if (this.isTimeAttack) {
+            this.triggerTimeAttackDrop();
+          }
+        }, 1500);
       }
 
       this.renderTubes();
       this.updateMovesUI();
-    }, 350);
+
+      if (!allEmpty) {
+        this.checkTimeAttackDeadlock();
+      }
+    }, 450);
   }
 
-  endTimeAttack() {
+  showTimeAttackCleanScreenBanner() {
+    const existing = document.querySelector('.ta-clean-screen-banner');
+    if (existing) existing.remove();
+
+    const banner = document.createElement('div');
+    banner.className = 'ta-clean-screen-banner';
+    banner.innerHTML = `🌟 ¡PANTALLA LIMPIA! +50s EXTRA ✨`;
+    document.body.appendChild(banner);
+    setTimeout(() => banner.remove(), 2200);
+  }
+
+  showTimeAttackNotice(text) {
+    const existing = document.querySelector('.ta-drop-notice-banner');
+    if (existing) existing.remove();
+
+    const banner = document.createElement('div');
+    banner.className = 'ta-drop-notice-banner';
+    banner.innerHTML = text;
+    document.body.appendChild(banner);
+    setTimeout(() => banner.remove(), 2000);
+  }
+
+  // Caída de 4 líquidos cada 20 segundos
+  triggerTimeAttackDrop() {
+    if (!this.isTimeAttack) return;
+
+    // "Solo deben caer si existen cuatro espacios disponibles."
+    const totalFreeSpaces = this.tubes.reduce((acc, t) => {
+      if (t.isCountingDown) return acc;
+      return acc + Math.max(0, t.capacity - t.liquids.length);
+    }, 0);
+
+    if (totalFreeSpaces < 4) {
+      this.showTimeAttackNotice('⚠️ Huecos insuficientes para la caída de reactivos (requiere 4 espacios libres)');
+      return;
+    }
+
+    const pal = window.paletteManager ? window.paletteManager.getPalette() : [];
+    const activeColors = pal.slice(0, Math.min(6, 4 + Math.floor(this.timeAttackTubesCleared / 5)));
+
+    for (let d = 0; d < 4; d++) {
+      const eligibleTubes = this.tubes.filter(t => !t.isCountingDown && t.liquids.length < t.capacity);
+      if (eligibleTubes.length === 0) break;
+      const target = eligibleTubes[Math.floor(Math.random() * eligibleTubes.length)];
+      const randomCol = activeColors[Math.floor(Math.random() * activeColors.length)];
+      target.liquids.push({
+        colorIndex: randomCol.id,
+        color: randomCol.hex,
+        name: randomCol.name,
+        shape: randomCol.shape,
+        pattern: randomCol.pattern,
+        textHex: randomCol.textHex,
+        isMystery: false,
+        revealed: true
+      });
+    }
+
+    if (window.audio && typeof window.audio.playPour === 'function') {
+      window.audio.playPour();
+    }
+
+    this.showTimeAttackNotice('💧 ¡Han caído 4 nuevos reactivos! ⚡');
+    this.renderTubes();
+    this.updateMovesUI();
+
+    this.checkTimeAttackTubes();
+    this.checkTimeAttackDeadlock();
+  }
+
+  areTubesAdjacent(idxA, idxB) {
+    if (idxA === idxB) return false;
+    if (Math.abs(idxA - idxB) === 1) return true;
+
+    const elA = this.tubesGrid?.querySelector(`[data-index="${idxA}"]`);
+    const elB = this.tubesGrid?.querySelector(`[data-index="${idxB}"]`);
+    if (!elA || !elB) return false;
+
+    const rA = elA.getBoundingClientRect();
+    const rB = elB.getBoundingClientRect();
+    const cAx = rA.left + rA.width / 2;
+    const cAy = rA.top + rA.height / 2;
+    const cBx = rB.left + rB.width / 2;
+    const cBy = rB.top + rB.height / 2;
+
+    const dist = Math.hypot(cAx - cBx, cAy - cBy);
+    const maxThreshold = Math.max(rA.height, rB.height) * 1.35;
+    return dist <= maxThreshold;
+  }
+
+  hasPossibleMoves() {
+    for (let i = 0; i < this.tubes.length; i++) {
+      const fromTube = this.tubes[i];
+      if (fromTube.liquids.length === 0 || fromTube.isCountingDown) continue;
+      if (this.isTubeComplete(fromTube)) continue;
+
+      for (let j = 0; j < this.tubes.length; j++) {
+        if (i === j) continue;
+        const toTube = this.tubes[j];
+        if (toTube.isCountingDown) continue;
+        if (toTube.liquids.length >= toTube.capacity) continue;
+
+        if (this.canPour(i, j)) {
+          return true;
+        }
+      }
+    }
+    return false;
+  }
+
+  checkTimeAttackDeadlock() {
+    if (!this.isTimeAttack) return false;
+
+    // Si algún tubo se está vaciando, liberará huecos en segundos
+    const hasCountingDownTubes = this.tubes.some(t => t.isCountingDown);
+    if (hasCountingDownTubes) return false;
+
+    // "Si se llenan los tubos con liquidos incorrectos y no se puede mover, o si se acaba el tiempo, se finaliza el reto."
+    if (!this.hasPossibleMoves()) {
+      this.endTimeAttack('deadlock');
+      return true;
+    }
+    return false;
+  }
+
+  endTimeAttack(reason = 'timeout') {
     if (this.timeAttackInterval) {
       clearInterval(this.timeAttackInterval);
       this.timeAttackInterval = null;
     }
+    if (this.timeAttackActiveCountdowns) {
+      this.timeAttackActiveCountdowns.clear();
+    }
     if (window.audio) window.audio.stopMusic();
-    if (window.audio && typeof window.audio.playGameOverSound === 'function') {
-      window.audio.playGameOverSound();
-    } else if (window.audio) {
-      window.audio.playFailSound();
+
+    const isVictory = (reason === 'victory');
+    if (isVictory) {
+      if (window.audio && typeof window.audio.playWinFanfare === 'function') {
+        window.audio.playWinFanfare();
+      }
+    } else {
+      if (window.audio && typeof window.audio.playGameOverSound === 'function') {
+        window.audio.playGameOverSound();
+      } else if (window.audio) {
+        window.audio.playFailSound();
+      }
     }
 
     const isNewBest = window.stateManager ? window.stateManager.recordTimeAttackScore(
       this.timeAttackScore,
-      60 - Math.max(0, this.timeAttackSecondsRemaining),
+      Math.max(0, 60 - this.timeAttackSecondsRemaining),
       this.timeAttackTubesCleared
     ) : false;
 
     const modal = document.getElementById('modal-time-attack-gameover');
     if (modal) {
+      const lblTitle = document.getElementById('lbl-ta-title');
+      const lblDesc = document.getElementById('lbl-ta-desc');
+      const iconResult = document.getElementById('icon-ta-result');
       const lblScore = document.getElementById('lbl-ta-final-score');
       const lblTubes = document.getElementById('lbl-ta-tubes-cleared');
       const lblBest = document.getElementById('lbl-ta-best-score');
       const badgeNew = document.getElementById('lbl-ta-new-record-badge');
 
+      if (lblTitle) {
+        if (isVictory) lblTitle.textContent = '¡VICTORIA MAGISTRAL! 🏆';
+        else if (reason === 'deadlock') lblTitle.textContent = '¡Sin Movimientos Posibles! 🛑';
+        else lblTitle.textContent = '¡Tiempo Agotado! ⏳';
+      }
+      if (lblDesc) {
+        if (isVictory) lblDesc.textContent = '¡Increíble hazaña! Has conseguido vaciar 100 tubos de Alquimia Viva.';
+        else if (reason === 'deadlock') lblDesc.textContent = 'Los tubos se llenaron con combinaciones incompatibles y no quedan movimientos válidos.';
+        else lblDesc.textContent = 'El reloj de la Alquimia Viva ha concluido su ciclo.';
+      }
+      if (iconResult) {
+        iconResult.textContent = isVictory ? '🏆' : (reason === 'deadlock' ? '🛑' : '⏳');
+      }
       if (lblScore) lblScore.textContent = `${this.timeAttackScore.toLocaleString()} pts`;
-      if (lblTubes) lblTubes.textContent = `${this.timeAttackTubesCleared} tubos`;
+      if (lblTubes) lblTubes.textContent = `${this.timeAttackTubesCleared} / 100 tubos`;
       if (lblBest && window.stateManager) {
         lblBest.textContent = `${window.stateManager.getTimeAttackRecord().bestScore.toLocaleString()} pts`;
       }
@@ -771,8 +1056,11 @@ class GameController {
 
   updateMovesUI() {
     if (this.isTimeAttack) {
-      if (this.lblMoves) this.lblMoves.textContent = `${this.timeAttackScore} pts`;
-      if (this.lblOptimalMoves) this.lblOptimalMoves.textContent = `${this.timeAttackTubesCleared} tubos`;
+      if (this.lblMoves) this.lblMoves.textContent = `${this.timeAttackScore.toLocaleString()} pts`;
+      if (this.lblOptimalMoves) {
+        this.lblOptimalMoves.textContent = `${this.timeAttackTubesCleared}/100 | Caída: ${this.timeAttackDropTimer}s`;
+      }
+      this.updateButtonsUI();
       return;
     }
     if (this.isHonorMode) {
@@ -818,6 +1106,19 @@ class GameController {
   }
 
   updateButtonsUI() {
+    if (this.isTimeAttack) {
+      if (this.btnUndo) {
+        this.btnUndo.disabled = true;
+        this.btnUndo.classList.add('opacity-40', 'cursor-not-allowed');
+        this.btnUndo.title = 'Deshacer desactivado en Modo Ataque';
+      }
+      if (this.btnAddTube) {
+        this.btnAddTube.disabled = true;
+        this.btnAddTube.classList.add('opacity-40', 'cursor-not-allowed');
+        this.btnAddTube.title = 'Botella auxiliar no permitida en Modo Ataque';
+      }
+      return;
+    }
     if (this.isHonorMode) {
       if (this.btnUndo) {
         this.btnUndo.disabled = true;
@@ -1136,6 +1437,15 @@ class GameController {
         tubeEl.appendChild(durabilityTag);
       }
 
+      // Modo Ataque: Indicador de cuenta regresiva de 5 segundos para vaciado
+      if (this.isTimeAttack && tube.isCountingDown) {
+        tubeEl.classList.add('tube-countdown-active');
+        const badge = document.createElement('div');
+        badge.className = 'ta-countdown-badge';
+        badge.innerHTML = `<span class="ta-countdown-num">${tube.countdownSeconds ?? 5}</span><span class="ta-countdown-sub">s</span>`;
+        tubeEl.appendChild(badge);
+      }
+
       // Rol y accesibilidad táctil para dispositivos móviles y lectores
       tubeEl.setAttribute('role', 'button');
       tubeEl.setAttribute('tabindex', '0');
@@ -1281,6 +1591,12 @@ class GameController {
         return;
       }
 
+      // Modo Ataque: Frasco en cuenta regresiva para vaciado
+      if (this.isTimeAttack && clickedTube.isCountingDown) {
+        this.triggerInvalidMove(idx, '⏳ Vaciándose en breve...');
+        return;
+      }
+
       this.selectTube(idx);
       return;
     }
@@ -1296,6 +1612,13 @@ class GameController {
     const toIdx = idx;
     const fromTube = this.tubes[fromIdx];
     const toTube = this.tubes[toIdx];
+
+    // Modo Ataque: Frasco receptor en cuenta regresiva para vaciado
+    if (this.isTimeAttack && toTube.isCountingDown) {
+      this.triggerInvalidMove(toIdx, '⏳ Tubo en vaciado');
+      this.deselectTube();
+      return;
+    }
 
     // Frasco receptor destruido
     if (toTube.isBroken) {
@@ -1377,6 +1700,7 @@ class GameController {
     if (!fromTube || !toTube) return '🚫 Movimiento inválido';
 
     if (toTube.isBroken || fromTube.isBroken) return '💥 ¡Frasco destruido!';
+    if (this.isTimeAttack && (fromTube.isCountingDown || toTube.isCountingDown)) return '⏳ ¡Tubo en vaciado!';
     if (toTube.isLocked) return '🔒 Llave requerida';
     if (toTube.liquids.length >= toTube.capacity) return '🚫 ¡Tubo lleno!';
     if (fromTube.isGlued) return '🪨 ¡Frasco inamovible!';
@@ -1447,6 +1771,7 @@ class GameController {
     const toTube = this.tubes[toIdx];
 
     if (fromTube.isBroken || toTube.isBroken) return false;
+    if (this.isTimeAttack && (fromTube.isCountingDown || toTube.isCountingDown)) return false;
     if (toTube.isLocked || fromTube.liquids.length === 0) return false;
     if (toTube.liquids.length >= toTube.capacity) return false;
 
@@ -1776,6 +2101,9 @@ class GameController {
 
                 // Comprobar victoria
                 this.checkVictory();
+                if (this.isTimeAttack) {
+                  this.checkTimeAttackDeadlock();
+                }
               }, 250);
             }, 190);
           }, 520);
@@ -2144,6 +2472,9 @@ class GameController {
       this.renderTubes();
       this.updateButtonsUI();
       this.checkVictory();
+      if (this.isTimeAttack) {
+        this.checkTimeAttackDeadlock();
+      }
     }, 850);
   }
 

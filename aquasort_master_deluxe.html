@@ -46,10 +46,10 @@
   <link rel="icon" type="image/svg+xml" href="icons/icon.svg">
 
   <!-- Modular Stylesheets -->
-  <link rel="stylesheet" href="css/main.css?v=32">
-  <link rel="stylesheet" href="css/tubes.css?v=32">
-  <link rel="stylesheet" href="css/roulette.css?v=32">
-  <link rel="stylesheet" href="css/accessibility.css?v=32">
+  <link rel="stylesheet" href="css/main.css?v=33">
+  <link rel="stylesheet" href="css/tubes.css?v=33">
+  <link rel="stylesheet" href="css/roulette.css?v=33">
+  <link rel="stylesheet" href="css/accessibility.css?v=33">
 </head>
 <body class="min-h-screen flex flex-col justify-between select-none relative">
 
@@ -2134,11 +2134,11 @@
        ========================================================================== -->
   <div id="modal-time-attack-gameover" class="fixed inset-0 bg-slate-950/90 backdrop-blur-md z-50 hidden flex items-center justify-center p-3 sm:p-5 modal-overlay">
     <div class="bg-slate-900 border border-slate-700/80 rounded-3xl max-w-md w-full p-6 shadow-2xl text-center relative overflow-hidden modal-content">
-      <div class="w-16 h-16 rounded-2xl bg-amber-500/20 border border-amber-400/40 flex items-center justify-center mx-auto mb-3 text-amber-300 text-3xl shadow-lg shadow-amber-500/20">
+      <div id="icon-ta-result" class="w-16 h-16 rounded-2xl bg-amber-500/20 border border-amber-400/40 flex items-center justify-center mx-auto mb-3 text-amber-300 text-3xl shadow-lg shadow-amber-500/20">
         ⏳
       </div>
-      <h2 class="text-2xl font-black text-white mb-1">¡Tiempo Agotado!</h2>
-      <p class="text-xs text-slate-400 mb-3">La reacción en cadena de la Alquimia Viva ha concluido.</p>
+      <h2 id="lbl-ta-title" class="text-2xl font-black text-white mb-1">¡Tiempo Agotado!</h2>
+      <p id="lbl-ta-desc" class="text-xs text-slate-400 mb-3">La reacción en cadena de la Alquimia Viva ha concluido.</p>
 
       <div id="lbl-ta-new-record-badge" class="hidden mb-3 inline-flex items-center gap-1.5 bg-gradient-to-r from-amber-500 to-yellow-400 text-slate-950 text-xs font-black px-3.5 py-1.5 rounded-full shadow-lg shadow-amber-500/30 animate-bounce">
         <span>⭐ ¡NUEVO RÉCORD CONTRARRELOJ! ⭐</span>
@@ -2176,19 +2176,19 @@
   <input type="file" id="input-save-file" accept=".json" class="hidden">
 
   <!-- Scripts modulares -->
-  <script src="js/firebase-config.js?v=32"></script>
-  <script src="js/cloud-sync.js?v=32"></script>
-  <script src="js/audio.js?v=32"></script>
-  <script src="js/palette.js?v=32"></script>
-  <script src="js/levels.js?v=32"></script>
-  <script src="js/challenges.js?v=32"></script>
-  <script src="js/honor.js?v=32"></script>
-  <script src="js/state.js?v=32"></script>
-  <script src="js/achievements.js?v=32"></script>
-  <script src="js/leaderboard.js?v=32"></script>
-  <script src="js/roulette.js?v=32"></script>
-  <script src="js/story.js?v=32"></script>
-  <script src="js/game.js?v=32"></script>
+  <script src="js/firebase-config.js?v=33"></script>
+  <script src="js/cloud-sync.js?v=33"></script>
+  <script src="js/audio.js?v=33"></script>
+  <script src="js/palette.js?v=33"></script>
+  <script src="js/levels.js?v=33"></script>
+  <script src="js/challenges.js?v=33"></script>
+  <script src="js/honor.js?v=33"></script>
+  <script src="js/state.js?v=33"></script>
+  <script src="js/achievements.js?v=33"></script>
+  <script src="js/leaderboard.js?v=33"></script>
+  <script src="js/roulette.js?v=33"></script>
+  <script src="js/story.js?v=33"></script>
+  <script src="js/game.js?v=33"></script>
 
   <!-- Registro de Service Worker PWA -->
   <script>
