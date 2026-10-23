@@ -533,6 +533,107 @@ class LevelGenerator {
     data.isDaily = true;
     return data;
   }
+
+  /**
+   * Genera un nivel casual sandbox totalmente personalizable e infinito.
+   * @param {Object} options
+   * @param {number} options.tubeCount - Total de tubos (4 a 12, defecto 7)
+   * @param {number} options.colorCount - Total de colores (3 a 10, defecto 5)
+   * @param {Object} options.mechanics - { mystery, giant, lock, narrow, glued, chameleon, fragile }
+   * @param {number} options.seed - Semilla opcional
+   */
+  static generateCasualSandbox({ tubeCount = 7, colorCount = 5, mechanics = {}, seed = null } = {}) {
+    const totalTubes = Math.max(4, Math.min(12, parseInt(tubeCount) || 7));
+    // Los colores no pueden superar totalTubes - 1 (mínimo 1 tubo vacío, idealmente 2)
+    const maxColors = Math.max(2, totalTubes - 2);
+    const numColors = Math.max(2, Math.min(maxColors, Math.min(10, parseInt(colorCount) || 5)));
+    const emptyCount = totalTubes - numColors;
+
+    const currentPalette = window.paletteManager ? window.paletteManager.getPalette() : [];
+    const activeColors = currentPalette.slice(0, numColors);
+
+    const hasMystery = !!mechanics.mystery;
+    const hasGiant = !!mechanics.giant;
+    const hasLock = !!mechanics.lock;
+    const hasNarrow = !!mechanics.narrow;
+    const hasGlued = !!mechanics.glued;
+    const hasChameleon = !!mechanics.chameleon;
+    const hasFragile = !!mechanics.fragile;
+
+    const tubes = [];
+    const capacity = 4;
+
+    for (let i = 0; i < numColors; i++) {
+      const col = activeColors[i];
+      const isGiant = (hasGiant && i === 0);
+      const cap = isGiant ? 6 : capacity;
+      const tubeLiquids = [];
+
+      for (let k = 0; k < cap; k++) {
+        const isCham = (hasChameleon && i === 1 && k === 1 && !isGiant);
+        tubeLiquids.push({
+          colorIndex: isCham ? 'chameleon' : col.id,
+          color: isCham ? 'chameleon' : col.hex,
+          name: isCham ? 'Camaleón' : col.name,
+          shape: isCham ? '★' : col.shape,
+          pattern: isCham ? null : col.pattern,
+          textHex: isCham ? '#ffffff' : col.textHex,
+          isMystery: (hasMystery && k < cap - 1 && !isCham),
+          revealed: false
+        });
+      }
+
+      tubes.push({
+        id: i,
+        capacity: cap,
+        liquids: tubeLiquids,
+        isGlued: (hasGlued && i === numColors - 1),
+        isLocked: (hasLock && i === 0),
+        fragileUses: (hasFragile && i === 2) ? 3 : null,
+        isNarrow: false
+      });
+    }
+
+    // Tubos vacíos
+    for (let j = 0; j < emptyCount; j++) {
+      const tubeIndex = numColors + j;
+      const isNarrow = (hasNarrow && j === emptyCount - 1);
+      tubes.push({
+        id: tubeIndex,
+        capacity: isNarrow ? 1 : capacity,
+        liquids: [],
+        isGlued: false,
+        isLocked: false,
+        fragileUses: null,
+        isNarrow: isNarrow
+      });
+    }
+
+    const actualSeed = (seed !== null && seed !== undefined) ? seed : Math.floor(Math.random() * 9999999);
+    this.distributeAndShuffle(tubes, actualSeed);
+
+    const activeMechanicNames = [];
+    if (hasMystery) activeMechanicNames.push('Misterio');
+    if (hasGiant) activeMechanicNames.push('Gigante');
+    if (hasLock) activeMechanicNames.push('Candado');
+    if (hasNarrow) activeMechanicNames.push('Tubo 1x1');
+    if (hasGlued) activeMechanicNames.push('En Roca');
+    if (hasChameleon) activeMechanicNames.push('Camaleón');
+    if (hasFragile) activeMechanicNames.push('Frágil');
+
+    return {
+      level: 'casual_sandbox',
+      isCasualSandbox: true,
+      title: `Modo Casual (${totalTubes} Tubos, ${numColors} Colores)`,
+      mechanicTag: activeMechanicNames.length > 0 ? activeMechanicNames.join(' • ') : 'Puro y Relajante',
+      optimalMoves: numColors * 3 + 4,
+      totalTubes: totalTubes,
+      totalColors: numColors,
+      tubes: tubes,
+      config: { tubeCount: totalTubes, colorCount: numColors, mechanics, seed: actualSeed }
+    };
+  }
 }
 
 window.LevelGenerator = LevelGenerator;
+

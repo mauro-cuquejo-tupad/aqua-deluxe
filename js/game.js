@@ -27,6 +27,17 @@ class GameController {
     this.levelChallenges = [];
     this.victoryAnimationTimers = [];
 
+    // Modo Contrarreloj (Time Attack - Alquimia Viva)
+    this.isTimeAttack = false;
+    this.timeAttackSecondsRemaining = 60;
+    this.timeAttackScore = 0;
+    this.timeAttackTubesCleared = 0;
+    this.timeAttackInterval = null;
+
+    // Modo Casual Infinito (Sandbox)
+    this.isCasualSandbox = false;
+    this.casualSandboxConfig = null;
+
     // Desafíos de Honor de Sección
     this.isHonorMode = false;
     this.honorSectionId = null;
@@ -150,6 +161,9 @@ class GameController {
     this.btnVicLaunchHonor = document.getElementById('btn-vic-launch-honor');
     this.modalApocalypse = document.getElementById('modal-apocalypse-easter-egg');
     this.modalCloudSync = document.getElementById('modal-cloud-sync');
+    this.modalAchievements = document.getElementById('modal-achievements');
+    this.modalCasualSandbox = document.getElementById('modal-casual-sandbox');
+    this.modalTimeAttackGameOver = document.getElementById('modal-time-attack-gameover');
 
     // Catálogo de Mecánicas y Guía de Tutoriales (Espaciadas cada 10 niveles)
     this.mechanicsCatalog = [
@@ -318,7 +332,7 @@ class GameController {
 
   // --- CARGA Y GENERACIÓN DE NIVELES ---
   loadLevel(lvl, seedVariation = 0, customLevelData = null) {
-    if (lvl !== 'daily' && !customLevelData && !this.isHonorMode) {
+    if (lvl !== 'daily' && lvl !== 'casual_sandbox' && lvl !== 'time_attack' && !customLevelData && !this.isHonorMode) {
       const targetLvl = Math.max(1, Math.min(lvl, this.maxLevels));
       if (!this.isLevelUnlocked(targetLvl)) {
         if (window.audio) window.audio.playFailSound();
@@ -327,7 +341,12 @@ class GameController {
       }
       this.currentLevel = targetLvl;
       this.isDailyChallenge = false;
+      this.isCasualSandbox = false;
+      this.isTimeAttack = false;
     }
+    if (lvl !== 'daily') this.isDailyChallenge = false;
+    if (lvl !== 'casual_sandbox') this.isCasualSandbox = false;
+    if (lvl !== 'time_attack') this.isTimeAttack = false;
     this.moves = 0;
     this.moveHistory = [];
     this.selectedTubeIndex = null;
@@ -432,6 +451,18 @@ class GameController {
       this.updateCoinsUI();
       return;
     }
+    if (this.isCasualSandbox) {
+      if (this.lblLevel) this.lblLevel.textContent = '🎲 CASUAL';
+      if (this.lblMechanicTag) this.lblMechanicTag.textContent = this.levelData?.mechanicTag || 'Infinito';
+      this.updateCoinsUI();
+      return;
+    }
+    if (this.isTimeAttack) {
+      if (this.lblLevel) this.lblLevel.textContent = '⏳ ATAQUE';
+      if (this.lblMechanicTag) this.lblMechanicTag.textContent = 'Alquimia Viva';
+      this.updateCoinsUI();
+      return;
+    }
     if (this.isDailyChallenge) {
       if (this.lblLevel) this.lblLevel.textContent = '👑 DIARIO';
       if (this.lblMechanicTag) this.lblMechanicTag.textContent = 'Desafío del Día';
@@ -447,13 +478,291 @@ class GameController {
 
   launchDailyChallenge() {
     this.isDailyChallenge = true;
+    this.isTimeAttack = false;
+    this.isCasualSandbox = false;
     const dailyData = window.LevelGenerator ? window.LevelGenerator.generateDailyLevel() : null;
     if (!dailyData) return;
     this.loadLevel('daily', 0, dailyData);
     if (window.audio) window.audio.playWinFanfare();
   }
 
+  // --- MODO CONTRARRELOJ INFINITO (ALQUIMIA VIVA) ---
+  startTimeAttack() {
+    this.isTimeAttack = true;
+    this.isDailyChallenge = false;
+    this.isHonorMode = false;
+    this.isCasualSandbox = false;
+    this.timeAttackSecondsRemaining = 60;
+    this.timeAttackScore = 0;
+    this.timeAttackTubesCleared = 0;
+
+    if (this.timeAttackInterval) {
+      clearInterval(this.timeAttackInterval);
+      this.timeAttackInterval = null;
+    }
+
+    // Generar tablero de Time Attack: 7 tubos (4 colores de 4 capas + 3 tubos vacíos)
+    const pal = window.paletteManager ? window.paletteManager.getPalette() : [];
+    const colors = pal.slice(0, 4);
+    const tubes = [];
+    for (let i = 0; i < 4; i++) {
+      const col = colors[i];
+      const tubeLiquids = [];
+      for (let k = 0; k < 4; k++) {
+        tubeLiquids.push({
+          colorIndex: col.id,
+          color: col.hex,
+          name: col.name,
+          shape: col.shape,
+          pattern: col.pattern,
+          textHex: col.textHex,
+          isMystery: false,
+          revealed: true
+        });
+      }
+      tubes.push({ id: i, capacity: 4, liquids: tubeLiquids, isLocked: false, isGlued: false, isNarrow: false });
+    }
+    for (let j = 0; j < 3; j++) {
+      tubes.push({ id: 4 + j, capacity: 4, liquids: [], isLocked: false, isGlued: false, isNarrow: false });
+    }
+    window.LevelGenerator.distributeAndShuffle(tubes, Math.floor(Math.random() * 999999));
+
+    const timeAttackData = {
+      level: 'time_attack',
+      isTimeAttack: true,
+      title: 'Contrarreloj • Alquimia Viva ⏳',
+      mechanicTag: 'Alquimia Viva',
+      optimalMoves: 999,
+      tubes: tubes
+    };
+
+    this.loadLevel('time_attack', 0, timeAttackData);
+
+    const movesLbl = document.getElementById('lbl-moves');
+    const optimalLbl = document.getElementById('lbl-optimal-moves');
+    if (movesLbl) movesLbl.textContent = '0 pts';
+    if (optimalLbl) optimalLbl.textContent = '0 tubos';
+
+    const timerEl = document.getElementById('lbl-timer');
+    if (timerEl) {
+      timerEl.textContent = '01:00';
+      timerEl.className = 'font-mono font-black text-amber-300 text-sm';
+    }
+
+    this.timeAttackInterval = setInterval(() => {
+      this.timeAttackSecondsRemaining--;
+      if (timerEl) {
+        timerEl.textContent = window.leaderboardManager
+          ? window.leaderboardManager.formatTime(Math.max(0, this.timeAttackSecondsRemaining))
+          : `${this.timeAttackSecondsRemaining}s`;
+        if (this.timeAttackSecondsRemaining <= 15) {
+          timerEl.className = 'font-mono font-black text-rose-400 text-sm animate-pulse';
+        } else {
+          timerEl.className = 'font-mono font-black text-amber-300 text-sm';
+        }
+      }
+      if (this.timeAttackSecondsRemaining <= 0) {
+        this.endTimeAttack();
+      }
+    }, 1000);
+
+    if (window.audio) window.audio.playWinFanfare();
+  }
+
+  checkTimeAttackTubes() {
+    if (!this.isTimeAttack) return false;
+    let anyComplete = false;
+    for (let i = 0; i < this.tubes.length; i++) {
+      const tube = this.tubes[i];
+      if (tube.liquids.length === tube.capacity && this.isTubeComplete(tube, { allowChameleon: true })) {
+        this.dissolveTimeAttackTube(i);
+        anyComplete = true;
+      }
+    }
+    return anyComplete;
+  }
+
+  dissolveTimeAttackTube(tubeIdx) {
+    const tube = this.tubes[tubeIdx];
+    if (!tube) return;
+
+    const allTubeEls = this.tubesGrid.querySelectorAll('.test-tube');
+    const tubeEl = allTubeEls[tubeIdx];
+
+    if (tubeEl) {
+      tubeEl.classList.add('tube-vaporize-complete');
+      setTimeout(() => tubeEl.classList.remove('tube-vaporize-complete'), 750);
+
+      // Flotante "+15s ⏱️ +1,500 pts ✨"
+      const floatTag = document.createElement('div');
+      floatTag.className = 'time-attack-bonus-float';
+      floatTag.innerHTML = `+15s ⏱️ +1,500 pts ✨`;
+      tubeEl.appendChild(floatTag);
+      setTimeout(() => floatTag.remove(), 1250);
+    }
+
+    if (window.audio) {
+      window.audio.playVictory();
+    }
+
+    // Sumar puntos y segundos
+    this.timeAttackSecondsRemaining += 15;
+    this.timeAttackScore += 1500;
+    this.timeAttackTubesCleared++;
+
+    // Vaciar el tubo
+    tube.liquids = [];
+
+    // Comprobar logro de puntuación Time Attack
+    if (this.timeAttackScore >= 10000 && window.achievementManager) {
+      window.achievementManager.unlock('time_attack_survivor');
+    }
+
+    // Inyectar líquidos nuevos de la reserva mágica en tubos disponibles
+    setTimeout(() => {
+      const pal = window.paletteManager ? window.paletteManager.getPalette() : [];
+      const activeColors = pal.slice(0, Math.min(6, 4 + Math.floor(this.timeAttackTubesCleared / 3)));
+      const countToDrop = 3;
+
+      for (let d = 0; d < countToDrop; d++) {
+        const randomCol = activeColors[Math.floor(Math.random() * activeColors.length)];
+        const eligibleTubes = this.tubes.filter(t => t.liquids.length < t.capacity);
+        if (eligibleTubes.length > 0) {
+          const target = eligibleTubes[Math.floor(Math.random() * eligibleTubes.length)];
+          target.liquids.push({
+            colorIndex: randomCol.id,
+            color: randomCol.hex,
+            name: randomCol.name,
+            shape: randomCol.shape,
+            pattern: randomCol.pattern,
+            textHex: randomCol.textHex,
+            isMystery: false,
+            revealed: true
+          });
+        }
+      }
+
+      this.renderTubes();
+      this.updateMovesUI();
+    }, 350);
+  }
+
+  endTimeAttack() {
+    if (this.timeAttackInterval) {
+      clearInterval(this.timeAttackInterval);
+      this.timeAttackInterval = null;
+    }
+    if (window.audio && typeof window.audio.playGameOverSound === 'function') {
+      window.audio.playGameOverSound();
+    } else if (window.audio) {
+      window.audio.playFailSound();
+    }
+
+    const isNewBest = window.stateManager ? window.stateManager.recordTimeAttackScore(
+      this.timeAttackScore,
+      60 - Math.max(0, this.timeAttackSecondsRemaining),
+      this.timeAttackTubesCleared
+    ) : false;
+
+    const modal = document.getElementById('modal-time-attack-gameover');
+    if (modal) {
+      const lblScore = document.getElementById('lbl-ta-final-score');
+      const lblTubes = document.getElementById('lbl-ta-tubes-cleared');
+      const lblBest = document.getElementById('lbl-ta-best-score');
+      const badgeNew = document.getElementById('lbl-ta-new-record-badge');
+
+      if (lblScore) lblScore.textContent = `${this.timeAttackScore.toLocaleString()} pts`;
+      if (lblTubes) lblTubes.textContent = `${this.timeAttackTubesCleared} tubos`;
+      if (lblBest && window.stateManager) {
+        lblBest.textContent = `${window.stateManager.getTimeAttackRecord().bestScore.toLocaleString()} pts`;
+      }
+      if (badgeNew) {
+        badgeNew.style.display = isNewBest ? 'inline-flex' : 'none';
+      }
+      modal.classList.remove('hidden');
+    }
+  }
+
+  // --- MODO CASUAL SANDBOX INFINITO ---
+  openCasualSandboxModal() {
+    const modal = document.getElementById('modal-casual-sandbox');
+    if (!modal) return;
+    modal.classList.remove('hidden');
+    if (window.audio) window.audio.playSelect();
+  }
+
+  closeCasualSandboxModal() {
+    const modal = document.getElementById('modal-casual-sandbox');
+    if (!modal) return;
+    modal.classList.add('hidden');
+    if (window.audio) window.audio.playSelect();
+  }
+
+  startCasualSandbox(config = null) {
+    this.closeCasualSandboxModal();
+    this.isCasualSandbox = true;
+    this.isTimeAttack = false;
+    this.isDailyChallenge = false;
+    this.isHonorMode = false;
+
+    if (!config) {
+      const tubeCount = parseInt(document.getElementById('input-sandbox-tubes')?.value, 10) || 7;
+      const colorCount = parseInt(document.getElementById('input-sandbox-colors')?.value, 10) || 5;
+      const mechanics = {
+        mystery: !!document.getElementById('cb-sandbox-mystery')?.checked,
+        giant: !!document.getElementById('cb-sandbox-giant')?.checked,
+        lock: !!document.getElementById('cb-sandbox-lock')?.checked,
+        narrow: !!document.getElementById('cb-sandbox-narrow')?.checked,
+        glued: !!document.getElementById('cb-sandbox-glued')?.checked,
+        chameleon: !!document.getElementById('cb-sandbox-chameleon')?.checked,
+        fragile: !!document.getElementById('cb-sandbox-fragile')?.checked
+      };
+      config = { tubeCount, colorCount, mechanics, seed: Math.floor(Math.random() * 9999999) };
+    }
+    this.casualSandboxConfig = config;
+
+    const data = window.LevelGenerator.generateCasualSandbox(config);
+    this.loadLevel('casual_sandbox', 0, data);
+  }
+
+  nextCasualSandboxLevel() {
+    if (!this.casualSandboxConfig) {
+      this.casualSandboxConfig = { tubeCount: 7, colorCount: 5, mechanics: {}, seed: Math.floor(Math.random() * 9999999) };
+    }
+    this.casualSandboxConfig.seed = Math.floor(Math.random() * 9999999);
+    const data = window.LevelGenerator.generateCasualSandbox(this.casualSandboxConfig);
+    this.loadLevel('casual_sandbox', 0, data);
+  }
+
+  // --- MODO DESCANSO VISUAL (FILTRO AMARILLO / LENTES) ---
+  toggleVisualComfortMode(forceValue = null) {
+    const sm = window.stateManager;
+    const currentVal = sm ? sm.isVisualComfortMode() : false;
+    const nextVal = (forceValue !== null) ? !!forceValue : !currentVal;
+
+    if (sm) sm.setVisualComfortMode(nextVal);
+
+    if (nextVal) {
+      if (window.paletteManager) window.paletteManager.applyPreset('visual_comfort');
+      this.showAccessibilityPatterns = true;
+      if (sm?.state?.settings) sm.state.settings.showAccessibilityPatterns = true;
+    } else {
+      if (window.paletteManager) window.paletteManager.applyPreset('aaa');
+    }
+
+    const cbComfort = document.getElementById('toggle-visual-comfort-mode');
+    if (cbComfort) cbComfort.checked = nextVal;
+
+    this.refreshBoardVisuals();
+    if (window.audio) window.audio.playSelect();
+  }
+
   updateMovesUI() {
+    if (this.isTimeAttack) {
+      if (this.lblMoves) this.lblMoves.textContent = `${this.timeAttackScore} pts`;
+      if (this.lblOptimalMoves) this.lblOptimalMoves.textContent = `${this.timeAttackTubesCleared} tubos`;
+      return;
+    }
     if (this.isHonorMode) {
       this.honorMovesRemaining = this.honorMovesLimit - this.moves;
       if (this.lblMoves) {
@@ -683,11 +992,12 @@ class GameController {
           segment.innerHTML = `<span>?</span>`;
         } else {
           // Capa de color normal o camaleón
+          const shouldShowPatterns = this.showAccessibilityPatterns || (window.stateManager && window.stateManager.isVisualComfortMode());
           if (liq.isChameleon) {
             segment.classList.add('liquid-chameleon');
           } else {
             segment.style.backgroundColor = liq.color;
-            if (this.showAccessibilityPatterns && liq.pattern) segment.classList.add(liq.pattern);
+            if (shouldShowPatterns && liq.pattern) segment.classList.add(liq.pattern);
           }
 
           // Burbujas ascendentes decorativas
@@ -695,8 +1005,8 @@ class GameController {
           bubble.className = 'bubble w-1.5 h-1.5 left-3';
           segment.appendChild(bubble);
 
-          // Símbolos y etiquetas de color (desactivados por defecto para líquidos limpios y puros)
-          if (this.showAccessibilityPatterns && liq.shape) {
+          // Símbolos y etiquetas de color (activos en modo accesibilidad o descanso visual)
+          if (shouldShowPatterns && liq.shape) {
             segment.innerHTML += `
               <span class="shape-icon" style="color: ${liq.textHex || '#fff'}; font-size: 1.15rem;">
                 ${liq.shape}
@@ -1368,6 +1678,9 @@ class GameController {
                     } else {
                       // Rotura total del frasco
                       toTube.isBroken = true;
+                      if (window.achievementManager) {
+                        window.achievementManager.unlock('first_shatter');
+                      }
                       if (window.audio && typeof window.audio.playGlassShatter === 'function') {
                         window.audio.playGlassShatter();
                       }
@@ -1705,6 +2018,10 @@ class GameController {
     this.saveStateForUndo();
     this.isPouringAnimation = true;
 
+    if (window.achievementManager) {
+      window.achievementManager.increment('chemical_master_10', 1);
+    }
+
     const fromTube = this.tubes[fromIdx];
     const toTube = this.tubes[toIdx];
 
@@ -1883,6 +2200,11 @@ class GameController {
 
   // --- COMPROBACIÓN DE VICTORIA Y SECUENCIA DE CORCHOS ---
   checkVictory() {
+    if (this.isTimeAttack) {
+      this.checkTimeAttackTubes();
+      return;
+    }
+
     // 1. CONDICIÓN CRÍTICA DE VICTORIA SOLICITADA POR EL USUARIO:
     // Las botellas especiales (gigantes de max 6 u 8, botellas de una dirección / en la roca)
     // DEBEN ESTAR COMPLETAS (no pueden dejarse vacías ni a medio llenar).
@@ -2184,6 +2506,41 @@ class GameController {
           time: elapsedSecs,
           stars: 3
         });
+        if (window.leaderboardManager) {
+          window.leaderboardManager.submitDailyScoreToGlobal({
+            dateStr,
+            score: this.lastLevelScore || 1000,
+            moves: this.moves,
+            time: elapsedSecs,
+            combo: consecutiveCount,
+            stars: 3
+          });
+          window.leaderboardManager.submitHallOfFameScore();
+        }
+        const totalDaily = Object.values(window.stateManager.state.progress.dailyChallenges || {}).filter(d => d.completed).length;
+        if (window.achievementManager) {
+          window.achievementManager.check('daily_streak_7', totalDaily);
+        }
+      }
+    } else if (this.isCasualSandbox) {
+      if (vicTitle) {
+        vicTitle.innerHTML = '🎲 ¡NIVEL CASUAL RESUELTO!';
+        vicTitle.className = 'text-2xl font-black text-transparent bg-clip-text bg-gradient-to-r from-emerald-300 via-teal-200 to-sky-300 mb-1';
+      }
+      if (vicSubtitle) {
+        vicSubtitle.innerHTML = '✨ ¡Completado sin consumir vidas! Puzzles infinitos para relajarte.';
+        vicSubtitle.className = 'text-xs text-emerald-300 font-bold mb-3';
+      }
+      if (completionBadge) completionBadge.classList.add('hidden');
+      if (btnVicNext) {
+        btnVicNext.className = 'btn-interactive w-full py-3 bg-gradient-to-r from-emerald-500 to-teal-500 hover:from-emerald-400 hover:to-teal-400 text-slate-950 font-black rounded-2xl transition-all flex items-center justify-center gap-2 shadow-md';
+        btnVicNext.innerHTML = '<span>🎲 Siguiente Nivel Aleatorio</span><i data-lucide="refresh-cw" class="w-4 h-4"></i>';
+      }
+      if (window.stateManager) {
+        const total = window.stateManager.recordSandboxLevelCompleted();
+        if (window.achievementManager) {
+          window.achievementManager.check('casual_explorer_10', total);
+        }
       }
     } else if (this.currentLevel === 100) {
       const hasAllOneStar = this.hasAllLevelsAtLeastOneStar();
@@ -2244,6 +2601,27 @@ class GameController {
         btnVicNext.className = 'btn-interactive w-full py-3 bg-sky-600 hover:bg-sky-500 text-white font-bold rounded-2xl transition-all flex items-center justify-center gap-2 shadow-md';
         btnVicNext.innerHTML = '<span>Siguiente Nivel</span><i data-lucide="arrow-right" class="w-4 h-4"></i>';
       }
+    }
+
+    // --- EVALUACIÓN DE LOGROS GENERALES ---
+    if (window.achievementManager) {
+      if (window.stateManager && window.stateManager.isVisualComfortMode()) {
+        window.achievementManager.unlock('visual_comfort_win');
+      }
+      if (consecutiveCount >= 5) {
+        window.achievementManager.unlock('combo_streak_5');
+      }
+      if (this.undoCountInLevel === 0 && this.extraTubesUsed === 0) {
+        window.achievementManager.increment('no_undo_master', 1);
+      }
+      if (starCount === 3 && elapsedSecs <= 25) {
+        window.achievementManager.unlock('flawless_win');
+      }
+      if (this.currentLevel >= 10 && !this.isDailyChallenge && !this.isCasualSandbox) {
+        window.achievementManager.unlock('chapter_1_complete');
+      }
+      const totalStars = window.leaderboardManager ? window.leaderboardManager.getGlobalStats().totalStars : 0;
+      window.achievementManager.check('stars_150', totalStars);
     }
 
     if (window.lucide) lucide.createIcons();
@@ -3607,6 +3985,94 @@ class GameController {
       cbPatterns.checked = this.showAccessibilityPatterns;
       cbPatterns.addEventListener('change', (e) => this.toggleAccessibilityPatterns(e.target.checked));
     }
+    const cbVisualComfort = document.getElementById('toggle-visual-comfort-mode');
+    if (cbVisualComfort) {
+      cbVisualComfort.checked = window.stateManager ? window.stateManager.isVisualComfortMode() : false;
+      cbVisualComfort.addEventListener('change', (e) => this.toggleVisualComfortMode(e.target.checked));
+    }
+
+    // Botones de Modos en Home Screen
+    const btnHomeCasual = document.getElementById('btn-home-casual');
+    if (btnHomeCasual) {
+      this.bindTapOrClick(btnHomeCasual, () => {
+        this.closeHomeModal();
+        this.openCasualSandboxModal();
+      });
+    }
+
+    const btnHomeTimeAttack = document.getElementById('btn-home-time-attack');
+    if (btnHomeTimeAttack) {
+      this.bindTapOrClick(btnHomeTimeAttack, () => {
+        this.closeHomeModal();
+        this.startTimeAttack();
+      });
+    }
+
+    const btnHomeAchievements = document.getElementById('btn-home-achievements');
+    if (btnHomeAchievements) {
+      this.bindTapOrClick(btnHomeAchievements, () => {
+        this.closeHomeModal();
+        if (window.achievementManager) window.achievementManager.openModal();
+      });
+    }
+
+    // Modal Logros
+    const btnCloseAchievements = document.getElementById('btn-close-achievements');
+    if (btnCloseAchievements) {
+      this.bindTapOrClick(btnCloseAchievements, () => {
+        if (window.achievementManager) window.achievementManager.closeModal();
+      });
+    }
+
+    const achFilterAll = document.getElementById('btn-ach-filter-all');
+    const achFilterUnlocked = document.getElementById('btn-ach-filter-unlocked');
+    const achFilterLocked = document.getElementById('btn-ach-filter-locked');
+    if (achFilterAll && window.achievementManager) {
+      achFilterAll.addEventListener('click', () => {
+        window.achievementManager.currentFilter = 'all';
+        window.achievementManager.renderAchievementsUI();
+      });
+    }
+    if (achFilterUnlocked && window.achievementManager) {
+      achFilterUnlocked.addEventListener('click', () => {
+        window.achievementManager.currentFilter = 'unlocked';
+        window.achievementManager.renderAchievementsUI();
+      });
+    }
+    if (achFilterLocked && window.achievementManager) {
+      achFilterLocked.addEventListener('click', () => {
+        window.achievementManager.currentFilter = 'locked';
+        window.achievementManager.renderAchievementsUI();
+      });
+    }
+
+    // Modal Casual Sandbox
+    const btnCloseSandbox = document.getElementById('btn-close-sandbox');
+    if (btnCloseSandbox) {
+      this.bindTapOrClick(btnCloseSandbox, () => this.closeCasualSandboxModal());
+    }
+    const btnStartSandboxPlay = document.getElementById('btn-start-sandbox-play');
+    if (btnStartSandboxPlay) {
+      this.bindTapOrClick(btnStartSandboxPlay, () => this.startCasualSandbox());
+    }
+
+    // Modal Time Attack Game Over
+    const btnTaReplay = document.getElementById('btn-time-attack-replay');
+    if (btnTaReplay) {
+      this.bindTapOrClick(btnTaReplay, () => {
+        const m = document.getElementById('modal-time-attack-gameover');
+        if (m) m.classList.add('hidden');
+        this.startTimeAttack();
+      });
+    }
+    const btnTaHome = document.getElementById('btn-time-attack-home');
+    if (btnTaHome) {
+      this.bindTapOrClick(btnTaHome, () => {
+        const m = document.getElementById('modal-time-attack-gameover');
+        if (m) m.classList.add('hidden');
+        this.openHomeModal();
+      });
+    }
 
     // Modal Victoria: Rehacer Nivel (Replay para mejorar tiempos manteniendo desafíos)
     const btnVicReplay = document.getElementById('btn-vic-replay');
@@ -3626,7 +4092,9 @@ class GameController {
     if (btnVicNext) {
       this.bindTapOrClick(btnVicNext, () => {
         this.hideModal(this.modalVictory);
-        if (this.isDailyChallenge) {
+        if (this.isCasualSandbox) {
+          this.nextCasualSandboxLevel();
+        } else if (this.isDailyChallenge) {
           this.showLeaderboardModal();
         } else if (this.currentLevel >= 100) {
           if (!this.hasAllLevelsAtLeastOneStar()) {
@@ -3923,6 +4391,18 @@ class GameController {
   }
 
   confirmRestartLevel() {
+    if (this.isCasualSandbox) {
+      this.closeRestartConfirmModal();
+      this.nextCasualSandboxLevel();
+      if (window.audio) window.audio.playSelect();
+      return;
+    }
+    if (this.isTimeAttack) {
+      this.closeRestartConfirmModal();
+      this.startTimeAttack();
+      if (window.audio) window.audio.playSelect();
+      return;
+    }
     if (!window.stateManager) {
       this.loadLevel(this.currentLevel);
       this.closeRestartConfirmModal();

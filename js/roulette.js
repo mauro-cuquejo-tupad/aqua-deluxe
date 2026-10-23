@@ -1651,6 +1651,11 @@ class MinigameEngine {
 
   // --- CELEBRACIÓN DE GIRO / TIRO PERFECTO ---
   triggerPerfectCelebration(title = "¡MAGISTRAL! 🌟", subtitle = "¡Giro de Precisión Absoluta!") {
+    // 0. Registrar logro de tiros perfectos
+    if (window.achievementManager) {
+      window.achievementManager.increment('perfect_spins_100', 1);
+    }
+
     // 1. Sonidos de victoria y júbilo
     if (window.audio) {
       window.audio.playWinFanfare();

@@ -33,6 +33,27 @@ const COLORBLIND_PALETTE = [
   { id: 7, name: 'Gris Perla', hex: '#e2e8f0', shape: '✦', pattern: 'pattern-zigzag', textHex: '#000000' }
 ];
 
+// PALETA DESCANSO VISUAL (Calibrada para Lentes con Filtro Amarillo / Protección de Luz Azul)
+// Resuelve la confusión naranja/rosa y celeste/verde con alto contraste de luminosidad y saturación
+const VISUAL_COMFORT_PALETTE = [
+  { id: 0, name: 'Azul Cobalto Intenso', hex: '#1d4ed8', shape: '●', pattern: 'pattern-stripes', textHex: '#ffffff' },
+  { id: 1, name: 'Naranja Fuego Vivo', hex: '#ea580c', shape: '▲', pattern: 'pattern-dots', textHex: '#ffffff' },
+  { id: 2, name: 'Verde Bosque Oscuro', hex: '#064e3b', shape: '■', pattern: 'pattern-grid', textHex: '#ffffff' },
+  { id: 3, name: 'Amarillo Limón Puro', hex: '#fde047', shape: '★', pattern: 'pattern-diagonal-left', textHex: '#000000' },
+  { id: 4, name: 'Violeta Púrpura Imperial', hex: '#6b21a8', shape: '◆', pattern: 'pattern-horizontal', textHex: '#ffffff' },
+  { id: 5, name: 'Blanco Nieve Puro', hex: '#ffffff', shape: '✚', pattern: 'pattern-vertical', textHex: '#000000' },
+  { id: 6, name: 'Cian Turquesa Neón', hex: '#06b6d4', shape: '♥', pattern: 'pattern-cross', textHex: '#000000' },
+  { id: 7, name: 'Magenta Fucsia Intenso', hex: '#db2777', shape: '✦', pattern: 'pattern-zigzag', textHex: '#ffffff' },
+  { id: 8, name: 'Negro Grafito Profundo', hex: '#18181b', shape: '⬟', pattern: 'pattern-checker', textHex: '#ffffff' },
+  { id: 9, name: 'Verde Lima Fluorescente', hex: '#84cc16', shape: '⬢', pattern: 'pattern-dots', textHex: '#000000' },
+  { id: 10, name: 'Rojo Carmesí Rubí', hex: '#991b1b', shape: '✿', pattern: 'pattern-stripes', textHex: '#ffffff' },
+  { id: 11, name: 'Chocolate Bronce', hex: '#78350f', shape: '❄', pattern: 'pattern-grid', textHex: '#ffffff' },
+  { id: 12, name: 'Gris Platino Claro', hex: '#cbd5e1', shape: '✪', pattern: 'pattern-horizontal', textHex: '#000000' },
+  { id: 13, name: 'Índigo Medianoche', hex: '#1e1b4b', shape: '⯁', pattern: 'pattern-vertical', textHex: '#ffffff' },
+  { id: 14, name: 'Ámbar Solar Dorado', hex: '#f59e0b', shape: '🞛', pattern: 'pattern-cross', textHex: '#000000' },
+  { id: 15, name: 'Rosa Ciruela Profundo', hex: '#831843', shape: '🞗', pattern: 'pattern-zigzag', textHex: '#ffffff' }
+];
+
 const DEFAULT_PALETTE = AAA_PALETTE;
 
 const AVAILABLE_SHAPES = ['●', '▲', '■', '★', '◆', '✚', '♥', '✦', '⬟', '⬢', '✿', '❄', '✪', '⯁', '🞛', '🞗'];
@@ -88,8 +109,20 @@ class PaletteManager {
   applyPreset(presetType = 'aaa') {
     if (presetType === 'colorblind') {
       this.palette = JSON.parse(JSON.stringify(COLORBLIND_PALETTE));
+      if (window.stateManager) window.stateManager.setVisualComfortMode(false);
+    } else if (presetType === 'visual_comfort') {
+      this.palette = JSON.parse(JSON.stringify(VISUAL_COMFORT_PALETTE));
+      if (window.stateManager) window.stateManager.setVisualComfortMode(true);
+      if (window.game) {
+        window.game.showAccessibilityPatterns = true;
+        if (window.stateManager?.state?.settings) {
+          window.stateManager.state.settings.showAccessibilityPatterns = true;
+          window.stateManager.saveState();
+        }
+      }
     } else {
       this.palette = JSON.parse(JSON.stringify(AAA_PALETTE));
+      if (window.stateManager) window.stateManager.setVisualComfortMode(false);
     }
     this.savePalette();
     if (window.game && typeof window.game.refreshBoardVisuals === 'function') {
@@ -99,6 +132,7 @@ class PaletteManager {
 
   resetDefaults() {
     this.palette = JSON.parse(JSON.stringify(DEFAULT_PALETTE));
+    if (window.stateManager) window.stateManager.setVisualComfortMode(false);
     this.savePalette();
   }
 
@@ -119,22 +153,27 @@ class PaletteManager {
 
     container.innerHTML = '';
 
-    // Barra superior de Presets de Accesibilidad WCAG AAA
+    // Barra superior de Presets de Accesibilidad WCAG AAA y Filtro Lentes
+    const isVisualComfort = window.stateManager ? window.stateManager.isVisualComfortMode() : false;
     const presetsBar = document.createElement('div');
     presetsBar.className = 'flex flex-wrap items-center justify-between gap-2 p-2.5 mb-3 rounded-2xl bg-slate-900 border border-slate-700/80';
     presetsBar.innerHTML = `
       <div class="text-xs font-black text-amber-300 flex items-center gap-1.5">
-        <span>🎨 Norma Accesibilidad AAA</span>
+        <span>🎨 Presets de Visión</span>
       </div>
-      <div class="flex items-center gap-1.5">
+      <div class="flex flex-wrap items-center gap-1.5">
         <button id="btn-preset-aaa" class="px-2.5 py-1 text-[11px] rounded-xl font-bold bg-sky-500/20 hover:bg-sky-500/30 text-sky-200 border border-sky-400/40 transition">
-          ⭐ Preset AAA
+          ⭐ AAA
         </button>
         <button id="btn-preset-colorblind" class="px-2.5 py-1 text-[11px] rounded-xl font-bold bg-amber-500/20 hover:bg-amber-500/30 text-amber-200 border border-amber-400/40 transition">
           👁️ Daltonismo
         </button>
-        <button id="btn-preset-reset" class="px-2.5 py-1 text-[11px] rounded-xl font-bold bg-slate-800 hover:bg-slate-700 text-slate-300 border border-slate-600 transition">
-          Restablecer
+        <button id="btn-preset-visual-comfort" class="px-2.5 py-1 text-[11px] rounded-xl font-bold ${isVisualComfort ? 'bg-amber-500 text-slate-950 font-black border-amber-300 shadow-md' : 'bg-amber-500/20 hover:bg-amber-500/30 text-amber-300 border border-amber-400/40'} transition flex items-center gap-1" title="Colores diferenciados para lentes de protección con filtro amarillo/naranja">
+          <span>👓</span>
+          <span>Descanso Visual</span>
+        </button>
+        <button id="btn-preset-reset" class="px-2 py-1 text-[11px] rounded-xl font-bold bg-slate-800 hover:bg-slate-700 text-slate-300 border border-slate-600 transition">
+          Reiniciar
         </button>
       </div>
     `;
@@ -147,6 +186,11 @@ class PaletteManager {
     });
     presetsBar.querySelector('#btn-preset-colorblind').addEventListener('click', () => {
       this.applyPreset('colorblind');
+      this.renderColorSettingsUI(containerId, onColorChanged);
+      if (typeof onColorChanged === 'function') onColorChanged();
+    });
+    presetsBar.querySelector('#btn-preset-visual-comfort').addEventListener('click', () => {
+      this.applyPreset('visual_comfort');
       this.renderColorSettingsUI(containerId, onColorChanged);
       if (typeof onColorChanged === 'function') onColorChanged();
     });

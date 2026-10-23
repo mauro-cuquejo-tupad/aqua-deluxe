@@ -245,10 +245,154 @@ class LeaderboardManager {
     return this.getGlobalStats();
   }
 
+  // --- IDENTIFICADOR Y NOMBRE PARA LA TABLA MUNDIAL ---
+  getPlayerId() {
+    if (window.cloudSyncManager?.currentUser?.uid) {
+      return window.cloudSyncManager.currentUser.uid;
+    }
+    let anon = localStorage.getItem('aquasort_player_uuid');
+    if (!anon) {
+      anon = 'alchemist_' + Math.random().toString(36).substring(2, 10);
+      localStorage.setItem('aquasort_player_uuid', anon);
+    }
+    return anon;
+  }
+
+  getPlayerDisplayName() {
+    if (window.cloudSyncManager?.currentUser?.displayName) {
+      return window.cloudSyncManager.currentUser.displayName;
+    }
+    if (window.stateManager?.state?.player?.name && window.stateManager.state.player.name !== 'Alquimista') {
+      return window.stateManager.state.player.name;
+    }
+    return 'Alquimista';
+  }
+
+  // --- INTEGRACIÓN FIREBASE: TABLA MUNDIAL DEL DESAFÍO DIARIO ---
+  /**
+   * Guarda el resultado del Desafío Diario en Firestore.
+   * Colección: daily_leaderboards/{YYYY-MM-DD}/entries/{userId}
+   */
+  async submitDailyScoreToGlobal(dailyData) {
+    if (!window.cloudSyncManager?.db) {
+      console.log('Firebase no disponible para registrar score diario global');
+      return false;
+    }
+    try {
+      const db = window.cloudSyncManager.db;
+      const todayStr = dailyData.dateStr || new Date().toISOString().slice(0, 10);
+      const uid = this.getPlayerId();
+      const user = window.cloudSyncManager.currentUser;
+      const entry = {
+        userId: uid,
+        displayName: this.getPlayerDisplayName(),
+        photoURL: user?.photoURL || null,
+        score: dailyData.score || 0,
+        moves: dailyData.moves || 0,
+        time: dailyData.time || 0,
+        combo: dailyData.combo || 0,
+        stars: dailyData.stars || 3,
+        dateStr: todayStr,
+        submittedAt: new Date().toISOString()
+      };
+      await db.collection('daily_leaderboards')
+        .doc(todayStr)
+        .collection('entries')
+        .doc(uid)
+        .set(entry, { merge: true });
+      console.log('Score del Desafío Diario registrado en la Tabla Mundial de Firebase!');
+      return true;
+    } catch (err) {
+      console.warn('Error enviando score diario a Firebase:', err);
+      return false;
+    }
+  }
+
+  /**
+   * Obtiene las mejores puntuaciones globales del Desafío Diario de hoy o fecha dada
+   */
+  async fetchGlobalDailyLeaderboard(dateStr = null) {
+    const targetDate = dateStr || new Date().toISOString().slice(0, 10);
+    if (!window.cloudSyncManager?.db) {
+      return { success: false, entries: [], dateStr: targetDate, error: 'Firebase no inicializado' };
+    }
+    try {
+      const db = window.cloudSyncManager.db;
+      const snap = await db.collection('daily_leaderboards')
+        .doc(targetDate)
+        .collection('entries')
+        .orderBy('score', 'desc')
+        .limit(30)
+        .get();
+
+      const entries = [];
+      snap.forEach(doc => entries.push(doc.data()));
+      return { success: true, entries, dateStr: targetDate };
+    } catch (err) {
+      console.warn('Error leyendo tabla diaria de Firebase:', err);
+      return { success: false, entries: [], dateStr: targetDate, error: err.message };
+    }
+  }
+
+  // --- INTEGRACIÓN FIREBASE: SALÓN DE LA FAMA GLOBAL ---
+  async submitHallOfFameScore() {
+    if (!window.cloudSyncManager?.db) return false;
+    try {
+      const db = window.cloudSyncManager.db;
+      const uid = this.getPlayerId();
+      const stats = this.getGlobalStats();
+      const user = window.cloudSyncManager.currentUser;
+      const medals = Object.values(window.stateManager?.state?.progress?.dailyChallenges || {})
+        .filter(d => d.completed).length;
+
+      const entry = {
+        userId: uid,
+        displayName: this.getPlayerDisplayName(),
+        photoURL: user?.photoURL || null,
+        stars: stats.totalStars || 0,
+        completedLevels: stats.completedLevels || 0,
+        totalScore: stats.totalScore || 0,
+        medals: medals,
+        achievementsUnlocked: window.achievementManager ? window.achievementManager.getUnlockedCount() : 0,
+        updatedAt: new Date().toISOString()
+      };
+      await db.collection('hall_of_fame').doc(uid).set(entry, { merge: true });
+      return true;
+    } catch (err) {
+      console.warn('Error registrando Salón de la Fama:', err);
+      return false;
+    }
+  }
+
+  async fetchGlobalHallOfFame() {
+    if (!window.cloudSyncManager?.db) {
+      return { success: false, entries: [], error: 'Firebase no inicializado' };
+    }
+    try {
+      const db = window.cloudSyncManager.db;
+      const snap = await db.collection('hall_of_fame')
+        .orderBy('stars', 'desc')
+        .limit(30)
+        .get();
+      const entries = [];
+      snap.forEach(doc => entries.push(doc.data()));
+      return { success: true, entries };
+    } catch (err) {
+      console.warn('Error leyendo Salón de la Fama:', err);
+      return { success: false, entries: [], error: err.message };
+    }
+  }
+
   // --- RENDERIZADO DE LA TABLA DE CLASIFICACIONES ---
-  renderLeaderboardUI(tableContainerId, filter = 'score') {
+  renderLeaderboardUI(tableContainerId, filter = 'score', mainTab = null) {
     const container = document.getElementById(tableContainerId);
     if (!container) return;
+
+    if (mainTab) {
+      this.activeMainTab = mainTab;
+    } else if (!this.activeMainTab) {
+      this.activeMainTab = 'local';
+    }
 
     // Actualizar tarjetas de estadísticas globales
     const stats = this.getGlobalStats();
@@ -264,7 +408,20 @@ class LeaderboardManager {
     if (statBestTime) statBestTime.textContent = stats.bestTimeStr;
     if (statTotalScore) statTotalScore.textContent = `${stats.totalScoreStr} pts`;
 
-    // Generar filas de la tabla (solo hasta el nivel desbloqueado más alto para mantener en secreto los niveles futuros)
+    // Conectar botones de pestañas principales si existen en el modal
+    this.setupMainTabs(tableContainerId, filter);
+
+    if (this.activeMainTab === 'daily_global') {
+      this.renderGlobalDailyUI(container);
+      return;
+    }
+
+    if (this.activeMainTab === 'hall_of_fame') {
+      this.renderHallOfFameUI(container);
+      return;
+    }
+
+    // --- PESTAÑA LOCAL: MIS RÉCORDS ---
     let rowsHTML = '';
     const recordsList = [];
     const maxUnlocked = window.stateManager?.state?.progress?.unlockedLevel || 1;
@@ -367,7 +524,7 @@ class LeaderboardManager {
                 <span class="text-xs font-black text-amber-200 uppercase tracking-wide">Desafío Diario • ${todayStr}</span>
                 <span class="text-[9px] px-2 py-0.5 rounded-full bg-amber-400 text-slate-950 font-black">MEDALLA DEL DÍA</span>
               </div>
-              <div class="text-[11px] text-emerald-300 font-bold">¡Completado con Éxito! Medalla Diaria Activa en la Tabla 🎖️</div>
+              <div class="text-[11px] text-emerald-300 font-bold">¡Completado con Éxito! Registrado en la Tabla Mundial 🌍</div>
             </div>
           </div>
           <div class="text-right">
@@ -385,7 +542,7 @@ class LeaderboardManager {
             </div>
             <div>
               <div class="text-xs font-black text-white">Desafío Diario • ${todayStr}</div>
-              <div class="text-[10px] text-amber-300/90 font-semibold">¡Gana la medalla dorada de hoy completando el puzzle aleatorio!</div>
+              <div class="text-[10px] text-amber-300/90 font-semibold">¡Todos compiten hoy en el mismo nivel idéntico en Firebase!</div>
             </div>
           </div>
           <button id="btn-leaderboard-play-daily" class="btn-interactive px-3 py-1.5 bg-gradient-to-r from-amber-500 to-yellow-500 hover:from-amber-400 hover:to-yellow-400 text-slate-950 text-xs font-black rounded-xl shadow-md transition-all">
@@ -428,7 +585,303 @@ class LeaderboardManager {
 
     if (window.lucide) lucide.createIcons();
   }
+
+  // --- RENDERIZADO: TABLA MUNDIAL DEL DESAFÍO DIARIO (FIREBASE) ---
+  async renderGlobalDailyUI(container) {
+    const todayStr = new Date().toISOString().slice(0, 10);
+    const myId = this.getPlayerId();
+
+    container.innerHTML = `
+      <div class="p-6 text-center text-slate-300">
+        <div class="inline-block animate-spin text-2xl mb-2">⏳</div>
+        <div class="text-xs">Consultando Tabla Mundial en Firebase...</div>
+      </div>
+    `;
+
+    const res = await this.fetchGlobalDailyLeaderboard(todayStr);
+
+    let contentHTML = `
+      <div class="mb-3.5 p-3 rounded-2xl bg-gradient-to-r from-sky-500/15 via-indigo-500/20 to-sky-500/15 border border-sky-400/40 flex items-center justify-between">
+        <div class="flex items-center gap-2.5">
+          <div class="w-9 h-9 rounded-xl bg-sky-500/20 text-sky-300 flex items-center justify-center font-black text-lg border border-sky-400/30">
+            🌍
+          </div>
+          <div>
+            <div class="text-xs font-black text-white flex items-center gap-1.5">
+              <span>Desafío Diario Mundial</span>
+              <span class="text-[9px] px-2 py-0.5 rounded-full bg-sky-500/20 text-sky-300 font-mono">${todayStr}</span>
+            </div>
+            <div class="text-[10px] text-slate-300">Nivel idéntico y determinista para todos los jugadores del mundo.</div>
+          </div>
+        </div>
+        <button id="btn-refresh-global-daily" class="btn-interactive px-2.5 py-1 text-xs rounded-xl bg-slate-800 hover:bg-slate-700 text-sky-300 border border-slate-700 font-bold transition flex items-center gap-1">
+          <span>🔄</span>
+          <span>Actualizar</span>
+        </button>
+      </div>
+    `;
+
+    if (!res.success || !res.entries || res.entries.length === 0) {
+      const isConfigured = !!window.cloudSyncManager?.isConfigured;
+      contentHTML += `
+        <div class="p-8 text-center text-slate-400 text-xs bg-slate-800/40 rounded-2xl border border-slate-700/60">
+          <div class="text-3xl mb-2">👑</div>
+          <div class="font-bold text-white mb-1">¡Aún no hay récords mundiales registrados hoy!</div>
+          <p class="text-[11px] text-slate-400 max-w-md mx-auto mb-4">
+            ${isConfigured
+              ? 'Sé el primer alquimista de todo el planeta en completar el desafío de hoy para liderar el Top 1.'
+              : 'Conecta Firebase o juega el reto diario para subir tus puntuaciones a la nube.'}
+          </p>
+          <button id="btn-play-global-daily-now" class="btn-interactive px-4 py-2 bg-gradient-to-r from-amber-500 to-yellow-500 hover:from-amber-400 hover:to-yellow-400 text-slate-950 font-black rounded-xl text-xs shadow-md transition-all">
+            Jugar Desafío Diario Ahora
+          </button>
+        </div>
+      `;
+      container.innerHTML = contentHTML;
+
+      const btnPlay = container.querySelector('#btn-play-global-daily-now');
+      if (btnPlay) {
+        btnPlay.addEventListener('click', () => {
+          const modalLeaderboard = document.getElementById('modal-leaderboard');
+          if (modalLeaderboard) modalLeaderboard.classList.add('hidden');
+          if (window.game) window.game.launchDailyChallenge();
+        });
+      }
+      const btnRefresh = container.querySelector('#btn-refresh-global-daily');
+      if (btnRefresh) {
+        btnRefresh.addEventListener('click', () => this.renderGlobalDailyUI(container));
+      }
+      return;
+    }
+
+    let rows = '';
+    res.entries.forEach((e, idx) => {
+      const rank = idx + 1;
+      const isMe = (e.userId === myId);
+      let rankBadge = `${rank}`;
+      if (rank === 1) rankBadge = '🥇';
+      else if (rank === 2) rankBadge = '🥈';
+      else if (rank === 3) rankBadge = '🥉';
+
+      rows += `
+        <tr class="border-b border-slate-800/80 ${isMe ? 'bg-sky-500/15 font-black text-white' : 'hover:bg-slate-800/40 text-slate-200'} transition">
+          <td class="py-2 px-3 font-bold text-xs text-center w-12">
+            <span class="inline-flex items-center justify-center w-6 h-6 rounded-lg ${rank <= 3 ? 'bg-amber-400/20 text-amber-300 font-black' : 'text-slate-400'}">
+              ${rankBadge}
+            </span>
+          </td>
+          <td class="py-2 px-3">
+            <div class="flex items-center gap-2">
+              ${e.photoURL
+                ? `<img src="${e.photoURL}" class="w-6 h-6 rounded-full object-cover border border-slate-600" alt="Avatar">`
+                : `<div class="w-6 h-6 rounded-full bg-slate-700 text-slate-200 flex items-center justify-center text-[10px] font-bold">⚗️</div>`
+              }
+              <span class="text-xs font-bold ${isMe ? 'text-sky-300 underline' : 'text-slate-200'}">${e.displayName || 'Alquimista'}${isMe ? ' (Tú)' : ''}</span>
+            </div>
+          </td>
+          <td class="py-2 px-3 font-mono text-amber-300 font-black text-xs text-right">
+            ${(e.score || 0).toLocaleString()} pts
+          </td>
+          <td class="py-2 px-3 font-mono text-emerald-300 text-xs text-right">
+            ⏱️ ${this.formatTime(e.time || 0)}
+          </td>
+          <td class="py-2 px-3 text-slate-300 text-xs text-right">
+            👣 ${e.moves || 0}
+          </td>
+        </tr>
+      `;
+    });
+
+    contentHTML += `
+      <table class="w-full text-left border-collapse">
+        <thead>
+          <tr class="text-[11px] uppercase tracking-wider text-slate-400 border-b border-slate-700/80 bg-slate-900/50">
+            <th class="py-2 px-3 text-center">Rango</th>
+            <th class="py-2 px-3">Alquimista</th>
+            <th class="py-2 px-3 text-right text-amber-300">Puntaje</th>
+            <th class="py-2 px-3 text-right">Tiempo</th>
+            <th class="py-2 px-3 text-right">Movs</th>
+          </tr>
+        </thead>
+        <tbody>
+          ${rows}
+        </tbody>
+      </table>
+    `;
+
+    container.innerHTML = contentHTML;
+
+    const btnRefresh = container.querySelector('#btn-refresh-global-daily');
+    if (btnRefresh) {
+      btnRefresh.addEventListener('click', () => this.renderGlobalDailyUI(container));
+    }
+  }
+
+  // --- RENDERIZADO: SALÓN DE LA FAMA GLOBAL ---
+  async renderHallOfFameUI(container) {
+    const myId = this.getPlayerId();
+
+    container.innerHTML = `
+      <div class="p-6 text-center text-slate-300">
+        <div class="inline-block animate-spin text-2xl mb-2">⏳</div>
+        <div class="text-xs">Cargando Salón de la Fama Alquímico...</div>
+      </div>
+    `;
+
+    // Sincronizar mis propias estrellas antes de leer
+    await this.submitHallOfFameScore();
+
+    const res = await this.fetchGlobalHallOfFame();
+
+    let contentHTML = `
+      <div class="mb-3.5 p-3 rounded-2xl bg-gradient-to-r from-amber-500/20 via-yellow-500/25 to-amber-500/20 border border-amber-400/50 flex items-center justify-between">
+        <div class="flex items-center gap-2.5">
+          <div class="w-9 h-9 rounded-xl bg-amber-400/20 text-amber-300 flex items-center justify-center font-black text-lg border border-amber-400/40">
+            🏆
+          </div>
+          <div>
+            <div class="text-xs font-black text-amber-200">Salón de la Fama Mundial</div>
+            <div class="text-[10px] text-slate-300">Los alquimistas con mayor número de Estrellas, Medallas y Logros.</div>
+          </div>
+        </div>
+      </div>
+    `;
+
+    if (!res.success || !res.entries || res.entries.length === 0) {
+      contentHTML += `
+        <div class="p-8 text-center text-slate-400 text-xs bg-slate-800/40 rounded-2xl border border-slate-700/60">
+          <div class="text-3xl mb-2">✨</div>
+          <div class="font-bold text-white mb-1">Salón de la Fama en Preparación</div>
+          <p class="text-[11px] text-slate-400 max-w-md mx-auto">
+            ¡Sigue acumulando estrellas en la campaña y medallas en el Desafío Diario para figurar en la cumbre!
+          </p>
+        </div>
+      `;
+      container.innerHTML = contentHTML;
+      return;
+    }
+
+    let rows = '';
+    res.entries.forEach((e, idx) => {
+      const rank = idx + 1;
+      const isMe = (e.userId === myId);
+      let rankBadge = `${rank}`;
+      if (rank === 1) rankBadge = '👑';
+      else if (rank === 2) rankBadge = '🥈';
+      else if (rank === 3) rankBadge = '🥉';
+
+      rows += `
+        <tr class="border-b border-slate-800/80 ${isMe ? 'bg-amber-500/15 font-black text-white' : 'hover:bg-slate-800/40 text-slate-200'} transition">
+          <td class="py-2.5 px-3 font-bold text-xs text-center w-12">
+            <span class="inline-flex items-center justify-center w-6 h-6 rounded-lg ${rank <= 3 ? 'bg-amber-400/20 text-amber-300 font-black' : 'text-slate-400'}">
+              ${rankBadge}
+            </span>
+          </td>
+          <td class="py-2.5 px-3">
+            <div class="flex items-center gap-2">
+              ${e.photoURL
+                ? `<img src="${e.photoURL}" class="w-6 h-6 rounded-full object-cover border border-amber-400/60" alt="Avatar">`
+                : `<div class="w-6 h-6 rounded-full bg-slate-700 text-amber-300 flex items-center justify-center text-[10px] font-bold">✨</div>`
+              }
+              <div>
+                <div class="text-xs font-bold ${isMe ? 'text-amber-300 underline' : 'text-slate-100'}">${e.displayName || 'Alquimista'}${isMe ? ' (Tú)' : ''}</div>
+                <div class="text-[10px] text-slate-400 font-mono">${e.completedLevels || 0} niveles superados</div>
+              </div>
+            </div>
+          </td>
+          <td class="py-2.5 px-3 font-mono text-amber-300 font-black text-xs text-right">
+            ${e.stars || 0} ⭐
+          </td>
+          <td class="py-2.5 px-3 font-mono text-amber-400 text-xs text-right">
+            ${e.medals || 0} 🎖️
+          </td>
+          <td class="py-2.5 px-3 font-mono text-sky-300 text-xs text-right">
+            ${e.achievementsUnlocked || 0} 🎖️
+          </td>
+        </tr>
+      `;
+    });
+
+    contentHTML += `
+      <table class="w-full text-left border-collapse">
+        <thead>
+          <tr class="text-[11px] uppercase tracking-wider text-slate-400 border-b border-slate-700/80 bg-slate-900/50">
+            <th class="py-2 px-3 text-center">Rango</th>
+            <th class="py-2 px-3">Gran Alquimista</th>
+            <th class="py-2 px-3 text-right text-amber-300">Estrellas</th>
+            <th class="py-2 px-3 text-right text-amber-400">Medallas</th>
+            <th class="py-2 px-3 text-right text-sky-300">Logros</th>
+          </tr>
+        </thead>
+        <tbody>
+          ${rows}
+        </tbody>
+      </table>
+    `;
+
+    container.innerHTML = contentHTML;
+  }
+
+  setupMainTabs(tableContainerId, filter) {
+    const tabLocal = document.getElementById('tab-leaderboard-local');
+    const tabDaily = document.getElementById('tab-leaderboard-daily');
+    const tabHof = document.getElementById('tab-leaderboard-hof');
+    const filterBar = document.getElementById('leaderboard-filters-bar');
+    const statsGrid = document.getElementById('leaderboard-stats-grid');
+
+    const updateTabStyles = () => {
+      const activeClass = 'bg-sky-500 text-white font-black shadow-md';
+      const inactiveClass = 'text-slate-400 hover:text-white hover:bg-slate-800 font-bold';
+
+      if (tabLocal) {
+        tabLocal.className = `flex-1 py-1.5 px-2.5 rounded-xl text-xs transition-all flex items-center justify-center gap-1 ${this.activeMainTab === 'local' ? activeClass : inactiveClass}`;
+      }
+      if (tabDaily) {
+        tabDaily.className = `flex-1 py-1.5 px-2.5 rounded-xl text-xs transition-all flex items-center justify-center gap-1 ${this.activeMainTab === 'daily_global' ? 'bg-amber-500 text-slate-950 font-black shadow-md' : inactiveClass}`;
+      }
+      if (tabHof) {
+        tabHof.className = `flex-1 py-1.5 px-2.5 rounded-xl text-xs transition-all flex items-center justify-center gap-1 ${this.activeMainTab === 'hall_of_fame' ? 'bg-gradient-to-r from-amber-500 to-yellow-500 text-slate-950 font-black shadow-md' : inactiveClass}`;
+      }
+
+      if (filterBar) {
+        filterBar.style.display = (this.activeMainTab === 'local') ? 'flex' : 'none';
+      }
+      if (statsGrid) {
+        statsGrid.style.display = (this.activeMainTab === 'local') ? 'grid' : 'none';
+      }
+    };
+
+    if (tabLocal && !tabLocal.dataset.bound) {
+      tabLocal.dataset.bound = 'true';
+      tabLocal.addEventListener('click', () => {
+        this.activeMainTab = 'local';
+        updateTabStyles();
+        this.renderLeaderboardUI(tableContainerId, filter, 'local');
+      });
+    }
+
+    if (tabDaily && !tabDaily.dataset.bound) {
+      tabDaily.dataset.bound = 'true';
+      tabDaily.addEventListener('click', () => {
+        this.activeMainTab = 'daily_global';
+        updateTabStyles();
+        this.renderLeaderboardUI(tableContainerId, filter, 'daily_global');
+      });
+    }
+
+    if (tabHof && !tabHof.dataset.bound) {
+      tabHof.dataset.bound = 'true';
+      tabHof.addEventListener('click', () => {
+        this.activeMainTab = 'hall_of_fame';
+        updateTabStyles();
+        this.renderLeaderboardUI(tableContainerId, filter, 'hall_of_fame');
+      });
+    }
+
+    updateTabStyles();
+  }
 }
 
 // Instancia global
 window.leaderboardManager = new LeaderboardManager();
+

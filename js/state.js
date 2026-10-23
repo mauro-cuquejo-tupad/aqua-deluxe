@@ -41,11 +41,24 @@ const DEFAULT_STATE = {
   },
   settings: {
     showAccessibilityPatterns: false, // Por defecto desactivado: líquidos puros y limpios
-    disabledMechanics: []             // Mecánicas deshabilitadas por personalización de dificultad
+    disabledMechanics: [],            // Mecánicas deshabilitadas por personalización de dificultad
+    visualComfortMode: false          // Modo Descanso Visual / Filtro Lentes Amarillos
   },
   secretEasterEgg: {
     discoveredNames: [],              // Nombres descubiertos por 5s tap: ['mirko', 'tom', 'nina', 'matilda', 'bianca', 'zoila', 'freya']
     allDiscovered: false              // True cuando se descubren los 7 nombres
+  },
+  achievements: {
+    unlocked: {},                     // { [id]: ISOString }
+    progress: {}                      // { [id]: number }
+  },
+  timeAttackRecord: {
+    bestScore: 0,
+    bestTimeSec: 0,
+    bestTubesCleared: 0
+  },
+  sandboxStats: {
+    levelsCompleted: 0
   },
   customLevels: [],            // Niveles creados por el usuario [{ id, name, author, tubes, verified: true }]
   auxiliaryCooldownRemaining: 0 // Movimientos restantes para usar botella extra (persistente)
@@ -117,12 +130,25 @@ class StateManager {
           settings: {
             ...DEFAULT_STATE.settings,
             ...(parsed.settings || {}),
-            disabledMechanics: Array.isArray(parsed.settings?.disabledMechanics) ? parsed.settings.disabledMechanics : []
+            disabledMechanics: Array.isArray(parsed.settings?.disabledMechanics) ? parsed.settings.disabledMechanics : [],
+            visualComfortMode: !!parsed.settings?.visualComfortMode
           },
           secretEasterEgg: {
             ...DEFAULT_STATE.secretEasterEgg,
             ...(parsed.secretEasterEgg || {}),
             discoveredNames: Array.isArray(parsed.secretEasterEgg?.discoveredNames) ? parsed.secretEasterEgg.discoveredNames : []
+          },
+          achievements: {
+            unlocked: { ...(DEFAULT_STATE.achievements.unlocked), ...(parsed.achievements?.unlocked || {}) },
+            progress: { ...(DEFAULT_STATE.achievements.progress), ...(parsed.achievements?.progress || {}) }
+          },
+          timeAttackRecord: {
+            ...DEFAULT_STATE.timeAttackRecord,
+            ...(parsed.timeAttackRecord || {})
+          },
+          sandboxStats: {
+            ...DEFAULT_STATE.sandboxStats,
+            ...(parsed.sandboxStats || {})
           },
           minigameBag: {
             tokens: (parsed.minigameBag && Array.isArray(parsed.minigameBag.tokens) && parsed.minigameBag.tokens.length > 0)
@@ -235,6 +261,9 @@ class StateManager {
     }
 
     this.saveState();
+    if (window.achievementManager) {
+      window.achievementManager.check('easter_egg_master', this.state.secretEasterEgg.discoveredNames.length);
+    }
     return {
       isNew,
       completed,
@@ -244,6 +273,90 @@ class StateManager {
 
   isSecretEndingUnlocked() {
     return !!this.state.secretEasterEgg?.allDiscovered;
+  }
+
+  // --- MODO DESCANSO VISUAL (FILTRO AMARILLO / LENTES) ---
+  isVisualComfortMode() {
+    return !!this.state.settings?.visualComfortMode;
+  }
+
+  setVisualComfortMode(enabled) {
+    if (!this.state.settings) this.state.settings = {};
+    this.state.settings.visualComfortMode = !!enabled;
+    this.saveState();
+  }
+
+  // --- GESTIÓN DE LOGROS (ACHIEVEMENTS) ---
+  getAchievementProgress(id) {
+    if (!this.state.achievements) this.state.achievements = { unlocked: {}, progress: {} };
+    if (!this.state.achievements.progress) this.state.achievements.progress = {};
+    return this.state.achievements.progress[id] || 0;
+  }
+
+  isAchievementUnlocked(id) {
+    if (!this.state.achievements || !this.state.achievements.unlocked) return false;
+    return !!this.state.achievements.unlocked[id];
+  }
+
+  setAchievementProgress(id, count) {
+    if (!this.state.achievements) this.state.achievements = { unlocked: {}, progress: {} };
+    if (!this.state.achievements.progress) this.state.achievements.progress = {};
+    this.state.achievements.progress[id] = count;
+    this.saveState();
+  }
+
+  incrementAchievementProgress(id, by = 1) {
+    if (!this.state.achievements) this.state.achievements = { unlocked: {}, progress: {} };
+    if (!this.state.achievements.progress) this.state.achievements.progress = {};
+    const cur = this.state.achievements.progress[id] || 0;
+    this.state.achievements.progress[id] = cur + by;
+    this.saveState();
+    return this.state.achievements.progress[id];
+  }
+
+  unlockAchievement(id) {
+    if (!this.state.achievements) this.state.achievements = { unlocked: {}, progress: {} };
+    if (!this.state.achievements.unlocked) this.state.achievements.unlocked = {};
+    if (!this.state.achievements.unlocked[id]) {
+      this.state.achievements.unlocked[id] = new Date().toISOString();
+      this.saveState();
+      return true; // nuevo logro desbloqueado
+    }
+    return false;
+  }
+
+  // --- REGISTRO TIME ATTACK (CONTRARRELOJ) ---
+  recordTimeAttackScore(score, timeSec, tubesCleared) {
+    if (!this.state.timeAttackRecord) {
+      this.state.timeAttackRecord = { bestScore: 0, bestTimeSec: 0, bestTubesCleared: 0 };
+    }
+    let isNewBest = false;
+    if (score > this.state.timeAttackRecord.bestScore) {
+      this.state.timeAttackRecord.bestScore = score;
+      isNewBest = true;
+    }
+    if (timeSec > this.state.timeAttackRecord.bestTimeSec) {
+      this.state.timeAttackRecord.bestTimeSec = timeSec;
+    }
+    if (tubesCleared > this.state.timeAttackRecord.bestTubesCleared) {
+      this.state.timeAttackRecord.bestTubesCleared = tubesCleared;
+    }
+    this.saveState();
+    return isNewBest;
+  }
+
+  getTimeAttackRecord() {
+    return this.state.timeAttackRecord || { bestScore: 0, bestTimeSec: 0, bestTubesCleared: 0 };
+  }
+
+  // --- REGISTRO MODO CASUAL SANDBOX INFINITO ---
+  recordSandboxLevelCompleted() {
+    if (!this.state.sandboxStats) {
+      this.state.sandboxStats = { levelsCompleted: 0 };
+    }
+    this.state.sandboxStats.levelsCompleted = (this.state.sandboxStats.levelsCompleted || 0) + 1;
+    this.saveState();
+    return this.state.sandboxStats.levelsCompleted;
   }
 
   // --- MONEDAS Y ECONOMÍA REBALANCEADA ---

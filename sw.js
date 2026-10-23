@@ -3,7 +3,7 @@
    Soporte Offline, Caché Rápida y Experiencia de App Nativa Móvil
    ========================================================================== */
 
-const CACHE_NAME = 'aquasort-deluxe-v2.1';
+const CACHE_NAME = 'aquasort-deluxe-v3.0';
 
 const PRECACHE_ASSETS = [
   './',
@@ -12,22 +12,23 @@ const PRECACHE_ASSETS = [
   './icons/icon-192.png',
   './icons/icon-512.png',
   './icons/icon.svg',
-  './css/main.css?v=29',
-  './css/tubes.css?v=29',
-  './css/roulette.css?v=29',
-  './css/accessibility.css?v=29',
-  './js/firebase-config.js?v=29',
-  './js/cloud-sync.js?v=29',
-  './js/audio.js?v=29',
-  './js/palette.js?v=29',
-  './js/levels.js?v=29',
-  './js/challenges.js?v=29',
-  './js/honor.js?v=29',
-  './js/state.js?v=29',
-  './js/leaderboard.js?v=29',
-  './js/roulette.js?v=29',
-  './js/story.js?v=29',
-  './js/game.js?v=29'
+  './css/main.css?v=30',
+  './css/tubes.css?v=30',
+  './css/roulette.css?v=30',
+  './css/accessibility.css?v=30',
+  './js/firebase-config.js?v=30',
+  './js/cloud-sync.js?v=30',
+  './js/audio.js?v=30',
+  './js/palette.js?v=30',
+  './js/levels.js?v=30',
+  './js/challenges.js?v=30',
+  './js/honor.js?v=30',
+  './js/state.js?v=30',
+  './js/achievements.js?v=30',
+  './js/leaderboard.js?v=30',
+  './js/roulette.js?v=30',
+  './js/story.js?v=30',
+  './js/game.js?v=30'
 ];
 
 // Instalación: Cachear recursos críticos

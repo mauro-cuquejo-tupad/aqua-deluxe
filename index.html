@@ -46,10 +46,10 @@
   <link rel="icon" type="image/svg+xml" href="icons/icon.svg">
 
   <!-- Modular Stylesheets -->
-  <link rel="stylesheet" href="css/main.css?v=28">
-  <link rel="stylesheet" href="css/tubes.css?v=28">
-  <link rel="stylesheet" href="css/roulette.css?v=28">
-  <link rel="stylesheet" href="css/accessibility.css?v=28">
+  <link rel="stylesheet" href="css/main.css?v=30">
+  <link rel="stylesheet" href="css/tubes.css?v=30">
+  <link rel="stylesheet" href="css/roulette.css?v=30">
+  <link rel="stylesheet" href="css/accessibility.css?v=30">
 </head>
 <body class="min-h-screen flex flex-col justify-between select-none relative">
 
@@ -305,8 +305,22 @@
         </button>
       </div>
 
+      <!-- Selector de Pestañas de la Tabla de Clasificaciones -->
+      <div class="flex items-center gap-1.5 p-1 mb-3 rounded-2xl bg-slate-950/80 border border-slate-700/80">
+        <button id="tab-leaderboard-local" class="flex-1 py-1.5 px-2.5 rounded-xl text-xs font-black transition-all bg-sky-500 text-white shadow-md flex items-center justify-center gap-1">
+          <span>📋 Mis Récords</span>
+        </button>
+        <button id="tab-leaderboard-daily" class="flex-1 py-1.5 px-2.5 rounded-xl text-xs font-bold transition-all text-slate-400 hover:text-white hover:bg-slate-800 flex items-center justify-center gap-1">
+          <span>👑 Desafío Diario Mundial</span>
+          <span class="text-[9px] px-1.5 py-0.2 rounded-full bg-amber-400 text-slate-950 font-black">ONLINE</span>
+        </button>
+        <button id="tab-leaderboard-hof" class="flex-1 py-1.5 px-2.5 rounded-xl text-xs font-bold transition-all text-slate-400 hover:text-white hover:bg-slate-800 flex items-center justify-center gap-1">
+          <span>🏆 Salón de la Fama</span>
+        </button>
+      </div>
+
       <!-- Tarjetas de Estadísticas Globales -->
-      <div class="grid grid-cols-2 sm:grid-cols-5 gap-2 mb-4">
+      <div id="leaderboard-stats-grid" class="grid grid-cols-2 sm:grid-cols-5 gap-2 mb-4">
         <div class="p-2.5 rounded-2xl bg-slate-800/80 border border-amber-500/30 text-center bg-gradient-to-b from-amber-500/10 to-transparent">
           <div class="text-[10px] text-amber-300 font-bold uppercase">Puntaje Total 🏆</div>
           <div id="stat-total-score" class="text-base sm:text-lg font-black text-amber-400 font-mono">0 pts</div>
@@ -330,7 +344,7 @@
       </div>
 
       <!-- Filtros de la Tabla -->
-      <div class="flex items-center gap-2 border-b border-slate-800 pb-2 mb-2 text-xs overflow-x-auto">
+      <div id="leaderboard-filters-bar" class="flex items-center gap-2 border-b border-slate-800 pb-2 mb-2 text-xs overflow-x-auto">
         <button data-filter="score" class="tab-leaderboard active px-3 py-1 rounded-lg border-b-2 border-amber-400 font-bold text-amber-300 flex items-center gap-1">
           <span>Mayor Puntaje 🏆</span>
         </button>
@@ -412,6 +426,21 @@
             <label class="relative inline-flex items-center cursor-pointer">
               <input type="checkbox" id="toggle-accessibility-patterns" class="sr-only peer">
               <div class="w-11 h-6 bg-slate-700 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-slate-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-emerald-500"></div>
+            </label>
+          </div>
+
+          <!-- Toggle Modo Descanso Visual (Filtro Amarillo / Lentes de Protección) -->
+          <div class="flex items-center justify-between pt-2.5 border-t border-slate-700/60 bg-amber-500/10 -mx-3.5 px-3.5 py-2 rounded-xl border border-amber-500/30">
+            <div>
+              <div class="text-sm font-black text-amber-200 flex items-center gap-1.5">
+                <span>👓</span>
+                <span>Modo Descanso Visual (Lentes Filtro Amarillo)</span>
+              </div>
+              <p class="text-[11px] text-slate-300">Colores de máxima separación por luminosidad y patrones activos que evitan la confusión naranja/rosa y celeste/verde bajo lentes ámbar.</p>
+            </div>
+            <label class="relative inline-flex items-center cursor-pointer shrink-0 ml-2">
+              <input type="checkbox" id="toggle-visual-comfort-mode" class="sr-only peer">
+              <div class="w-11 h-6 bg-slate-700 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-slate-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-amber-500"></div>
             </label>
           </div>
         </div>
@@ -1026,6 +1055,24 @@
             <span>Ajustes</span>
           </button>
         </div>
+
+        <!-- Botón Salón de Logros Alquímicos en Home Screen -->
+        <button id="btn-home-achievements" class="btn-interactive w-full py-2.5 bg-gradient-to-r from-amber-500/25 via-yellow-400/20 to-amber-500/25 hover:from-amber-500/40 hover:to-yellow-400/40 border border-amber-400/50 text-amber-300 font-bold text-xs rounded-2xl flex items-center justify-center gap-2 shadow-sm">
+          <i data-lucide="award" class="w-4 h-4 text-amber-400"></i>
+          <span>Salón de Logros Alquímicos 🎖️</span>
+        </button>
+
+        <!-- Botón Modo Casual Infinito (Sandbox Personalizable) -->
+        <button id="btn-home-casual" class="btn-interactive w-full py-2.5 bg-gradient-to-r from-emerald-600/30 via-teal-600/30 to-emerald-600/30 hover:from-emerald-600/50 hover:to-teal-600/50 border border-emerald-400/40 text-emerald-200 font-bold text-xs rounded-2xl flex items-center justify-center gap-2 shadow-sm">
+          <i data-lucide="infinity" class="w-4 h-4 text-emerald-400"></i>
+          <span>Modo Casual Infinito (Personalizado) 🎲</span>
+        </button>
+
+        <!-- Botón Modo Contrarreloj (Alquimia Viva) -->
+        <button id="btn-home-time-attack" class="btn-interactive w-full py-2.5 bg-gradient-to-r from-orange-600/30 via-amber-600/30 to-orange-600/30 hover:from-orange-600/50 hover:to-amber-600/50 border border-orange-400/40 text-amber-200 font-bold text-xs rounded-2xl flex items-center justify-center gap-2 shadow-sm">
+          <i data-lucide="hourglass" class="w-4 h-4 text-orange-400"></i>
+          <span>Modo Contrarreloj (Alquimia Viva) ⏳</span>
+        </button>
 
         <!-- Botón Taller de Creación en Home Screen -->
         <button id="btn-home-editor" class="btn-interactive w-full py-2.5 bg-gradient-to-r from-purple-600/30 to-indigo-600/30 hover:from-purple-600/50 hover:to-indigo-600/50 border border-purple-400/40 text-purple-200 font-bold text-xs rounded-2xl flex items-center justify-center gap-2">
@@ -1911,22 +1958,204 @@
     </div>
   </div>
 
+  <!-- ==========================================================================
+       MODAL 17: SALÓN DE LOGROS ALQUÍMICOS (ACHIEVEMENTS)
+       ========================================================================== -->
+  <div id="modal-achievements" class="fixed inset-0 bg-slate-950/85 backdrop-blur-md z-50 hidden flex items-center justify-center p-3 sm:p-5 modal-overlay">
+    <div class="bg-slate-900 border border-slate-700 rounded-3xl max-w-xl w-full p-5 sm:p-6 shadow-2xl flex flex-col max-h-[85vh] modal-content">
+      <div class="flex items-center justify-between border-b border-slate-800 pb-3 mb-3">
+        <div>
+          <h2 class="text-lg sm:text-xl font-black text-white flex items-center gap-2">
+            <i data-lucide="award" class="w-5 h-5 text-amber-400"></i>
+            Salón de Logros Alquímicos
+          </h2>
+          <p class="text-xs text-slate-400">Hitos de maestría y recompensas para celebrar tu progreso.</p>
+        </div>
+        <button id="btn-close-achievements" class="p-2 text-slate-400 hover:text-white rounded-xl bg-slate-800">
+          <i data-lucide="x" class="w-5 h-5"></i>
+        </button>
+      </div>
+
+      <!-- Resumen de Progreso General de Logros -->
+      <div class="p-3.5 rounded-2xl bg-gradient-to-r from-amber-500/15 via-yellow-500/10 to-amber-500/15 border border-amber-400/40 mb-3.5">
+        <div class="flex items-center justify-between text-xs mb-1.5">
+          <span class="font-bold text-slate-200">Progreso Total</span>
+          <span id="achievements-stat-unlocked" class="font-black text-amber-300 font-mono">0 / 13</span>
+        </div>
+        <div class="w-full bg-slate-950 rounded-full h-2.5 overflow-hidden border border-slate-700/80 mb-2">
+          <div id="achievements-bar-progress" class="h-full bg-gradient-to-r from-amber-400 to-yellow-500 rounded-full transition-all duration-500" style="width: 0%"></div>
+        </div>
+        <div class="flex items-center justify-between text-[11px] text-slate-400">
+          <span>Recompensas acumuladas:</span>
+          <span id="achievements-stat-coins" class="text-amber-300 font-bold font-mono">+0 🪙</span>
+        </div>
+      </div>
+
+      <!-- Filtros -->
+      <div class="flex items-center gap-1.5 border-b border-slate-800 pb-2 mb-3 text-xs">
+        <button id="btn-ach-filter-all" class="px-3 py-1 rounded-xl font-bold bg-sky-500 text-white transition shadow-sm">Todos</button>
+        <button id="btn-ach-filter-unlocked" class="px-3 py-1 rounded-xl font-bold bg-slate-800 text-slate-300 hover:text-white transition">Desbloqueados</button>
+        <button id="btn-ach-filter-locked" class="px-3 py-1 rounded-xl font-bold bg-slate-800 text-slate-300 hover:text-white transition">Pendientes</button>
+      </div>
+
+      <!-- Lista Scrollable de Logros -->
+      <div id="achievements-catalog-list" class="flex-1 overflow-y-auto space-y-2.5 pr-1">
+        <!-- Renderizado dinámico por AchievementManager -->
+      </div>
+    </div>
+  </div>
+
+  <!-- ==========================================================================
+       MODAL 18: MODO CASUAL INFINITO (SANDBOX PERSONALIZABLE)
+       ========================================================================== -->
+  <div id="modal-casual-sandbox" class="fixed inset-0 bg-slate-950/85 backdrop-blur-md z-50 hidden flex items-center justify-center p-3 sm:p-5 modal-overlay">
+    <div class="bg-slate-900 border border-slate-700 rounded-3xl max-w-lg w-full p-5 sm:p-6 shadow-2xl flex flex-col max-h-[85vh] modal-content">
+      <div class="flex items-center justify-between border-b border-slate-800 pb-3 mb-3">
+        <div>
+          <h2 class="text-lg sm:text-xl font-black text-white flex items-center gap-2">
+            <i data-lucide="infinity" class="w-5 h-5 text-emerald-400"></i>
+            Modo Casual Infinito
+          </h2>
+          <p class="text-xs text-slate-400">Configura tubos y mecánicas a tu gusto para jugar sin presión ni vidas.</p>
+        </div>
+        <button id="btn-close-sandbox" class="p-2 text-slate-400 hover:text-white rounded-xl bg-slate-800">
+          <i data-lucide="x" class="w-5 h-5"></i>
+        </button>
+      </div>
+
+      <div class="flex-1 overflow-y-auto space-y-4 pr-1">
+        <!-- Control de Frascos -->
+        <div class="bg-slate-800/60 border border-slate-700/80 rounded-2xl p-3.5 space-y-2">
+          <div class="flex items-center justify-between text-xs font-bold text-white">
+            <span>Cantidad de Frascos Totales:</span>
+            <span id="lbl-val-sandbox-tubes" class="font-mono text-emerald-400 font-black text-sm">7</span>
+          </div>
+          <input type="range" id="input-sandbox-tubes" min="4" max="12" value="7" class="w-full accent-emerald-500 cursor-pointer" oninput="document.getElementById('lbl-val-sandbox-tubes').textContent = this.value">
+          <div class="flex justify-between text-[10px] text-slate-400 font-mono">
+            <span>4 tubos (rápido)</span>
+            <span>7 tubos (estándar)</span>
+            <span>12 tubos (máximo)</span>
+          </div>
+        </div>
+
+        <!-- Control de Colores -->
+        <div class="bg-slate-800/60 border border-slate-700/80 rounded-2xl p-3.5 space-y-2">
+          <div class="flex items-center justify-between text-xs font-bold text-white">
+            <span>Cantidad de Colores Líquidos:</span>
+            <span id="lbl-val-sandbox-colors" class="font-mono text-sky-400 font-black text-sm">5</span>
+          </div>
+          <input type="range" id="input-sandbox-colors" min="3" max="10" value="5" class="w-full accent-sky-500 cursor-pointer" oninput="document.getElementById('lbl-val-sandbox-colors').textContent = this.value">
+          <div class="flex justify-between text-[10px] text-slate-400 font-mono">
+            <span>3 colores</span>
+            <span>5 colores</span>
+            <span>10 colores</span>
+          </div>
+        </div>
+
+        <!-- Mecánicas Opcionales -->
+        <div class="bg-slate-800/60 border border-slate-700/80 rounded-2xl p-3.5 space-y-2.5">
+          <div class="text-xs font-black text-amber-300 uppercase tracking-wider flex items-center gap-1.5">
+            <i data-lucide="sliders" class="w-4 h-4 text-amber-400"></i>
+            <span>Mecánicas en el Tablero</span>
+          </div>
+          <div class="grid grid-cols-2 gap-2 text-xs">
+            <label class="flex items-center gap-2 p-2 rounded-xl bg-slate-900 border border-slate-700/80 cursor-pointer hover:border-slate-500">
+              <input type="checkbox" id="cb-sandbox-mystery" class="accent-sky-500">
+              <span class="text-slate-200">Líquido '?'</span>
+            </label>
+            <label class="flex items-center gap-2 p-2 rounded-xl bg-slate-900 border border-slate-700/80 cursor-pointer hover:border-slate-500">
+              <input type="checkbox" id="cb-sandbox-giant" class="accent-sky-500">
+              <span class="text-slate-200">Frasco Gigante</span>
+            </label>
+            <label class="flex items-center gap-2 p-2 rounded-xl bg-slate-900 border border-slate-700/80 cursor-pointer hover:border-slate-500">
+              <input type="checkbox" id="cb-sandbox-narrow" class="accent-purple-500">
+              <span class="text-slate-200">Tubo 1x1</span>
+            </label>
+            <label class="flex items-center gap-2 p-2 rounded-xl bg-slate-900 border border-slate-700/80 cursor-pointer hover:border-slate-500">
+              <input type="checkbox" id="cb-sandbox-lock" class="accent-amber-500">
+              <span class="text-slate-200">Candado y Llave</span>
+            </label>
+            <label class="flex items-center gap-2 p-2 rounded-xl bg-slate-900 border border-slate-700/80 cursor-pointer hover:border-slate-500">
+              <input type="checkbox" id="cb-sandbox-chameleon" class="accent-pink-500">
+              <span class="text-slate-200">Camaleón</span>
+            </label>
+            <label class="flex items-center gap-2 p-2 rounded-xl bg-slate-900 border border-slate-700/80 cursor-pointer hover:border-slate-500">
+              <input type="checkbox" id="cb-sandbox-fragile" class="accent-rose-500">
+              <span class="text-slate-200">Frasco Frágil</span>
+            </label>
+          </div>
+        </div>
+      </div>
+
+      <div class="mt-4 pt-3 border-t border-slate-800 flex gap-2">
+        <button id="btn-start-sandbox-play" class="btn-interactive w-full py-3.5 bg-gradient-to-r from-emerald-500 via-teal-500 to-sky-500 hover:from-emerald-400 hover:to-sky-400 text-slate-950 font-black text-sm rounded-2xl shadow-lg shadow-emerald-500/20 flex items-center justify-center gap-2 transition-all">
+          <i data-lucide="play" class="w-5 h-5 fill-slate-950"></i>
+          <span>Generar y Jugar Nivel 🎲</span>
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ==========================================================================
+       MODAL 19: CONTRARRELOJ GAME OVER (ALQUIMIA VIVA)
+       ========================================================================== -->
+  <div id="modal-time-attack-gameover" class="fixed inset-0 bg-slate-950/90 backdrop-blur-md z-50 hidden flex items-center justify-center p-3 sm:p-5 modal-overlay">
+    <div class="bg-slate-900 border border-slate-700/80 rounded-3xl max-w-md w-full p-6 shadow-2xl text-center relative overflow-hidden modal-content">
+      <div class="w-16 h-16 rounded-2xl bg-amber-500/20 border border-amber-400/40 flex items-center justify-center mx-auto mb-3 text-amber-300 text-3xl shadow-lg shadow-amber-500/20">
+        ⏳
+      </div>
+      <h2 class="text-2xl font-black text-white mb-1">¡Tiempo Agotado!</h2>
+      <p class="text-xs text-slate-400 mb-3">La reacción en cadena de la Alquimia Viva ha concluido.</p>
+
+      <div id="lbl-ta-new-record-badge" class="hidden mb-3 inline-flex items-center gap-1.5 bg-gradient-to-r from-amber-500 to-yellow-400 text-slate-950 text-xs font-black px-3.5 py-1.5 rounded-full shadow-lg shadow-amber-500/30 animate-bounce">
+        <span>⭐ ¡NUEVO RÉCORD CONTRARRELOJ! ⭐</span>
+      </div>
+
+      <div class="bg-slate-800/80 border border-slate-700/80 rounded-2xl p-4 mb-4 text-left space-y-2.5 text-xs">
+        <div class="flex justify-between items-center text-slate-300">
+          <span>Puntaje Conseguido:</span>
+          <strong id="lbl-ta-final-score" class="text-amber-400 font-mono text-base font-black">0 pts</strong>
+        </div>
+        <div class="flex justify-between items-center text-slate-300">
+          <span>Tubos Disueltos:</span>
+          <strong id="lbl-ta-tubes-cleared" class="text-emerald-400 font-mono text-sm font-bold">0 tubos</strong>
+        </div>
+        <div class="border-t border-slate-700/60 pt-2 flex justify-between items-center text-slate-300">
+          <span>Mejor Récord Histórico:</span>
+          <strong id="lbl-ta-best-score" class="text-sky-300 font-mono text-sm font-bold">0 pts</strong>
+        </div>
+      </div>
+
+      <div class="flex flex-col gap-2">
+        <button id="btn-time-attack-replay" class="btn-interactive w-full py-3.5 bg-gradient-to-r from-amber-500 via-orange-500 to-yellow-500 hover:from-amber-400 hover:to-yellow-400 text-slate-950 font-black rounded-2xl shadow-lg shadow-amber-500/30 flex items-center justify-center gap-2 transition-all">
+          <i data-lucide="refresh-cw" class="w-4 h-4"></i>
+          <span>Jugar Otra Vez</span>
+        </button>
+        <button id="btn-time-attack-home" class="btn-interactive w-full py-2.5 bg-slate-800 hover:bg-slate-700 text-slate-300 font-bold rounded-2xl transition-all flex items-center justify-center gap-2">
+          <i data-lucide="home" class="w-4 h-4"></i>
+          <span>Volver al Menú Principal</span>
+        </button>
+      </div>
+    </div>
+  </div>
+
   <!-- Input oculto para importación de partida en archivo JSON -->
   <input type="file" id="input-save-file" accept=".json" class="hidden">
 
   <!-- Scripts modulares -->
-  <script src="js/firebase-config.js?v=29"></script>
-  <script src="js/cloud-sync.js?v=29"></script>
-  <script src="js/audio.js?v=29"></script>
-  <script src="js/palette.js?v=29"></script>
-  <script src="js/levels.js?v=29"></script>
-  <script src="js/challenges.js?v=29"></script>
-  <script src="js/honor.js?v=29"></script>
-  <script src="js/state.js?v=29"></script>
-  <script src="js/leaderboard.js?v=29"></script>
-  <script src="js/roulette.js?v=29"></script>
-  <script src="js/story.js?v=29"></script>
-  <script src="js/game.js?v=29"></script>
+  <script src="js/firebase-config.js?v=30"></script>
+  <script src="js/cloud-sync.js?v=30"></script>
+  <script src="js/audio.js?v=30"></script>
+  <script src="js/palette.js?v=30"></script>
+  <script src="js/levels.js?v=30"></script>
+  <script src="js/challenges.js?v=30"></script>
+  <script src="js/honor.js?v=30"></script>
+  <script src="js/state.js?v=30"></script>
+  <script src="js/achievements.js?v=30"></script>
+  <script src="js/leaderboard.js?v=30"></script>
+  <script src="js/roulette.js?v=30"></script>
+  <script src="js/story.js?v=30"></script>
+  <script src="js/game.js?v=30"></script>
 
   <!-- Registro de Service Worker PWA -->
   <script>
