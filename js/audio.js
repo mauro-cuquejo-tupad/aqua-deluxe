@@ -1237,53 +1237,129 @@ class ProceduralAudioEngine {
   playWinFanfare() {
     if (!this.ready()) return;
     const now = this.ctx.currentTime;
-    const fanfare = [
-      { f: 523.25, t: 0.0, d: 0.15 },
-      { f: 523.25, t: 0.15, d: 0.15 },
-      { f: 523.25, t: 0.3, d: 0.15 },
-      { f: 659.25, t: 0.45, d: 0.3 },
-      { f: 783.99, t: 0.75, d: 0.6 }
+
+    // Arpegio cristalino, relajante y etéreo (Armonía Glass Harp / Campanas Celestiales)
+    // Escala mayor 9na serena y pura: G4 -> C5 -> E5 -> G5 -> B5 -> D6 -> G6
+    const crystalNotes = [
+      { f: 392.00, t: 0.00, d: 2.0, gain: 0.14 }, // G4
+      { f: 523.25, t: 0.12, d: 2.2, gain: 0.16 }, // C5
+      { f: 659.25, t: 0.25, d: 2.2, gain: 0.15 }, // E5
+      { f: 783.99, t: 0.39, d: 2.4, gain: 0.15 }, // G5
+      { f: 987.77, t: 0.54, d: 2.5, gain: 0.14 }, // B5
+      { f: 1174.66, t: 0.70, d: 2.6, gain: 0.13 }, // D6
+      { f: 1567.98, t: 0.88, d: 3.0, gain: 0.12 }  // G6
     ];
 
-    fanfare.forEach(note => {
-      const osc = this.ctx.createOscillator();
-      const gain = this.ctx.createGain();
+    crystalNotes.forEach(note => {
       const start = now + note.t;
 
-      osc.type = 'triangle';
+      // 1. Tono fundamental puro (Sine cristalino)
+      const osc = this.ctx.createOscillator();
+      const gain = this.ctx.createGain();
+      osc.type = 'sine';
       osc.frequency.setValueAtTime(note.f, start);
 
-      gain.gain.setValueAtTime(0.25, start);
-      gain.gain.exponentialRampToValueAtTime(0.001, start + note.d);
+      gain.gain.setValueAtTime(0.0001, start);
+      gain.gain.linearRampToValueAtTime(note.gain, start + 0.025);
+      gain.gain.exponentialRampToValueAtTime(0.0001, start + note.d);
 
       osc.connect(gain);
       gain.connect(this.sfxGain);
       osc.start(start);
       osc.stop(start + note.d + 0.05);
+
+      // 2. Resonancia cristalina (Armónico natural de copa de vidrio a 2.756x)
+      const shimmerOsc = this.ctx.createOscillator();
+      const shimmerGain = this.ctx.createGain();
+      shimmerOsc.type = 'sine';
+      shimmerOsc.frequency.setValueAtTime(note.f * 2.756, start);
+
+      shimmerGain.gain.setValueAtTime(0.0001, start);
+      shimmerGain.gain.linearRampToValueAtTime(note.gain * 0.25, start + 0.015);
+      shimmerGain.gain.exponentialRampToValueAtTime(0.0001, start + (note.d * 0.6));
+
+      shimmerOsc.connect(shimmerGain);
+      shimmerGain.connect(this.sfxGain);
+      shimmerOsc.start(start);
+      shimmerOsc.stop(start + (note.d * 0.6) + 0.05);
+
+      // 3. Destello etéreo (Octava superior con suave refracción)
+      const sparkleOsc = this.ctx.createOscillator();
+      const sparkleGain = this.ctx.createGain();
+      sparkleOsc.type = 'sine';
+      sparkleOsc.frequency.setValueAtTime(note.f * 2.003, start);
+
+      sparkleGain.gain.setValueAtTime(0.0001, start);
+      sparkleGain.gain.linearRampToValueAtTime(note.gain * 0.15, start + 0.02);
+      sparkleGain.gain.exponentialRampToValueAtTime(0.0001, start + (note.d * 0.5));
+
+      sparkleOsc.connect(sparkleGain);
+      sparkleGain.connect(this.sfxGain);
+      sparkleOsc.start(start);
+      sparkleOsc.stop(start + (note.d * 0.5) + 0.05);
     });
   }
 
   playVictory() {
-    this.playWinFanfare();
+    if (!this.ready()) return;
+    const now = this.ctx.currentTime;
+    // Campana de cristal suave y serena para vaciado de tubos
+    const notes = [
+      { f: 659.25, t: 0.0, d: 1.2, gain: 0.14 }, // E5
+      { f: 880.00, t: 0.12, d: 1.4, gain: 0.13 }, // A5
+      { f: 1318.51, t: 0.24, d: 1.8, gain: 0.12 } // E6
+    ];
+    notes.forEach(note => {
+      const start = now + note.t;
+      const osc = this.ctx.createOscillator();
+      const gain = this.ctx.createGain();
+      osc.type = 'sine';
+      osc.frequency.setValueAtTime(note.f, start);
+
+      gain.gain.setValueAtTime(0.0001, start);
+      gain.gain.linearRampToValueAtTime(note.gain, start + 0.02);
+      gain.gain.exponentialRampToValueAtTime(0.0001, start + note.d);
+
+      osc.connect(gain);
+      gain.connect(this.sfxGain);
+      osc.start(start);
+      osc.stop(start + note.d + 0.05);
+
+      // Armónico cristalino
+      const chim = this.ctx.createOscillator();
+      const chimG = this.ctx.createGain();
+      chim.type = 'sine';
+      chim.frequency.setValueAtTime(note.f * 2.756, start);
+      chimG.gain.setValueAtTime(0.0001, start);
+      chimG.gain.linearRampToValueAtTime(note.gain * 0.2, start + 0.015);
+      chimG.gain.exponentialRampToValueAtTime(0.0001, start + (note.d * 0.6));
+      chim.connect(chimG);
+      chimG.connect(this.sfxGain);
+      chim.start(start);
+      chim.stop(start + (note.d * 0.6) + 0.05);
+    });
   }
 
   playLevelUp() {
     if (!this.ready()) return;
     const now = this.ctx.currentTime;
     const notes = [
-      { f: 440.00, t: 0.0, d: 0.12 },
-      { f: 554.37, t: 0.10, d: 0.12 },
-      { f: 659.25, t: 0.20, d: 0.14 },
-      { f: 880.00, t: 0.32, d: 0.45 }
+      { f: 523.25, t: 0.0, d: 1.2, gain: 0.15 }, // C5
+      { f: 659.25, t: 0.12, d: 1.3, gain: 0.15 }, // E5
+      { f: 783.99, t: 0.24, d: 1.4, gain: 0.14 }, // G5
+      { f: 1046.50, t: 0.38, d: 1.8, gain: 0.14 } // C6
     ];
     notes.forEach(note => {
+      const start = now + note.t;
       const osc = this.ctx.createOscillator();
       const gain = this.ctx.createGain();
-      const start = now + note.t;
-      osc.type = 'triangle';
+      osc.type = 'sine';
       osc.frequency.setValueAtTime(note.f, start);
-      gain.gain.setValueAtTime(0.3, start);
-      gain.gain.exponentialRampToValueAtTime(0.001, start + note.d);
+
+      gain.gain.setValueAtTime(0.0001, start);
+      gain.gain.linearRampToValueAtTime(note.gain, start + 0.02);
+      gain.gain.exponentialRampToValueAtTime(0.0001, start + note.d);
+
       osc.connect(gain);
       gain.connect(this.sfxGain);
       osc.start(start);

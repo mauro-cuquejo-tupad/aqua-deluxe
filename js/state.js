@@ -132,6 +132,13 @@ class StateManager {
           settings: {
             ...DEFAULT_STATE.settings,
             ...(parsed.settings || {}),
+            showAccessibilityPatterns: (parsed.settings?.visualComfortCleanMigrated)
+              ? !!parsed.settings?.showAccessibilityPatterns
+              : false,
+            showAccessibilityLetters: (parsed.settings?.visualComfortCleanMigrated)
+              ? !!parsed.settings?.showAccessibilityLetters
+              : false,
+            visualComfortCleanMigrated: true,
             disabledMechanics: Array.isArray(parsed.settings?.disabledMechanics) ? parsed.settings.disabledMechanics : [],
             visualComfortMode: !!parsed.settings?.visualComfortMode,
             disabledMusicTracks: Array.isArray(parsed.settings?.disabledMusicTracks) ? parsed.settings.disabledMusicTracks : []

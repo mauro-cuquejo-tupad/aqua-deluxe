@@ -1278,16 +1278,24 @@ class GameController {
 
     if (nextVal) {
       if (window.paletteManager) window.paletteManager.applyPreset('visual_comfort');
-      this.showAccessibilityPatterns = true;
-      if (sm?.state?.settings) sm.state.settings.showAccessibilityPatterns = true;
+      // Garantizar que los líquidos se mantengan limpios y puros sin forzar símbolos ni letras
+      this.showAccessibilityPatterns = false;
+      this.showAccessibilityLetters = false;
+      if (sm?.state?.settings) {
+        sm.state.settings.showAccessibilityPatterns = false;
+        sm.state.settings.showAccessibilityLetters = false;
+        sm.saveState();
+      }
+      const cbPatterns = document.getElementById('toggle-accessibility-patterns');
+      if (cbPatterns) cbPatterns.checked = false;
+      const cbLetters = document.getElementById('toggle-accessibility-letters');
+      if (cbLetters) cbLetters.checked = false;
     } else {
       if (window.paletteManager) window.paletteManager.applyPreset('aaa');
     }
 
     const cbComfort = document.getElementById('toggle-visual-comfort-mode');
     if (cbComfort) cbComfort.checked = nextVal;
-    const cbPatterns = document.getElementById('toggle-accessibility-patterns');
-    if (cbPatterns) cbPatterns.checked = this.showAccessibilityPatterns;
 
     this.refreshBoardVisuals();
     if (window.audio) window.audio.playSelect();
@@ -1591,7 +1599,7 @@ class GameController {
           segment.innerHTML = `<span>?</span>`;
         } else {
           // Capa de color normal o camaleón
-          const shouldShowPatterns = this.showAccessibilityPatterns || useLetters || (window.stateManager && window.stateManager.isVisualComfortMode());
+          const shouldShowPatterns = this.showAccessibilityPatterns || (window.stateManager && window.stateManager.isAccessibilityPatternsMode && window.stateManager.isAccessibilityPatternsMode());
           if (liq.isChameleon) {
             segment.classList.add('liquid-chameleon');
           } else {
@@ -1604,8 +1612,8 @@ class GameController {
           bubble.className = 'bubble w-1.5 h-1.5 left-3';
           segment.appendChild(bubble);
 
-          // Símbolos o letras y etiquetas de color (activos en modo accesibilidad o descanso visual)
-          if (shouldShowPatterns && (liq.shape || liq.letter)) {
+          // Símbolos o letras y etiquetas de color (opcionales: sólo si el usuario activó letras o patrones de accesibilidad)
+          if ((useLetters || shouldShowPatterns) && (liq.shape || liq.letter)) {
             const shapesList = ['●', '▲', '■', '★', '◆', '✚', '♥', '✦', '⬟', '⬢', '✿', '❄', '✪', '⯁', '🞛', '🞗'];
             let displayChar = liq.shape;
             if (useLetters) {

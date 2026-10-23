@@ -145,13 +145,6 @@ class PaletteManager {
     } else if (presetType === 'visual_comfort') {
       this.palette = JSON.parse(JSON.stringify(VISUAL_COMFORT_PALETTE));
       if (window.stateManager) window.stateManager.setVisualComfortMode(true);
-      if (window.game) {
-        window.game.showAccessibilityPatterns = true;
-        if (window.stateManager?.state?.settings) {
-          window.stateManager.state.settings.showAccessibilityPatterns = true;
-          window.stateManager.saveState();
-        }
-      }
     } else {
       this.palette = JSON.parse(JSON.stringify(AAA_PALETTE));
       if (window.stateManager) window.stateManager.setVisualComfortMode(false);
