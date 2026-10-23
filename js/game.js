@@ -613,7 +613,7 @@ class GameController {
     }
   }
 
-  // Intervalo de derrame según el nivel actual (cada 10 tubos se reduce un 5%, estilo Tetris)
+  // Intervalo de derrame según el nivel actual (cada 5 tubos se reduce un 5%, estilo Tetris)
   getDropIntervalForLevel(level = null) {
     const lvl = (level !== null) ? level : this.timeAttackLevel;
     return Math.max(10, Math.round(this.timeAttackBaseDropInterval * Math.pow(0.95, Math.max(0, lvl - 1))));
@@ -843,8 +843,8 @@ class GameController {
       this.renderTubes();
       this.updateMovesUI();
 
-      // 4. Comprobar Aumento de Nivel (Cada 10 tubos estilo Tetris)
-      const calculatedLevel = 1 + Math.floor(this.timeAttackTubesCleared / 10);
+      // 4. Comprobar Aumento de Nivel (Cada 5 tubos completados)
+      const calculatedLevel = 1 + Math.floor(this.timeAttackTubesCleared / 5);
       if (calculatedLevel > this.timeAttackLevel) {
         this.triggerTimeAttackLevelUp(calculatedLevel);
       }
@@ -894,7 +894,7 @@ class GameController {
     this.clearTimeAttackTubeImmediately(tubeIdx);
   }
 
-  // Aumento de nivel estilo Tetris cada 10 tubos completados
+  // Aumento de nivel estilo Tetris cada 5 tubos completados
   triggerTimeAttackLevelUp(newLevel) {
     this.timeAttackLevel = newLevel;
 
@@ -913,16 +913,20 @@ class GameController {
       setTimeout(() => boardWrap.classList.remove('anim-screen-shake'), 600);
     }
 
-    // 3. Cartel temporal "NIVEL X! ⚡ Velocidad de derrame +5% ⚡"
+    // 3. Cartel temporal con aviso especial si se sumó un nuevo color
     const existing = document.querySelector('.ta-levelup-banner');
     if (existing) existing.remove();
+
+    let extraSub = '⚡ Velocidad de derrame +5% ⚡';
+    if (newLevel === 2) extraSub = '🎨 ¡5º color en juego! • Derrame +5% ⚡';
+    else if (newLevel === 3) extraSub = '🎨 ¡6º color en juego! • Derrame +5% ⚡';
 
     const banner = document.createElement('div');
     banner.className = 'ta-levelup-banner';
     banner.innerHTML = `
       <div class="text-xs uppercase tracking-widest text-amber-300 font-bold mb-1">¡Aumento de Nivel!</div>
       <div class="text-3xl sm:text-4xl font-black text-white drop-shadow-md">¡NIVEL ${newLevel}!</div>
-      <div class="text-xs text-sky-200 mt-1.5 font-bold">⚡ Velocidad de derrame +5% ⚡</div>
+      <div class="text-xs text-sky-200 mt-1.5 font-bold">${extraSub}</div>
     `;
     document.body.appendChild(banner);
     setTimeout(() => banner.remove(), 2400);
