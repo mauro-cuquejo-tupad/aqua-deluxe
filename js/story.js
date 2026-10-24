@@ -71,35 +71,39 @@ class StoryManager {
     ];
   }
 
-  // --- SVGS ILUSTRATIVOS DE LA HISTORIA (ESTILO MINIMALISTA Y ACOGEDOR) ---
+  // --- SVGS ILUSTRATIVOS DE LA HISTORIA (ESTILO MINIMALISTA Y ACOGEDOR CON ANIMACIÓN CINEMÁTICA ÚNICA) ---
   getSchoolExplosionSvg() {
     return `
-      <svg viewBox="0 0 320 180" class="w-full h-full rounded-2xl bg-gradient-to-b from-slate-950 via-slate-900 to-indigo-950/70 p-2">
+      <svg viewBox="0 0 320 180" class="w-full h-full rounded-2xl bg-gradient-to-b from-slate-950 via-slate-900 to-indigo-950/70 p-2 story-svg-container">
         <rect x="20" y="70" width="120" height="80" rx="4" fill="#334155" stroke="#64748b" stroke-width="2"/>
         <polygon points="20,70 80,30 140,70" fill="#475569" stroke="#64748b" stroke-width="2"/>
         <text x="80" y="95" font-size="20" text-anchor="middle">🏫</text>
-        <!-- Nube de explosión cómica púrpura -->
-        <circle cx="120" cy="50" r="30" fill="#a855f7" opacity="0.8"/>
-        <circle cx="150" cy="40" r="35" fill="#c084fc" opacity="0.75"/>
-        <circle cx="180" cy="55" r="28" fill="#e879f9" opacity="0.8"/>
-        <text x="150" y="52" font-size="22" font-weight="900" fill="#fef08a" text-anchor="middle" letter-spacing="1">💥 ¡BOOM!</text>
+        <!-- Nube de explosión cómica púrpura animada -->
+        <g class="story-anim-ch1-boom-cloud">
+          <circle cx="120" cy="50" r="30" fill="#a855f7" opacity="0.85"/>
+          <circle cx="150" cy="40" r="35" fill="#c084fc" opacity="0.8"/>
+          <circle cx="180" cy="55" r="28" fill="#e879f9" opacity="0.85"/>
+        </g>
+        <g class="story-anim-ch1-boom-text">
+          <text x="150" y="52" font-size="22" font-weight="900" fill="#fef08a" text-anchor="middle" letter-spacing="1">💥 ¡BOOM!</text>
+        </g>
         <!-- Científico con bata tiznada -->
-        <g transform="translate(195, 95)">
+        <g class="story-anim-ch1-scientist" transform="translate(195, 95)">
           <circle cx="15" cy="15" r="10" fill="#fed7aa"/>
           <path d="M 8 25 L 22 25 L 26 55 L 4 55 Z" fill="#e2e8f0"/>
           <circle cx="11" cy="13" r="2" fill="#0f172a"/>
           <circle cx="19" cy="13" r="2" fill="#0f172a"/>
           <!-- Manchas de hollín -->
-          <circle cx="17" cy="18" r="3" fill="#334155" opacity="0.8"/>
+          <circle cx="17" cy="18" r="3.5" fill="#334155" opacity="0.85"/>
           <text x="15" y="48" font-size="12" text-anchor="middle">🧪</text>
         </g>
         <!-- Perrito Mirko esperando afuera moviendo la cola -->
-        <g transform="translate(250, 115)">
+        <g class="story-anim-ch1-dog" transform="translate(250, 115)">
           <ellipse cx="20" cy="22" rx="14" ry="10" fill="#94a3b8"/>
           <circle cx="10" cy="14" r="8" fill="#94a3b8"/>
           <circle cx="8" cy="12" r="1.5" fill="#0f172a"/>
           <ellipse cx="6" cy="10" rx="3" ry="6" fill="#64748b"/>
-          <path d="M 32 20 Q 42 12 36 6" stroke="#94a3b8" stroke-width="3" stroke-linecap="round" fill="none"/>
+          <path class="story-anim-ch1-tail" d="M 32 20 Q 42 12 36 6" stroke="#94a3b8" stroke-width="3" stroke-linecap="round" fill="none"/>
           <text x="20" y="40" font-size="9" font-weight="900" fill="#cbd5e1" text-anchor="middle">🐶 Mirko</text>
         </g>
       </svg>
@@ -108,27 +112,34 @@ class StoryManager {
 
   getCollegeExplosionSvg() {
     return `
-      <svg viewBox="0 0 320 180" class="w-full h-full rounded-2xl bg-gradient-to-b from-slate-950 via-slate-900 to-indigo-950/70 p-2">
+      <svg viewBox="0 0 320 180" class="w-full h-full rounded-2xl bg-gradient-to-b from-slate-950 via-slate-900 to-indigo-950/70 p-2 story-svg-container">
         <!-- Fachada de la facultad con columnas -->
-        <rect x="30" y="80" width="130" height="70" rx="3" fill="#1e293b" stroke="#475569" stroke-width="2"/>
-        <line x1="50" y1="80" x2="50" y2="150" stroke="#94a3b8" stroke-width="4"/>
-        <line x1="80" y1="80" x2="80" y2="150" stroke="#94a3b8" stroke-width="4"/>
-        <line x1="110" y1="80" x2="110" y2="150" stroke="#94a3b8" stroke-width="4"/>
-        <line x1="140" y1="80" x2="140" y2="150" stroke="#94a3b8" stroke-width="4"/>
-        <text x="95" y="65" font-size="20" text-anchor="middle">🎓</text>
-        <!-- Nube de humo esmeralda y fuego -->
-        <circle cx="140" cy="45" r="32" fill="#10b981" opacity="0.8"/>
-        <circle cx="175" cy="35" r="38" fill="#34d399" opacity="0.75"/>
-        <circle cx="210" cy="50" r="30" fill="#6ee7b7" opacity="0.8"/>
-        <text x="175" y="48" font-size="20" font-weight="900" fill="#fef08a" text-anchor="middle">💥 ¡KABOOM!</text>
-        <!-- Gato Tom durmiendo plácidamente -->
-        <g transform="translate(230, 115)">
+        <g class="story-anim-ch2-building">
+          <rect x="30" y="80" width="130" height="70" rx="3" fill="#1e293b" stroke="#475569" stroke-width="2"/>
+          <line x1="50" y1="80" x2="50" y2="150" stroke="#94a3b8" stroke-width="4"/>
+          <line x1="80" y1="80" x2="80" y2="150" stroke="#94a3b8" stroke-width="4"/>
+          <line x1="110" y1="80" x2="110" y2="150" stroke="#94a3b8" stroke-width="4"/>
+          <line x1="140" y1="80" x2="140" y2="150" stroke="#94a3b8" stroke-width="4"/>
+          <text x="95" y="65" font-size="20" text-anchor="middle">🎓</text>
+        </g>
+        <!-- Nube de humo esmeralda y fuego animada -->
+        <g class="story-anim-ch2-boom-cloud">
+          <circle cx="140" cy="45" r="32" fill="#10b981" opacity="0.85"/>
+          <circle cx="175" cy="35" r="38" fill="#34d399" opacity="0.8"/>
+          <circle cx="210" cy="50" r="30" fill="#6ee7b7" opacity="0.85"/>
+        </g>
+        <g class="story-anim-ch2-boom-text">
+          <text x="175" y="48" font-size="20" font-weight="900" fill="#fef08a" text-anchor="middle">💥 ¡KABOOM!</text>
+        </g>
+        <!-- Gato Tom durmiendo plácidamente con zzz -->
+        <g class="story-anim-ch2-cat" transform="translate(230, 115)">
           <ellipse cx="25" cy="22" rx="16" ry="11" fill="#334155"/>
           <circle cx="12" cy="18" r="9" fill="#334155"/>
           <polygon points="6,12 10,5 14,12" fill="#475569"/>
           <polygon points="12,12 16,5 20,12" fill="#475569"/>
           <path d="M 9 19 Q 12 21 15 19" stroke="#94a3b8" stroke-width="1.5" fill="none"/>
-          <path d="M 38 24 Q 48 20 44 12" stroke="#334155" stroke-width="3" stroke-linecap="round" fill="none"/>
+          <path class="story-anim-ch2-cat-tail" d="M 38 24 Q 48 20 44 12" stroke="#334155" stroke-width="3" stroke-linecap="round" fill="none"/>
+          <text class="story-anim-ch2-zzz" x="14" y="5" font-size="11" fill="#93c5fd" font-weight="bold">zzZ</text>
           <text x="25" y="40" font-size="9" font-weight="900" fill="#cbd5e1" text-anchor="middle">🐱 Tom (zzZ)</text>
         </g>
       </svg>
@@ -137,25 +148,35 @@ class StoryManager {
 
   getFriendsBarExplosionSvg() {
     return `
-      <svg viewBox="0 0 320 180" class="w-full h-full rounded-2xl bg-gradient-to-b from-slate-950 via-slate-900 to-indigo-950/70 p-2">
-        <text x="50" y="55" font-size="28">🍻</text>
+      <svg viewBox="0 0 320 180" class="w-full h-full rounded-2xl bg-gradient-to-b from-slate-950 via-slate-900 to-indigo-950/70 p-2 story-svg-container">
+        <!-- Brindis de vasos -->
+        <g class="story-anim-ch3-toast">
+          <text x="50" y="55" font-size="28">🍻</text>
+        </g>
         <rect x="70" y="110" width="180" height="15" rx="4" fill="#78350f" stroke="#b45309" stroke-width="2"/>
         <line x1="90" y1="125" x2="90" y2="160" stroke="#78350f" stroke-width="4"/>
         <line x1="230" y1="125" x2="230" y2="160" stroke="#78350f" stroke-width="4"/>
         <!-- Destello y salpicaduras de colores -->
-        <circle cx="160" cy="85" r="32" fill="#f59e0b" opacity="0.85"/>
-        <circle cx="135" cy="70" r="22" fill="#38bdf8" opacity="0.8"/>
-        <circle cx="185" cy="70" r="22" fill="#ec4899" opacity="0.8"/>
-        <text x="160" y="88" font-size="18" font-weight="900" fill="#ffffff" text-anchor="middle">✨ ¡PLASH! ✨</text>
+        <g class="story-anim-ch3-splash">
+          <circle cx="160" cy="85" r="32" fill="#f59e0b" opacity="0.85"/>
+          <circle cx="135" cy="70" r="22" fill="#38bdf8" opacity="0.85"/>
+          <circle cx="185" cy="70" r="22" fill="#ec4899" opacity="0.85"/>
+          <circle cx="120" cy="55" r="5" fill="#facc15" opacity="0.9"/>
+          <circle cx="200" cy="55" r="6" fill="#38bdf8" opacity="0.9"/>
+          <circle cx="160" cy="45" r="7" fill="#ec4899" opacity="0.9"/>
+        </g>
+        <g class="story-anim-ch3-text">
+          <text x="160" y="88" font-size="18" font-weight="900" fill="#ffffff" text-anchor="middle">✨ ¡PLASH! ✨</text>
+        </g>
         <!-- Amiga Nina riendo -->
-        <g transform="translate(40, 85)">
+        <g class="story-anim-ch3-nina" transform="translate(40, 85)">
           <circle cx="18" cy="18" r="11" fill="#fed7aa"/>
           <path d="M 10 30 Q 18 26 26 30 L 30 65 L 6 65 Z" fill="#ec4899"/>
           <text x="18" y="12" font-size="12" text-anchor="middle">💇‍♀️</text>
           <text x="18" y="75" font-size="9" font-weight="900" fill="#f472b6" text-anchor="middle">Nina 😂</text>
         </g>
         <!-- Científico disculpándose -->
-        <g transform="translate(245, 85)">
+        <g class="story-anim-ch3-scientist" transform="translate(245, 85)">
           <circle cx="18" cy="18" r="11" fill="#fed7aa"/>
           <path d="M 10 30 L 26 30 L 28 65 L 8 65 Z" fill="#38bdf8"/>
           <circle cx="18" cy="22" r="3" fill="#1e293b"/>
@@ -167,23 +188,23 @@ class StoryManager {
 
   getSleepingIdeaSvg() {
     return `
-      <svg viewBox="0 0 320 180" class="w-full h-full rounded-2xl bg-gradient-to-b from-slate-950 via-slate-900 to-indigo-950/70 p-2">
+      <svg viewBox="0 0 320 180" class="w-full h-full rounded-2xl bg-gradient-to-b from-slate-950 via-slate-900 to-indigo-950/70 p-2 story-svg-container">
         <!-- Sillón cálido -->
         <path d="M 60 145 L 60 95 Q 60 75 90 75 L 180 75 Q 210 75 210 95 L 210 145 Z" fill="#831843" stroke="#be185d" stroke-width="2"/>
         <!-- Científico durmiendo -->
-        <g transform="translate(90, 80)">
+        <g class="story-anim-ch4-scientist" transform="translate(90, 80)">
           <circle cx="25" cy="20" r="12" fill="#fed7aa"/>
           <path d="M 20 22 Q 25 24 30 22" stroke="#475569" stroke-width="2" fill="none"/>
           <rect x="10" y="32" width="60" height="30" rx="8" fill="#0284c7"/>
-          <text x="75" y="15" font-size="14" fill="#93c5fd">zzZ</text>
+          <text class="story-anim-ch4-zzz" x="75" y="15" font-size="14" fill="#93c5fd" font-weight="bold">zzZ</text>
         </g>
         <!-- Bombilla brillante de idea -->
-        <g transform="translate(180, 25)">
-          <circle cx="20" cy="20" r="18" fill="#facc15" filter="drop-shadow(0 0 10px #facc15)"/>
+        <g class="story-anim-ch4-lightbulb" transform="translate(180, 25)">
+          <circle cx="20" cy="20" r="18" fill="#facc15" filter="drop-shadow(0 0 12px #facc15)"/>
           <text x="20" y="27" font-size="22" text-anchor="middle">💡</text>
         </g>
         <!-- Gatita Matilda ronroneando -->
-        <g transform="translate(225, 115)">
+        <g class="story-anim-ch4-cat" transform="translate(225, 115)">
           <ellipse cx="20" cy="20" rx="14" ry="10" fill="#e2e8f0"/>
           <circle cx="10" cy="14" r="8" fill="#cbd5e1"/>
           <polygon points="5,8 9,2 13,8" fill="#94a3b8"/>
@@ -196,28 +217,30 @@ class StoryManager {
 
   getGiantFlasksSvg() {
     return `
-      <svg viewBox="0 0 320 180" class="w-full h-full rounded-2xl bg-gradient-to-b from-slate-950 via-slate-900 to-indigo-950/70 p-2">
+      <svg viewBox="0 0 320 180" class="w-full h-full rounded-2xl bg-gradient-to-b from-slate-950 via-slate-900 to-indigo-950/70 p-2 story-svg-container">
         <!-- Probetas gigantes de laboratorio -->
-        <g transform="translate(60, 30)">
-          <rect x="10" y="10" width="35" height="110" rx="10" fill="rgba(56, 189, 248, 0.25)" stroke="#38bdf8" stroke-width="2.5"/>
-          <rect x="12" y="55" width="31" height="63" rx="8" fill="#0284c7"/>
-          <text x="27" y="135" font-size="9" font-weight="900" fill="#38bdf8" text-anchor="middle">Max 6</text>
-        </g>
-        <g transform="translate(125, 15)">
-          <rect x="10" y="10" width="42" height="130" rx="12" fill="rgba(245, 158, 11, 0.25)" stroke="#f59e0b" stroke-width="2.5"/>
-          <rect x="12" y="60" width="38" height="78" rx="10" fill="#d97706"/>
-          <text x="31" y="152" font-size="9" font-weight="900" fill="#f59e0b" text-anchor="middle">Titán 8</text>
-        </g>
-        <!-- Tubo fino 1x1 con burbujitas -->
-        <g transform="translate(195, 45)">
-          <rect x="10" y="10" width="18" height="90" rx="6" fill="rgba(168, 85, 247, 0.3)" stroke="#c084fc" stroke-width="2"/>
-          <rect x="11" y="60" width="16" height="38" rx="5" fill="#9333ea"/>
-          <circle cx="19" cy="45" r="2.5" fill="#f3e8ff"/>
-          <circle cx="19" cy="30" r="2" fill="#f3e8ff"/>
-          <text x="19" y="115" font-size="8" font-weight="900" fill="#d8b4fe" text-anchor="middle">1x1 ✨</text>
+        <g class="story-anim-ch5-flasks">
+          <g transform="translate(60, 30)">
+            <rect x="10" y="10" width="35" height="110" rx="10" fill="rgba(56, 189, 248, 0.25)" stroke="#38bdf8" stroke-width="2.5"/>
+            <rect class="story-anim-ch5-liquid1" x="12" y="55" width="31" height="63" rx="8" fill="#0284c7"/>
+            <text x="27" y="135" font-size="9" font-weight="900" fill="#38bdf8" text-anchor="middle">Max 6</text>
+          </g>
+          <g transform="translate(125, 15)">
+            <rect x="10" y="10" width="42" height="130" rx="12" fill="rgba(245, 158, 11, 0.25)" stroke="#f59e0b" stroke-width="2.5"/>
+            <rect class="story-anim-ch5-liquid2" x="12" y="60" width="38" height="78" rx="10" fill="#d97706"/>
+            <text x="31" y="152" font-size="9" font-weight="900" fill="#f59e0b" text-anchor="middle">Titán 8</text>
+          </g>
+          <!-- Tubo fino 1x1 con burbujitas -->
+          <g transform="translate(195, 45)">
+            <rect x="10" y="10" width="18" height="90" rx="6" fill="rgba(168, 85, 247, 0.3)" stroke="#c084fc" stroke-width="2"/>
+            <rect class="story-anim-ch5-liquid3" x="11" y="60" width="16" height="38" rx="5" fill="#9333ea"/>
+            <circle class="story-anim-ch5-bubble1" cx="19" cy="45" r="2.5" fill="#f3e8ff"/>
+            <circle class="story-anim-ch5-bubble2" cx="19" cy="30" r="2" fill="#f3e8ff"/>
+            <text x="19" y="115" font-size="8" font-weight="900" fill="#d8b4fe" text-anchor="middle">1x1 ✨</text>
+          </g>
         </g>
         <!-- Bianca supervisando -->
-        <g transform="translate(245, 75)">
+        <g class="story-anim-ch5-bianca" transform="translate(245, 75)">
           <circle cx="18" cy="18" r="11" fill="#fed7aa"/>
           <path d="M 8 30 L 28 30 L 32 70 L 4 70 Z" fill="#10b981"/>
           <text x="18" y="12" font-size="12" text-anchor="middle">👓</text>
@@ -229,26 +252,29 @@ class StoryManager {
 
   getMentorWisdomSvg() {
     return `
-      <svg viewBox="0 0 320 180" class="w-full h-full rounded-2xl bg-gradient-to-b from-slate-950 via-slate-900 to-indigo-950/70 p-2">
+      <svg viewBox="0 0 320 180" class="w-full h-full rounded-2xl bg-gradient-to-b from-slate-950 via-slate-900 to-indigo-950/70 p-2 story-svg-container">
         <!-- Cielo estrellado y constelaciones -->
-        <circle cx="50" cy="35" r="1.5" fill="#fef08a"/>
-        <circle cx="120" cy="25" r="2" fill="#ffffff"/>
-        <circle cx="220" cy="30" r="1.5" fill="#fef08a"/>
-        <circle cx="280" cy="45" r="2" fill="#ffffff"/>
+        <g class="story-anim-ch6-stars">
+          <circle cx="50" cy="35" r="2" fill="#fef08a"/>
+          <circle cx="120" cy="25" r="2.5" fill="#ffffff"/>
+          <circle cx="220" cy="30" r="2" fill="#fef08a"/>
+          <circle cx="280" cy="45" r="2.5" fill="#ffffff"/>
+          <circle cx="170" cy="18" r="1.5" fill="#93c5fd"/>
+        </g>
         <!-- Corazón alquímico resplandeciente -->
-        <g transform="translate(140, 45)">
-          <circle cx="20" cy="20" r="26" fill="rgba(244, 63, 94, 0.2)" filter="blur(6px)"/>
+        <g class="story-anim-ch6-heart" transform="translate(140, 45)">
+          <circle cx="20" cy="20" r="26" fill="rgba(244, 63, 94, 0.25)" filter="blur(6px)"/>
           <text x="20" y="28" font-size="28" text-anchor="middle">💖</text>
         </g>
         <!-- Mentora Zoila -->
-        <g transform="translate(60, 80)">
+        <g class="story-anim-ch6-mentor" transform="translate(60, 80)">
           <circle cx="20" cy="20" r="12" fill="#fed7aa"/>
           <path d="M 8 32 L 32 32 L 36 75 L 4 75 Z" fill="#6366f1"/>
           <text x="20" y="14" font-size="12" text-anchor="middle">🧓</text>
           <text x="20" y="88" font-size="9" font-weight="900" fill="#a5b4fc" text-anchor="middle">Zoila ⭐</text>
         </g>
         <!-- Científico escuchando atentamente -->
-        <g transform="translate(220, 80)">
+        <g class="story-anim-ch6-scientist" transform="translate(220, 80)">
           <circle cx="20" cy="20" r="12" fill="#fed7aa"/>
           <path d="M 8 32 L 32 32 L 34 75 L 6 75 Z" fill="#0284c7"/>
           <text x="20" y="88" font-size="9" font-weight="900" fill="#7dd3fc" text-anchor="middle">Alquimista 📖</text>
@@ -259,22 +285,24 @@ class StoryManager {
 
   getHeartRevelationSvg() {
     return `
-      <svg viewBox="0 0 320 180" class="w-full h-full rounded-2xl bg-gradient-to-b from-slate-950 via-slate-900 to-indigo-950/70 p-2">
+      <svg viewBox="0 0 320 180" class="w-full h-full rounded-2xl bg-gradient-to-b from-slate-950 via-slate-900 to-indigo-950/70 p-2 story-svg-container">
         <!-- Rayos de luz dorada celestial -->
-        <circle cx="160" cy="40" r="45" fill="rgba(251, 191, 36, 0.15)" filter="blur(10px)"/>
-        <text x="160" y="55" font-size="34" text-anchor="middle">✨</text>
+        <g class="story-anim-ch7-rays">
+          <circle cx="160" cy="40" r="45" fill="rgba(251, 191, 36, 0.2)" filter="blur(10px)"/>
+          <text x="160" y="55" font-size="34" text-anchor="middle">✨</text>
+        </g>
         <!-- El científico y Freya contemplando el horizonte -->
-        <g transform="translate(100, 75)">
+        <g class="story-anim-ch7-scientist" transform="translate(100, 75)">
           <circle cx="20" cy="20" r="12" fill="#fed7aa"/>
           <path d="M 8 32 L 32 32 L 34 80 L 6 80 Z" fill="#0284c7"/>
         </g>
-        <g transform="translate(180, 75)">
+        <g class="story-anim-ch7-freya" transform="translate(180, 75)">
           <circle cx="20" cy="20" r="12" fill="#fed7aa"/>
           <path d="M 8 32 L 32 32 L 36 80 L 4 80 Z" fill="#ec4899"/>
           <text x="20" y="14" font-size="12" text-anchor="middle">🌸</text>
           <text x="20" y="94" font-size="9" font-weight="900" fill="#f472b6" text-anchor="middle">Freya 💕</text>
         </g>
-        <path d="M 132 110 Q 160 120 188 110" stroke="#f43f5e" stroke-width="2.5" stroke-dasharray="4 3" fill="none"/>
+        <path class="story-anim-ch7-bond" d="M 132 110 Q 160 120 188 110" stroke="#f43f5e" stroke-width="2.5" stroke-dasharray="4 3" fill="none"/>
       </svg>
     `;
   }
@@ -282,28 +310,34 @@ class StoryManager {
   // --- SVG DEL GRAN FINAL ESPECIAL: NAZA, PERROS Y GATOS ---
   getSpecialEndingFamilySvg() {
     return `
-      <svg viewBox="0 0 360 230" class="w-full h-full rounded-3xl bg-gradient-to-b from-sky-950 via-slate-900 to-indigo-950/90 p-2 shadow-2xl">
+      <svg viewBox="0 0 360 230" class="w-full h-full rounded-3xl bg-gradient-to-b from-sky-950 via-slate-900 to-indigo-950/90 p-2 shadow-2xl story-svg-container">
         <!-- Hogar cálido de fondo -->
         <rect x="25" y="40" width="310" height="170" rx="16" fill="rgba(30, 41, 59, 0.7)" stroke="#64748b" stroke-width="1.5"/>
         <!-- Ventana al jardín soleado con flores -->
-        <rect x="50" y="55" width="60" height="55" rx="8" fill="#38bdf8" opacity="0.3" stroke="#94a3b8" stroke-width="1.5"/>
-        <line x1="80" y1="55" x2="80" y2="110" stroke="#94a3b8" stroke-width="1.5"/>
-        <line x1="50" y1="82" x2="110" y2="82" stroke="#94a3b8" stroke-width="1.5"/>
-        <circle cx="80" cy="70" r="7" fill="#fbbf24"/>
-        <text x="70" y="105" font-size="10">🌸</text>
-        <text x="90" y="105" font-size="10">🌿</text>
+        <g class="story-anim-fe-sun">
+          <rect x="50" y="55" width="60" height="55" rx="8" fill="#38bdf8" opacity="0.35" stroke="#94a3b8" stroke-width="1.5"/>
+          <line x1="80" y1="55" x2="80" y2="110" stroke="#94a3b8" stroke-width="1.5"/>
+          <line x1="50" y1="82" x2="110" y2="82" stroke="#94a3b8" stroke-width="1.5"/>
+          <circle cx="80" cy="70" r="7" fill="#fbbf24"/>
+          <text x="70" y="105" font-size="10">🌸</text>
+          <text x="90" y="105" font-size="10">🌿</text>
+        </g>
 
         <!-- Cuadro con la bata de laboratorio colgada (Adiós laboratorio) -->
-        <rect x="250" y="55" width="55" height="50" rx="6" fill="#1e293b" stroke="#ca8a04" stroke-width="1.5"/>
-        <text x="277" y="78" font-size="16" text-anchor="middle">🥼</text>
-        <text x="277" y="96" font-size="7" font-weight="900" fill="#fde047" text-anchor="middle">JUBILADO</text>
+        <g class="story-anim-fe-coat">
+          <rect x="250" y="55" width="55" height="50" rx="6" fill="#1e293b" stroke="#ca8a04" stroke-width="1.5"/>
+          <text x="277" y="78" font-size="16" text-anchor="middle">🥼</text>
+          <text x="277" y="96" font-size="7" font-weight="900" fill="#fde047" text-anchor="middle">JUBILADO</text>
+        </g>
 
         <!-- Corazón central brillante -->
-        <circle cx="180" cy="55" r="22" fill="rgba(244, 63, 94, 0.25)" filter="blur(8px)"/>
-        <text x="180" y="65" font-size="28" text-anchor="middle">💖</text>
+        <g class="story-anim-fe-heart">
+          <circle cx="180" cy="55" r="22" fill="rgba(244, 63, 94, 0.3)" filter="blur(8px)"/>
+          <text x="180" y="65" font-size="28" text-anchor="middle">💖</text>
+        </g>
 
         <!-- El Científico (feliz y sonriente, con ropa cómoda) -->
-        <g transform="translate(130, 85)">
+        <g class="story-anim-fe-mauro" transform="translate(130, 85)">
           <circle cx="20" cy="20" r="14" fill="#fed7aa"/>
           <path d="M 14 18 Q 20 22 26 18" stroke="#78350f" stroke-width="2" fill="none"/>
           <circle cx="16" cy="16" r="2" fill="#0f172a"/>
@@ -313,7 +347,7 @@ class StoryManager {
         </g>
 
         <!-- Chica Naza (hermosa, sonriente, tomada de la mano) -->
-        <g transform="translate(190, 85)">
+        <g class="story-anim-fe-naza" transform="translate(190, 85)">
           <circle cx="20" cy="20" r="14" fill="#fed7aa"/>
           <!-- Cabello bonito castaño/dorado -->
           <path d="M 6 22 Q 6 4 20 4 Q 34 4 34 22 Q 35 34 32 38 Q 28 22 20 22 Q 12 22 8 38 Z" fill="#92400e"/>
@@ -326,7 +360,7 @@ class StoryManager {
 
         <!-- ================= MASCOTAS ADORADAS ================= -->
         <!-- 1. CANICHE GRIS CON COPITO BLANCO EN LA CABEZA -->
-        <g transform="translate(60, 145)">
+        <g class="story-anim-fe-poodle" transform="translate(60, 145)">
           <!-- Cuerpo rizado gris -->
           <ellipse cx="25" cy="22" rx="16" ry="12" fill="#94a3b8"/>
           <!-- Cabeza rizada gris -->
@@ -344,12 +378,12 @@ class StoryManager {
           <!-- Patitas y cola rizada con pompón -->
           <circle cx="16" cy="32" r="3.5" fill="#94a3b8"/>
           <circle cx="28" cy="32" r="3.5" fill="#94a3b8"/>
-          <circle cx="40" cy="14" r="5" fill="#ffffff"/>
+          <circle class="story-anim-fe-tail" cx="40" cy="14" r="5" fill="#ffffff"/>
           <text x="25" y="44" font-size="8" font-weight="900" fill="#e2e8f0" text-anchor="middle">Caniche Gris 🐩</text>
         </g>
 
         <!-- 2. GATO 1 BLANCO Y NEGRO (Tuxedo Cat 1) -->
-        <g transform="translate(130, 160)">
+        <g class="story-anim-fe-cat1" transform="translate(130, 160)">
           <ellipse cx="16" cy="16" rx="13" ry="9" fill="#0f172a"/>
           <!-- Pecho blanco -->
           <ellipse cx="11" cy="16" rx="6" ry="6" fill="#ffffff"/>
@@ -365,7 +399,7 @@ class StoryManager {
         </g>
 
         <!-- 3. GATO 2 BLANCO Y NEGRO (Tuxedo Cat 2 jugando) -->
-        <g transform="translate(235, 155)">
+        <g class="story-anim-fe-cat2" transform="translate(235, 155)">
           <ellipse cx="18" cy="18" rx="14" ry="9" fill="#ffffff"/>
           <!-- Manchas negras tuxedo -->
           <path d="M 12 10 Q 18 6 24 10 L 26 18 L 8 18 Z" fill="#0f172a"/>
@@ -377,12 +411,12 @@ class StoryManager {
           <circle cx="11" cy="11" r="1.2" fill="#22c55e"/>
           <path d="M 30 20 Q 38 18 36 10" stroke="#0f172a" stroke-width="2.5" stroke-linecap="round" fill="none"/>
           <!-- Ovillo de lana jugando -->
-          <circle cx="2" cy="22" r="4.5" fill="#ec4899"/>
+          <circle class="story-anim-fe-yarn" cx="2" cy="22" r="4.5" fill="#ec4899"/>
           <text x="18" y="34" font-size="7" font-weight="900" fill="#cbd5e1" text-anchor="middle">B&N 🐱</text>
         </g>
 
         <!-- 4. GATO ATIGRADO GRIS Y NEGRO (Grey & Black Tabby Cat) -->
-        <g transform="translate(285, 145)">
+        <g class="story-anim-fe-tabby" transform="translate(285, 145)">
           <!-- Cuerpo grisáceo con rayas atigradas negras -->
           <ellipse cx="18" cy="20" rx="15" ry="10" fill="#64748b"/>
           <!-- Rayas atigradas -->
@@ -398,6 +432,18 @@ class StoryManager {
         </g>
       </svg>
     `;
+  }
+
+  // --- REPRODUCIR DE NUEVO LA ANIMACIÓN CINEMÁTICA ---
+  replayAnimation() {
+    const svgCont = document.getElementById('story-chapter-svg');
+    if (!svgCont) return;
+    const chap = this.chapters[this.currentChapterIndex];
+    if (!chap) return;
+    svgCont.innerHTML = '';
+    void svgCont.offsetWidth; // Forzar reflow para reiniciar keyframes
+    svgCont.innerHTML = chap.svg;
+    if (window.audio && typeof window.audio.playPop === 'function') window.audio.playPop();
   }
 
   // --- ABRIR MODAL DEL MODO HISTORIA ---

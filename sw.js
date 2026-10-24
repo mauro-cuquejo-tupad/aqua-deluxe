@@ -3,7 +3,7 @@
    Soporte Offline, Caché Rápida y Experiencia de App Nativa Móvil
    ========================================================================== */
 
-const CACHE_NAME = 'aquasort-deluxe-v5.0';
+const CACHE_NAME = 'aquasort-deluxe-v5.1';
 
 const PRECACHE_ASSETS = [
   './',
@@ -12,7 +12,7 @@ const PRECACHE_ASSETS = [
   './icons/icon-192.png',
   './icons/icon-512.png',
   './icons/icon.svg',
-  './css/main.css?v=46',
+  './css/main.css?v=51',
   './css/tubes.css?v=50',
   './css/roulette.css?v=46',
   './css/accessibility.css?v=46',
@@ -27,8 +27,8 @@ const PRECACHE_ASSETS = [
   './js/achievements.js?v=46',
   './js/leaderboard.js?v=46',
   './js/roulette.js?v=46',
-  './js/story.js?v=46',
-  './js/game.js?v=49'
+  './js/story.js?v=51',
+  './js/game.js?v=51'
 ];
 
 // Instalación: Cachear recursos críticos

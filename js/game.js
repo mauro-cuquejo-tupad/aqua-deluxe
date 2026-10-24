@@ -439,6 +439,10 @@ class GameController {
     }
     this.renderChallengesHUD();
 
+    // Reiniciar contador de tiempo de juego activo para la pérdida de vidas cada 10 min en historia
+    this.storyLevelPlaySeconds = 0;
+    this.storyLevelLostLivesCount = 0;
+
     // Iniciar temporizador en vivo (desactivado en Contrarreloj)
     if (window.leaderboardManager) {
       if (lvl === 'time_attack' || this.isTimeAttack) {
@@ -1420,8 +1424,8 @@ class GameController {
     } else {
       this.btnAddTube.disabled = false;
       this.btnAddTube.classList.remove('opacity-50', 'cursor-not-allowed');
-      if (lblAdd) lblAdd.textContent = '+ Botella';
-      this.btnAddTube.title = 'Añadir una botella vacía auxiliar';
+      if (lblAdd) lblAdd.textContent = '+ Botella (❤️)';
+      this.btnAddTube.title = 'Añadir una botella vacía auxiliar (cuesta 1 vida)';
     }
   }
 
@@ -3767,10 +3771,60 @@ class GameController {
     });
   }
 
+  isStoryLevel() {
+    return !this.customLevelTesting && !this.isHonorMode && !this.isDailyChallenge && !this.isTimeAttack && !this.isCasualSandbox && typeof this.currentLevel === 'number';
+  }
+
   onTimerTick(elapsedSecs) {
     if (this.levelChallenges && this.levelChallenges.length > 0) {
       this.updateChallengesHUD();
     }
+
+    // Pérdida de 1 vida cada 10 minutos (600s) de juego activo en niveles de historia
+    if (this.isStoryLevel() && !this.isModalOpen() && !this.isVictoryModalOpen) {
+      this.storyLevelPlaySeconds = (this.storyLevelPlaySeconds || 0) + 1;
+      const intervals = Math.floor(this.storyLevelPlaySeconds / 600);
+      if (intervals > (this.storyLevelLostLivesCount || 0)) {
+        this.storyLevelLostLivesCount = intervals;
+        if (window.stateManager) {
+          const consumed = window.stateManager.consumeLife();
+          this.updateLivesHUD();
+          if (consumed) {
+            if (window.audio && typeof window.audio.playFailSound === 'function') {
+              window.audio.playFailSound();
+            }
+            this.showToast(`⏱️ ¡Han pasado ${intervals * 10} min en este nivel! Se ha consumido 1 vida (-1 ❤️).`, 'danger');
+          } else {
+            this.showToast(`⏱️ ¡Han pasado ${intervals * 10} min en este nivel! (¡Ya no tienes vidas ❤️!)`, 'danger');
+          }
+        }
+      }
+    }
+  }
+
+  showToast(text, type = 'info') {
+    let toast = document.getElementById('game-floating-toast');
+    if (!toast) {
+      toast = document.createElement('div');
+      toast.id = 'game-floating-toast';
+      document.body.appendChild(toast);
+    }
+    const colorClasses = {
+      info: 'bg-slate-900/95 border-sky-500/70 text-sky-200 shadow-sky-500/25',
+      warning: 'bg-slate-900/95 border-amber-500/75 text-amber-200 shadow-amber-500/25',
+      danger: 'bg-slate-900/95 border-rose-500/85 text-rose-200 shadow-rose-500/35',
+      success: 'bg-slate-900/95 border-emerald-500/75 text-emerald-200 shadow-emerald-500/25'
+    };
+    toast.className = `fixed top-16 left-1/2 transform -translate-x-1/2 z-50 py-2.5 px-4 rounded-2xl border text-xs sm:text-sm font-bold shadow-2xl backdrop-blur-md flex items-center gap-2 transition-all duration-300 pointer-events-none ${colorClasses[type] || colorClasses.info}`;
+    toast.innerHTML = text;
+    toast.style.opacity = '1';
+    toast.style.transform = 'translate(-50%, 0)';
+
+    if (this._toastTimeout) clearTimeout(this._toastTimeout);
+    this._toastTimeout = setTimeout(() => {
+      toast.style.opacity = '0';
+      toast.style.transform = 'translate(-50%, -10px)';
+    }, 3800);
   }
 
   multiplyCoins(mult) {
@@ -3853,6 +3907,20 @@ class GameController {
     }
 
     if (this.extraTubesUsed >= 1) return;
+
+    // Costo de 1 vida por invocar la botella extra
+    if (window.stateManager) {
+      const lives = window.stateManager.getLives();
+      if (lives <= 0) {
+        if (confirm('¡No te quedan vidas disponibles para invocar un frasco auxiliar! ¿Deseas ir a la Tienda de Mejoras para recargar vidas con monedas?')) {
+          this.openShopModal();
+        }
+        return;
+      }
+      window.stateManager.consumeLife();
+      this.updateLivesHUD();
+      this.showToast('🧪 ¡Frasco auxiliar invocado! (-1 ❤️)', 'warning');
+    }
 
     this.saveStateForUndo();
     this.extraTubesUsed++;
@@ -5574,6 +5642,13 @@ class GameController {
     if (btnStoryNext) {
       this.bindTapOrClick(btnStoryNext, () => {
         if (window.storyManager) window.storyManager.nextChapter();
+      });
+    }
+
+    const btnStoryReplay = document.getElementById('btn-story-replay');
+    if (btnStoryReplay) {
+      this.bindTapOrClick(btnStoryReplay, () => {
+        if (window.storyManager) window.storyManager.replayAnimation();
       });
     }
 

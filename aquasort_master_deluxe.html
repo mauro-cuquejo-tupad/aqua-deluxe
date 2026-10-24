@@ -46,7 +46,7 @@
   <link rel="icon" type="image/svg+xml" href="icons/icon.svg">
 
   <!-- Modular Stylesheets -->
-  <link rel="stylesheet" href="css/main.css?v=46">
+  <link rel="stylesheet" href="css/main.css?v=51">
   <link rel="stylesheet" href="css/tubes.css?v=50">
   <link rel="stylesheet" href="css/roulette.css?v=46">
   <link rel="stylesheet" href="css/accessibility.css?v=46">
@@ -208,9 +208,9 @@
           <span>Pista (<span id="lbl-hints-left">3</span>)</span>
         </button>
 
-        <button id="btn-add-tube" class="btn-interactive flex items-center gap-1 px-3 py-1.5 bg-emerald-500/20 hover:bg-emerald-500/30 active:scale-95 border border-emerald-500/40 rounded-xl text-xs font-bold text-emerald-300 transition-all disabled:opacity-40 disabled:pointer-events-none" title="Añadir una botella vacía">
+        <button id="btn-add-tube" class="btn-interactive flex items-center gap-1 px-3 py-1.5 bg-emerald-500/20 hover:bg-emerald-500/30 active:scale-95 border border-emerald-500/40 rounded-xl text-xs font-bold text-emerald-300 transition-all disabled:opacity-40 disabled:pointer-events-none" title="Añadir una botella vacía auxiliar (cuesta 1 vida)">
           <i data-lucide="plus-circle" class="w-4 h-4 text-emerald-400"></i>
-          <span id="lbl-add-tube-text">+ Botella</span>
+          <span id="lbl-add-tube-text">+ Botella (❤️)</span>
         </button>
 
         <button id="btn-restart" class="p-2 bg-slate-800/90 hover:bg-slate-700 active:scale-95 border border-slate-700/90 rounded-xl text-slate-400 hover:text-white transition-colors" title="Reiniciar nivel actual">
@@ -2010,7 +2010,12 @@
         <button id="btn-story-prev" class="px-3 py-1.5 rounded-xl bg-slate-800 hover:bg-slate-700 text-xs font-bold text-slate-300 border border-slate-700 disabled:opacity-30 disabled:pointer-events-none transition flex items-center gap-1">
           <i data-lucide="chevron-left" class="w-4 h-4"></i> Anterior
         </button>
-        <span id="story-nav-counter" class="text-xs font-mono font-black text-amber-400">1 / 7</span>
+        <div class="flex items-center gap-2">
+          <span id="story-nav-counter" class="text-xs font-mono font-black text-amber-400">1 / 7</span>
+          <button id="btn-story-replay" class="px-2.5 py-1.5 rounded-xl bg-amber-500/20 hover:bg-amber-500/30 text-amber-300 text-xs font-bold border border-amber-500/40 transition flex items-center gap-1 active:scale-95" title="Repetir animación">
+            <i data-lucide="rotate-ccw" class="w-3.5 h-3.5"></i> <span>Repetir</span>
+          </button>
+        </div>
         <button id="btn-story-next" class="px-3 py-1.5 rounded-xl bg-slate-800 hover:bg-slate-700 text-xs font-bold text-slate-300 border border-slate-700 disabled:opacity-30 disabled:pointer-events-none transition flex items-center gap-1">
           Siguiente <i data-lucide="chevron-right" class="w-4 h-4"></i>
         </button>
@@ -2260,8 +2265,8 @@
   <script src="js/achievements.js?v=46"></script>
   <script src="js/leaderboard.js?v=46"></script>
   <script src="js/roulette.js?v=46"></script>
-  <script src="js/story.js?v=46"></script>
-  <script src="js/game.js?v=49"></script>
+  <script src="js/story.js?v=51"></script>
+  <script src="js/game.js?v=51"></script>
 
   <!-- Registro de Service Worker PWA -->
   <script>
