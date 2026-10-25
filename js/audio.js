@@ -93,6 +93,15 @@ const MUSIC_TRACKS = [
     sectionName: 'Ruleta de la Fortuna y Diana',
     isSpecial: true,
     description: 'Pizzicato alegre y festivo que celebra la emoción de cada tirada de la suerte.'
+  },
+  {
+    id: 'track_story',
+    name: 'Crónicas Animadas',
+    genre: 'Aventura & Xilófono Saltarín',
+    icon: 'film',
+    sectionName: 'Animaciones y Modo Historia',
+    isSpecial: true,
+    description: 'Melodía vivaz y juguetona con xilófono mágico, bajo saltarín y percusión alegre que da vida a las animaciones.'
   }
 ];
 
@@ -261,6 +270,31 @@ class ProceduralAudioEngine {
     src.stop(now + 0.07);
   }
 
+  playWoodblockTap(now, gainLevel = 0.018) {
+    if (!this.ctx) return;
+    const osc = this.ctx.createOscillator();
+    const gain = this.ctx.createGain();
+    const filter = this.ctx.createBiquadFilter();
+
+    osc.type = 'triangle';
+    osc.frequency.setValueAtTime(820, now);
+    osc.frequency.exponentialRampToValueAtTime(320, now + 0.04);
+
+    filter.type = 'bandpass';
+    filter.frequency.setValueAtTime(720, now);
+    filter.Q.setValueAtTime(3.5, now);
+
+    gain.gain.setValueAtTime(gainLevel, now);
+    gain.gain.exponentialRampToValueAtTime(0.0001, now + 0.045);
+
+    osc.connect(filter);
+    filter.connect(gain);
+    gain.connect(this.musicGain);
+
+    osc.start(now);
+    osc.stop(now + 0.05);
+  }
+
   resolveLevelTrack(levelContext) {
     if (levelContext === 'time_attack') return 'track_time_attack';
     
@@ -337,6 +371,10 @@ class ProceduralAudioEngine {
       const isDis = window.stateManager && window.stateManager.isMusicTrackDisabled('track_roulette');
       if (!isDis) this.playTrack('track_roulette');
       else this.stopMusic();
+    } else if (trackType === 'story' || trackType === 'cinematic') {
+      const isDis = window.stateManager && window.stateManager.isMusicTrackDisabled('track_story');
+      if (!isDis) this.playTrack('track_story');
+      else this.stopMusic();
     }
   }
 
@@ -389,6 +427,9 @@ class ProceduralAudioEngine {
         break;
       case 'track_roulette':
         this.startRouletteMusic();
+        break;
+      case 'track_story':
+        this.startStoryMusic();
         break;
       default:
         this.startZenMusic();
@@ -1102,6 +1143,158 @@ class ProceduralAudioEngine {
 
     playRouletteStep();
     this.musicLoopTimer = setInterval(playRouletteStep, 240);
+  }
+
+  // --- 11. MÚSICA ANIMADA PARA LAS CINEMÁTICAS E HISTORIA (Upbeat Fantasy / Cartoon Adventure) ---
+  startStoryMusic() {
+    // Progresión armónica alegre y luminosa en Sol Mayor (8 compases x 4 pasos = 32 pasos)
+    // Gmaj -> Dmaj -> Em -> Cmaj -> Gmaj -> Bm -> Cmaj -> D7
+    const chords = [
+      [196.00, 246.94, 293.66], // G (G3, B3, D4)
+      [146.83, 220.00, 293.66], // D (D3, A3, D4)
+      [164.81, 196.00, 246.94], // Em (E3, G3, B3)
+      [130.81, 164.81, 196.00], // C (C3, E3, G3)
+      [196.00, 246.94, 293.66], // G
+      [123.47, 185.00, 220.00], // Bm (B2, F#3, A3)
+      [130.81, 164.81, 261.63], // C
+      [146.83, 220.00, 329.63]  // D7
+    ];
+
+    // Línea de bajo saltarina tipo walking bass alegre
+    const bassline = [
+      98.00, 146.83, 98.00, 123.47,   // G - D - G - B
+      73.42, 110.00, 146.83, 110.00,  // D - A - D - A
+      82.41, 123.47, 164.81, 123.47,  // E - B - E - B
+      65.41, 98.00, 130.81, 110.00,   // C - G - C - A
+      98.00, 146.83, 98.00, 123.47,   // G - D - G - B
+      61.74, 92.50, 123.47, 92.50,    // B - F# - B - F#
+      65.41, 98.00, 130.81, 146.83,   // C - G - C - D
+      73.42, 110.00, 146.83, 164.81   // D - A - D - E
+    ];
+
+    // Melodía saltarina y juguetona de xilófono / marimba mágica
+    const xylophoneMelody = [
+      // Compás 1 (G)
+      587.33, 783.99, 739.99, 783.99,  // D5, G5, F#5, G5
+      // Compás 2 (D)
+      880.00, 739.99, 587.33, 739.99,  // A5, F#5, D5, F#5
+      // Compás 3 (Em)
+      783.99, 659.25, 987.77, 880.00,  // G5, E5, B5, A5
+      // Compás 4 (C)
+      783.99, 659.25, 587.33, 0,       // G5, E5, D5, silencio breve
+      // Compás 5 (G)
+      987.77, 1046.50, 1174.66, 987.77, // B5, C6, D6, B5
+      // Compás 6 (Bm)
+      880.00, 739.99, 587.33, 739.99,  // A5, F#5, D5, F#5
+      // Compás 7 (C)
+      659.25, 783.99, 880.00, 987.77,  // E5, G5, A5, B5
+      // Compás 8 (D7 - cadencia cómica y alegre)
+      1174.66, 1046.50, 880.00, 739.99 // D6, C6, A5, F#5
+    ];
+
+    const playStoryStep = () => {
+      if (!this.ctx || this.currentTrackId !== 'track_story') return;
+      const now = this.ctx.currentTime;
+      const step = this.musicStep % 32;
+      const chordIdx = Math.floor(step / 4) % chords.length;
+
+      // 1. BAJO SALTARÍN (Pizzicato / Staccato acústico animado)
+      const bassFreq = bassline[step % bassline.length];
+      if (bassFreq > 0) {
+        const bOsc = this.ctx.createOscillator();
+        const bGain = this.ctx.createGain();
+        const bFilter = this.ctx.createBiquadFilter();
+
+        bOsc.type = 'triangle';
+        bOsc.frequency.setValueAtTime(bassFreq, now);
+
+        bFilter.type = 'lowpass';
+        bFilter.frequency.setValueAtTime(450, now);
+        bFilter.frequency.exponentialRampToValueAtTime(120, now + 0.16);
+
+        bGain.gain.setValueAtTime(0.08, now);
+        bGain.gain.exponentialRampToValueAtTime(0.001, now + 0.18);
+
+        bOsc.connect(bFilter);
+        bFilter.connect(bGain);
+        bGain.connect(this.musicGain);
+
+        bOsc.start(now);
+        bOsc.stop(now + 0.2);
+      }
+
+      // 2. ACORDES RÍTMICOS A CONTRATIEMPO (Ukulele / cuerdas ligeras en pasos impares)
+      if (step % 2 === 1) {
+        const chord = chords[chordIdx];
+        chord.forEach((f, cIdx) => {
+          const cOsc = this.ctx.createOscillator();
+          const cGain = this.ctx.createGain();
+          const cFilter = this.ctx.createBiquadFilter();
+
+          cOsc.type = 'sawtooth';
+          cOsc.frequency.setValueAtTime(f, now);
+
+          cFilter.type = 'lowpass';
+          cFilter.frequency.setValueAtTime(850 + (cIdx * 180), now);
+          cFilter.frequency.exponentialRampToValueAtTime(260, now + 0.13);
+
+          cGain.gain.setValueAtTime(0.024, now);
+          cGain.gain.exponentialRampToValueAtTime(0.001, now + 0.12);
+
+          cOsc.connect(cFilter);
+          cFilter.connect(cGain);
+          cGain.connect(this.musicGain);
+
+          cOsc.start(now);
+          cOsc.stop(now + 0.14);
+        });
+      }
+
+      // 3. XILÓFONO MÁGICO / CAMPANITAS (Melodía principal vivaz y alegre)
+      const melFreq = xylophoneMelody[step % xylophoneMelody.length];
+      if (melFreq > 0) {
+        const mOsc = this.ctx.createOscillator();
+        const mGain = this.ctx.createGain();
+
+        // Tono principal redondeado y brillante
+        mOsc.type = 'sine';
+        mOsc.frequency.setValueAtTime(melFreq, now);
+
+        mGain.gain.setValueAtTime(0.065, now);
+        mGain.gain.exponentialRampToValueAtTime(0.001, now + 0.18);
+
+        mOsc.connect(mGain);
+        mGain.connect(this.musicGain);
+
+        mOsc.start(now);
+        mOsc.stop(now + 0.2);
+
+        // Armónico superior sutil para dar timbre de lámina de xilófono
+        const hOsc = this.ctx.createOscillator();
+        const hGain = this.ctx.createGain();
+        hOsc.type = 'triangle';
+        hOsc.frequency.setValueAtTime(melFreq * 2, now);
+        hGain.gain.setValueAtTime(0.012, now);
+        hGain.gain.exponentialRampToValueAtTime(0.001, now + 0.08);
+
+        hOsc.connect(hGain);
+        hGain.connect(this.musicGain);
+        hOsc.start(now);
+        hOsc.stop(now + 0.09);
+      }
+
+      // 4. PERCUSIÓN JUGUETONA (Click de madera y shaker alegre)
+      if (step % 2 === 0) {
+        this.playWoodblockTap(now, 0.016);
+      } else {
+        this.playShakerTap(now, 0.005);
+      }
+
+      this.musicStep++;
+    };
+
+    playStoryStep();
+    this.musicLoopTimer = setInterval(playStoryStep, 210); // ~143 BPM animado y vivaz
   }
 
   // ==========================================================================

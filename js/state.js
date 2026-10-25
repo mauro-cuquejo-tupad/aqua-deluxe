@@ -5,7 +5,7 @@
    ========================================================================== */
 
 const STORAGE_KEY = 'aquasort_state_v1';
-const LIFE_REGEN_TIME_MS = 600000; // 10 minutos por vida
+const LIFE_REGEN_TIME_MS = 1800000; // 30 minutos por vida
 
 const DEFAULT_STATE = {
   player: {
@@ -13,12 +13,21 @@ const DEFAULT_STATE = {
     coins: 0,
     lives: 3,
     maxLives: 3,
-    lastLifeLostTimestamp: null
+    lastLifeLostTimestamp: null,
+    totalCoinsSpent: 0
+  },
+  lastRechargeAllLivesDate: null, // Fecha YYYY-MM-DD para limitar el elixir a 1 vez por día
+  dailyReward: {
+    lastClaimDate: null,     // Fecha local YYYY-MM-DD del último reclamo
+    lastClaimTimestamp: null,
+    totalClaimed: 0,
+    streak: 0
   },
   upgrades: {
     cooldownReductionLevel: 1, // Nivel 1 = 100 movs, 2 = 75, 3 = 50, 4 = 25
     maxStoredHints: 3,         // 3, 5, 8
-    rouletteBoost: false       // Ruleta/Diana sin penalización por pérdida
+    rouletteBoost: false,      // Ruleta/Diana sin penalización por pérdida (temporal 30 min)
+    rouletteBoostExpires: null // Timestamp de expiración del seguro (30 minutos)
   },
   cards: {
     dianaFavor: 2,       // +80% prob de Diana
@@ -65,7 +74,11 @@ const DEFAULT_STATE = {
     levelsCompleted: 0
   },
   customLevels: [],            // Niveles creados por el usuario [{ id, name, author, tubes, verified: true }]
-  auxiliaryCooldownRemaining: 0 // Movimientos restantes para usar botella extra (persistente)
+  auxiliaryCooldownRemaining: 0, // Movimientos restantes para usar botella extra (persistente)
+  story: {
+    hasSeenPrologue: false,      // Solo 1 animación inicial al iniciar el modo historia por primera vez
+    unlockedChapters: [0]        // Capítulos desbloqueados por Desafíos de Honor (0 a 6)
+  }
 };
 
 // Funciones auxiliares para persistencia en Cookies
@@ -125,10 +138,14 @@ class StateManager {
     if (saved) {
       try {
         const parsed = JSON.parse(saved);
-        return {
+        const loadedState = {
           ...DEFAULT_STATE,
           ...parsed,
-          player: { ...DEFAULT_STATE.player, ...parsed.player },
+          player: {
+            ...DEFAULT_STATE.player,
+            ...parsed.player,
+            totalCoinsSpent: typeof parsed.player?.totalCoinsSpent === 'number' ? parsed.player.totalCoinsSpent : 0
+          },
           upgrades: { ...DEFAULT_STATE.upgrades, ...parsed.upgrades },
           cards: { ...DEFAULT_STATE.cards, ...(parsed.cards || {}) },
           settings: {
@@ -175,8 +192,45 @@ class StateManager {
             honorMastery: parsed.progress?.honorMastery || {},
             seenTutorials: Array.isArray(parsed.progress?.seenTutorials) ? parsed.progress.seenTutorials : []
           },
+          story: {
+            hasSeenPrologue: parsed.story && typeof parsed.story.hasSeenPrologue === 'boolean'
+              ? parsed.story.hasSeenPrologue
+              : (parsed.progress?.unlockedLevel > 1 || Object.keys(parsed.progress?.completedLevels || {}).length > 0),
+            unlockedChapters: Array.isArray(parsed.story?.unlockedChapters)
+              ? parsed.story.unlockedChapters
+              : [0]
+          },
+          dailyReward: {
+            ...DEFAULT_STATE.dailyReward,
+            ...(parsed.dailyReward || {}),
+            lastClaimDate: (parsed.dailyReward && typeof parsed.dailyReward.lastClaimDate === 'string')
+              ? parsed.dailyReward.lastClaimDate
+              : null,
+            totalClaimed: typeof parsed.dailyReward?.totalClaimed === 'number' ? parsed.dailyReward.totalClaimed : 0,
+            streak: typeof parsed.dailyReward?.streak === 'number' ? parsed.dailyReward.streak : 0
+          },
           customLevels: Array.isArray(parsed.customLevels) ? parsed.customLevels : []
         };
+
+        // Retrocompatibilidad: si ya superó desafíos de honor antes, desbloquear sus capítulos
+        if (loadedState.progress?.honorMastery && loadedState.story) {
+          for (let secId = 1; secId <= 7; secId++) {
+            if (loadedState.progress.honorMastery[String(secId)]?.completed) {
+              const chIdx = secId - 1;
+              if (!loadedState.story.unlockedChapters.includes(chIdx)) {
+                loadedState.story.unlockedChapters.push(chIdx);
+              }
+            }
+          }
+        }
+
+        // Validar hasCompletedAll100: solo debe estar activo si realmente se completaron los 100 niveles
+        const completedCount = Object.keys(loadedState.progress?.completedLevels || {}).length;
+        if (completedCount < 100) {
+          loadedState.progress.hasCompletedAll100 = false;
+        }
+
+        return loadedState;
       } catch (e) {
         console.warn('Error parseando estado guardado:', e);
       }
@@ -204,6 +258,7 @@ class StateManager {
           honorMastery: this.state.progress.honorMastery,
           seenTutorials: this.state.progress.seenTutorials
         },
+        dailyReward: this.state.dailyReward,
         settings: this.state.settings
       };
       const backupJson = JSON.stringify(backupState);
@@ -297,6 +352,9 @@ class StateManager {
     const completed = validNames.every(n => this.state.secretEasterEgg.discoveredNames.includes(n));
     if (completed) {
       this.state.secretEasterEgg.allDiscovered = true;
+      if (window.achievementManager) {
+        window.achievementManager.unlock('secret_names_unlocked_7');
+      }
     }
 
     this.saveState();
@@ -312,6 +370,50 @@ class StateManager {
 
   isSecretEndingUnlocked() {
     return !!this.state.secretEasterEgg?.allDiscovered;
+  }
+
+  // --- MODO HISTORIA Y CINEMÁTICAS ---
+  hasSeenStoryPrologue() {
+    return !!this.state.story?.hasSeenPrologue;
+  }
+
+  markStoryPrologueSeen() {
+    if (!this.state.story) {
+      this.state.story = { hasSeenPrologue: false, unlockedChapters: [0] };
+    }
+    this.state.story.hasSeenPrologue = true;
+    if (!Array.isArray(this.state.story.unlockedChapters)) {
+      this.state.story.unlockedChapters = [0];
+    }
+    if (!this.state.story.unlockedChapters.includes(0)) {
+      this.state.story.unlockedChapters.push(0);
+    }
+    this.saveState();
+  }
+
+  isStoryChapterUnlocked(chapterIndex) {
+    if (!this.state.story || !Array.isArray(this.state.story.unlockedChapters)) return chapterIndex === 0;
+    return this.state.story.unlockedChapters.includes(chapterIndex);
+  }
+
+  unlockStoryChapter(chapterIndex) {
+    if (!this.state.story) {
+      this.state.story = { hasSeenPrologue: false, unlockedChapters: [0] };
+    }
+    if (!Array.isArray(this.state.story.unlockedChapters)) {
+      this.state.story.unlockedChapters = [0];
+    }
+    if (!this.state.story.unlockedChapters.includes(chapterIndex)) {
+      this.state.story.unlockedChapters.push(chapterIndex);
+      this.saveState();
+      return true; // nuevo capítulo desbloqueado
+    }
+    return false;
+  }
+
+  getUnlockedStoryChapters() {
+    if (!this.state.story || !Array.isArray(this.state.story.unlockedChapters)) return [0];
+    return this.state.story.unlockedChapters;
   }
 
   // --- MODO DESCANSO VISUAL (FILTRO AMARILLO / LENTES) ---
@@ -448,7 +550,11 @@ class StateManager {
   spendCoins(amount) {
     if (this.state.player.coins >= amount) {
       this.state.player.coins -= amount;
+      this.state.player.totalCoinsSpent = (this.state.player.totalCoinsSpent || 0) + amount;
       this.saveState();
+      if (window.achievementManager && this.state.player.totalCoinsSpent >= 999999999) {
+        window.achievementManager.unlock('work_for_this_999999999');
+      }
       return true;
     }
     return false;
@@ -660,6 +766,75 @@ class StateManager {
     return this.state.progress.dailyChallenges[today] || null;
   }
 
+  // --- RECOMPENSA DIARIA (COFRE DIARIO 50 MONEDAS - 24 HORAS DESDE LAS 12 DE LA NOCHE / 00:00 HS) ---
+  getLocalDateString(d = new Date()) {
+    const year = d.getFullYear();
+    const month = String(d.getMonth() + 1).padStart(2, '0');
+    const day = String(d.getDate()).padStart(2, '0');
+    return `${year}-${month}-${day}`;
+  }
+
+  getMsUntilMidnight(d = new Date()) {
+    const nextMidnight = new Date(d.getFullYear(), d.getMonth(), d.getDate() + 1, 0, 0, 0, 0);
+    return Math.max(0, nextMidnight.getTime() - d.getTime());
+  }
+
+  canClaimDailyReward() {
+    const today = this.getLocalDateString();
+    return !this.state.dailyReward?.lastClaimDate || this.state.dailyReward.lastClaimDate !== today;
+  }
+
+  claimDailyReward() {
+    if (!this.canClaimDailyReward()) {
+      return {
+        success: false,
+        reason: 'already_claimed',
+        msRemaining: this.getMsUntilMidnight()
+      };
+    }
+
+    const today = this.getLocalDateString();
+    const yesterday = new Date();
+    yesterday.setDate(yesterday.getDate() - 1);
+    const yesterdayStr = this.getLocalDateString(yesterday);
+
+    let streak = (this.state.dailyReward && this.state.dailyReward.streak) ? this.state.dailyReward.streak : 0;
+    if (this.state.dailyReward?.lastClaimDate === yesterdayStr) {
+      streak += 1;
+    } else {
+      streak = 1;
+    }
+
+    if (!this.state.dailyReward) {
+      this.state.dailyReward = {};
+    }
+    this.state.dailyReward.lastClaimDate = today;
+    this.state.dailyReward.lastClaimTimestamp = Date.now();
+    this.state.dailyReward.totalClaimed = (this.state.dailyReward.totalClaimed || 0) + 1;
+    this.state.dailyReward.streak = streak;
+
+    const coinsAwarded = 50;
+    this.addCoins(coinsAwarded);
+    this.saveState();
+
+    return {
+      success: true,
+      coinsAwarded,
+      streak,
+      totalClaimed: this.state.dailyReward.totalClaimed
+    };
+  }
+
+  resetDailyRewardForTesting() {
+    if (!this.state.dailyReward) {
+      this.state.dailyReward = {};
+    }
+    const yesterday = new Date();
+    yesterday.setDate(yesterday.getDate() - 1);
+    this.state.dailyReward.lastClaimDate = this.getLocalDateString(yesterday);
+    this.saveState();
+  }
+
   // --- DESAFÍOS DE HONOR Y MEDALLAS DE SECCIÓN (3 VIDAS, 5 MINUTOS, REINICIO DIARIO) ---
   getHonorChallengeState(sectionId) {
     if (!this.state.progress.honorMastery) {
@@ -796,11 +971,33 @@ class StateManager {
     reader.readAsText(file);
   }
 
-  // --- TIENDA DE MEJORAS CON PRECIOS REBALANCEADOS ---
+  // --- TIENDA DE MEJORAS CON PRECIOS REBALANCEADOS (x10) ---
+  hasRouletteBoost() {
+    if (!this.state.upgrades) return false;
+    if (this.state.upgrades.rouletteBoostExpires) {
+      return Date.now() < this.state.upgrades.rouletteBoostExpires;
+    }
+    return false;
+  }
+
+  getRouletteBoostRemainingTime() {
+    if (!this.hasRouletteBoost()) return null;
+    const remainingMs = Math.max(0, this.state.upgrades.rouletteBoostExpires - Date.now());
+    const totalSecs = Math.ceil(remainingMs / 1000);
+    const mins = Math.floor(totalSecs / 60);
+    const secs = totalSecs % 60;
+    return `${String(mins).padStart(2, '0')}:${String(secs).padStart(2, '0')}`;
+  }
+
+  canBuyRechargeAllLives() {
+    const todayStr = new Date().toISOString().slice(0, 10);
+    return this.state.lastRechargeAllLivesDate !== todayStr;
+  }
+
   purchaseUpgrade(upgradeType) {
     if (upgradeType === 'cooldown') {
       const current = this.state.upgrades.cooldownReductionLevel || 1;
-      const costs = { 1: 80, 2: 180, 3: 350 };
+      const costs = { 1: 800, 2: 1800, 3: 3500 };
       const cost = costs[current];
       if (!cost) return { success: false, msg: 'Nivel máximo ya alcanzado' };
 
@@ -809,12 +1006,12 @@ class StateManager {
         this.saveState();
         return { success: true, newLevel: current + 1 };
       }
-      return { success: false, msg: 'Monedas insuficientes' };
+      return { success: false, msg: 'Monedas insuficientes (Costo: ' + cost + '🪙)' };
     }
 
     if (upgradeType === 'hints_capacity') {
       const current = this.state.upgrades.maxStoredHints || 3;
-      const nextMap = { 3: { next: 5, cost: 60 }, 5: { next: 8, cost: 150 } };
+      const nextMap = { 3: { next: 5, cost: 600 }, 5: { next: 8, cost: 1500 } };
       const config = nextMap[current];
       if (!config) return { success: false, msg: 'Capacidad máxima de pistas alcanzada' };
 
@@ -823,52 +1020,55 @@ class StateManager {
         this.saveState();
         return { success: true, newMax: config.next };
       }
-      return { success: false, msg: 'Monedas insuficientes' };
+      return { success: false, msg: 'Monedas insuficientes (Costo: ' + config.cost + '🪙)' };
     }
 
     if (upgradeType === 'buy_hints_pack') {
-      const cost = 45;
+      const cost = 450;
       if (this.spendCoins(cost)) {
         return { success: true, hintsAdded: 3 };
       }
-      return { success: false, msg: 'Monedas insuficientes' };
+      return { success: false, msg: 'Monedas insuficientes (Costo: 450🪙)' };
     }
 
     if (upgradeType === 'recharge_bottle') {
-      const cost = 40;
+      const cost = 400;
       if (this.spendCoins(cost)) {
         this.resetAuxiliaryCooldownInstant();
         return { success: true };
       }
-      return { success: false, msg: 'Monedas insuficientes' };
+      return { success: false, msg: 'Monedas insuficientes (Costo: 400🪙)' };
     }
 
     if (upgradeType === 'roulette_boost') {
-      const cost = 120;
-      if (this.state.upgrades.rouletteBoost) return { success: false, msg: 'Seguro permanente ya activo' };
+      const cost = 1200;
+      if (this.hasRouletteBoost()) {
+        return { success: false, msg: `El seguro de minijuegos ya está activo (${this.getRouletteBoostRemainingTime()} restantes)` };
+      }
       if (this.spendCoins(cost)) {
         this.state.upgrades.rouletteBoost = true;
+        this.state.upgrades.rouletteBoostExpires = Date.now() + 30 * 60 * 1000; // 30 minutos
         this.saveState();
-        return { success: true };
+        return { success: true, expires: this.state.upgrades.rouletteBoostExpires };
       }
-      return { success: false, msg: 'Monedas insuficientes' };
+      return { success: false, msg: 'Monedas insuficientes (Costo: 1200🪙)' };
     }
 
-    // Compra de Cartas Alquímicas de Fortuna (20 monedas)
+    // Compra de Cartas Alquímicas de Fortuna (200 monedas c/u)
     if (upgradeType.startsWith('buy_card_')) {
       const cardId = upgradeType.replace('buy_card_', '');
-      const cost = 20;
+      const cost = 200;
       if (this.spendCoins(cost)) {
         if (!this.state.cards) this.state.cards = { dianaFavor: 0, rouletteFavor: 0, doubleOrNothing: 0, calmAtmosphere: 0 };
         this.state.cards[cardId] = (this.state.cards[cardId] || 0) + 1;
         this.saveState();
         return { success: true, cardId, count: this.state.cards[cardId] };
       }
-      return { success: false, msg: 'Monedas insuficientes' };
+      return { success: false, msg: 'Monedas insuficientes (Costo: 200🪙)' };
     }
 
     if (upgradeType === 'buy_life') {
-      const cost = 25;
+      const cost = 250;
       if (this.state.player.lives >= this.getMaxLives()) {
         return { success: false, msg: '¡Ya tienes el máximo de vidas (3)!' };
       }
@@ -876,21 +1076,26 @@ class StateManager {
         this.addLifeInstant(1);
         return { success: true, newLives: this.state.player.lives };
       }
-      return { success: false, msg: 'Monedas insuficientes' };
+      return { success: false, msg: 'Monedas insuficientes (Costo: 250🪙)' };
     }
 
     if (upgradeType === 'recharge_all_lives') {
-      const cost = 60;
+      const cost = 600;
+      const todayStr = new Date().toISOString().slice(0, 10);
+      if (this.state.lastRechargeAllLivesDate === todayStr) {
+        return { success: false, msg: 'El Elixir de Vida Total solo se puede comprar 1 vez por día. ¡Vuelve mañana!' };
+      }
       if (this.state.player.lives >= this.getMaxLives()) {
         return { success: false, msg: '¡Ya tienes el máximo de vidas (3)!' };
       }
       if (this.spendCoins(cost)) {
         this.state.player.lives = this.getMaxLives();
         this.state.player.lastLifeLostTimestamp = null;
+        this.state.lastRechargeAllLivesDate = todayStr;
         this.saveState();
         return { success: true, newLives: this.getMaxLives() };
       }
-      return { success: false, msg: 'Monedas insuficientes' };
+      return { success: false, msg: 'Monedas insuficientes (Costo: 600🪙)' };
     }
 
     return { success: false, msg: 'Mejora desconocida' };

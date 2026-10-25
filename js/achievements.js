@@ -134,6 +134,40 @@ const ACHIEVEMENTS_CATALOG = [
     badge: '💎',
     max: 1,
     reward: 250
+  },
+  {
+    id: 'bored_scientist_9999',
+    title: 'Aburridoooooo',
+    description: 'El científico se cansó de esperar y se volvió calavera tras alcanzar 9999 segundos en un nivel.',
+    category: 'Secretos',
+    icon: 'skull',
+    badge: '💀',
+    max: 1,
+    reward: 999,
+    hidden: true
+  },
+  {
+    id: 'work_for_this_999999999',
+    title: 'Trabajo para esto',
+    description: 'Gastaste 999.999.999 monedas para adquirir las crónicas de la historia.',
+    category: 'Secretos',
+    icon: 'coins',
+    badge: '💸',
+    max: 1,
+    reward: 0,
+    hidden: true
+  },
+  {
+    id: 'secret_names_unlocked_7',
+    title: 'Para Naza 💕',
+    description: 'Descubriste el mayor misterio alquímico entre los 7 nombres ocultos. Nuestro amor trasciende cualquier fórmula.',
+    category: 'Secretos',
+    icon: 'heart',
+    badge: '💍',
+    max: 7,
+    reward: 777,
+    hidden: true,
+    ultraSecret: true
   }
 ];
 
@@ -320,9 +354,11 @@ class AchievementManager {
     const container = document.getElementById('achievements-catalog-list');
     if (!container) return;
 
+    // Los logros ultraSecret no se muestran de ninguna forma mientras estén bloqueados
+    const visibleCatalog = this.catalog.filter(a => !a.ultraSecret || this.isUnlocked(a.id));
     const unlockedCount = this.getUnlockedCount();
-    const totalCount = this.catalog.length;
-    const pct = Math.round((unlockedCount / totalCount) * 100);
+    const totalCount = visibleCatalog.length;
+    const pct = totalCount > 0 ? Math.round((unlockedCount / totalCount) * 100) : 0;
 
     // Resumen en la cabecera del modal
     const lblCount = document.getElementById('achievements-stat-unlocked');
@@ -334,7 +370,7 @@ class AchievementManager {
     if (barProgress) barProgress.style.width = `${pct}%`;
 
     // Filtros
-    let list = this.catalog;
+    let list = visibleCatalog;
     if (this.currentFilter === 'unlocked') {
       list = list.filter(a => this.isUnlocked(a.id));
     } else if (this.currentFilter === 'locked') {
@@ -362,6 +398,10 @@ class AchievementManager {
         ? new Date(window.stateManager.state.achievements.unlocked[ach.id]).toLocaleDateString()
         : null;
 
+      const isHiddenLocked = ach.hidden && !isUn;
+      const displayTitle = isHiddenLocked ? '??? (Logro Oculto)' : ach.title;
+      const displayDesc = isHiddenLocked ? 'Misterio oculto en el laboratorio: juega y descubre qué sucede.' : ach.description;
+
       cardsHTML += `
         <div class="p-3.5 rounded-2xl border transition-all ${
           isUn
@@ -380,7 +420,7 @@ class AchievementManager {
             <div class="flex-1 min-w-0">
               <div class="flex items-center justify-between gap-2">
                 <div class="flex items-center gap-2">
-                  <span class="text-xs font-black ${isUn ? 'text-amber-300' : 'text-white'}">${ach.title}</span>
+                  <span class="text-xs font-black ${isUn ? 'text-amber-300' : 'text-white'}">${displayTitle}</span>
                   <span class="text-[9px] px-2 py-0.5 rounded-full bg-slate-900 border border-slate-700 text-slate-400 font-mono">${ach.category}</span>
                 </div>
                 <span class="text-[11px] font-bold ${isUn ? 'text-emerald-400' : 'text-amber-400'} font-mono shrink-0">
@@ -388,7 +428,7 @@ class AchievementManager {
                 </span>
               </div>
 
-              <p class="text-xs text-slate-300 mt-1 leading-relaxed">${ach.description}</p>
+              <p class="text-xs text-slate-300 mt-1 leading-relaxed">${displayDesc}</p>
 
               <!-- Barra de progreso o sello completado -->
               <div class="mt-2.5 flex items-center justify-between gap-3 text-[11px]">

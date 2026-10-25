@@ -116,6 +116,9 @@ class GameController {
 
     // Iniciar música relajante de nivel tras la primera interacción
     this.setupAudioUnlock();
+
+    // Iniciar cofre diario de bienvenida (50 monedas) y ciclo de 24 horas a las 12 de la noche
+    this.initDailyChest();
   }
 
   cacheDom() {
@@ -142,6 +145,9 @@ class GameController {
     this.btnHint = document.getElementById('btn-hint');
     this.btnAddTube = document.getElementById('btn-add-tube');
     this.btnRestart = document.getElementById('btn-restart');
+    this.btnPause = document.getElementById('btn-pause');
+    this.btnChallengesBadge = document.getElementById('btn-challenges-badge');
+    this.lblChallengesBadgeCount = document.getElementById('lbl-challenges-badge-count');
     this.btnOpenEditor = document.getElementById('btn-open-editor');
 
     // Widget de Vidas
@@ -170,6 +176,9 @@ class GameController {
     this.modalAchievements = document.getElementById('modal-achievements');
     this.modalCasualSandbox = document.getElementById('modal-casual-sandbox');
     this.modalTimeAttackGameOver = document.getElementById('modal-time-attack-gameover');
+    this.modalChallengeIntro = document.getElementById('modal-challenge-intro');
+    this.modalPause = document.getElementById('modal-pause');
+    this.modalOutOfLives = document.getElementById('modal-out-of-lives');
 
     // Catálogo de Mecánicas y Guía de Tutoriales (Espaciadas cada 10 niveles)
     this.mechanicsCatalog = [
@@ -356,6 +365,12 @@ class GameController {
         alert(`¡El Nivel ${targetLvl} está bloqueado! Debes superar el Nivel ${targetLvl - 1} primero.`);
         return;
       }
+      if (window.stateManager && window.stateManager.getLives() <= 0) {
+        if (window.audio) window.audio.playFailSound();
+        this.openMapModal();
+        this.showNoLivesMapModal();
+        return;
+      }
       this.currentLevel = targetLvl;
       this.isDailyChallenge = false;
       this.isCasualSandbox = false;
@@ -474,20 +489,25 @@ class GameController {
       }
     }
 
-    // Comprobar si corresponde mostrar un capítulo del Modo Historia (Crónicas del Alquimista)
-    if (!customLevelData && !this.isHonorMode && !this.isDailyChallenge) {
-      const milestoneChapter = { 1: 0, 11: 1, 21: 2, 31: 3, 41: 4, 51: 5, 61: 6 }[this.currentLevel];
-      if (milestoneChapter !== undefined) {
-        if (!this.seenStoryChaptersThisSession) this.seenStoryChaptersThisSession = new Set();
-        if (!this.seenStoryChaptersThisSession.has(this.currentLevel)) {
-          this.seenStoryChaptersThisSession.add(this.currentLevel);
-          setTimeout(() => {
-            if (window.storyManager) {
-              window.storyManager.openStoryModal(milestoneChapter);
-            }
-          }, 450);
-        }
+    // Si inicia el Modo Historia por primera vez en el Nivel 1, mostrar la animación inicial una única vez (Prólogo)
+    if (!customLevelData && !this.isHonorMode && !this.isDailyChallenge && !this.isCasualSandbox && !this.isTimeAttack) {
+      if (this.currentLevel === 1 && window.stateManager && !window.stateManager.hasSeenStoryPrologue()) {
+        window.stateManager.markStoryPrologueSeen();
+        setTimeout(() => {
+          if (window.storyManager) {
+            window.storyManager.openStoryModal(0, false);
+          }
+        }, 450);
       }
+    }
+
+    // Mostrar cartel de desafíos al inicio del nivel (los desafíos se presentan en un cartel antes de empezar)
+    if (this.levelChallenges && this.levelChallenges.length > 0 && !customLevelData && !this.isHonorMode && !this.isDailyChallenge && !this.isTimeAttack && !this.isCasualSandbox) {
+      setTimeout(() => {
+        if (!this.isModalOpen()) {
+          this.showChallengeIntroModal();
+        }
+      }, 350);
     }
   }
 
@@ -1173,6 +1193,7 @@ class GameController {
   }
 
   // --- MODO CASUAL SANDBOX INFINITO ---
+  // --- MODO CASUAL SANDBOX INFINITO ---
   openCasualSandboxModal() {
     const modal = document.getElementById('modal-casual-sandbox');
     if (!modal) return;
@@ -1180,6 +1201,39 @@ class GameController {
     if (cbSuggest) {
       cbSuggest.checked = window.stateManager ? window.stateManager.isSandboxPublishPromptEnabled() : true;
     }
+
+    const sm = window.stateManager;
+    const unlocked = sm ? (sm.state.progress.unlockedLevel || 1) : 1;
+    const mechUnlocks = [
+      { id: 'cb-sandbox-mystery', lbl: 'lbl-cb-mystery', lvl: 11 },
+      { id: 'cb-sandbox-giant', lbl: 'lbl-cb-giant', lvl: 21 },
+      { id: 'cb-sandbox-lock', lbl: 'lbl-cb-lock', lvl: 31 },
+      { id: 'cb-sandbox-narrow', lbl: 'lbl-cb-narrow', lvl: 41 },
+      { id: 'cb-sandbox-chameleon', lbl: 'lbl-cb-chameleon', lvl: 61 },
+      { id: 'cb-sandbox-fragile', lbl: 'lbl-cb-fragile', lvl: 71 }
+    ];
+
+    mechUnlocks.forEach(m => {
+      const cb = document.getElementById(m.id);
+      const lbl = document.getElementById(m.lbl);
+      if (cb) {
+        if (unlocked < m.lvl) {
+          cb.checked = false;
+          cb.disabled = true;
+          if (lbl) {
+            lbl.classList.add('opacity-40', 'cursor-not-allowed');
+            lbl.title = `Bloqueado: Requiere desbloquear el Nivel ${m.lvl} en la Historia.`;
+          }
+        } else {
+          cb.disabled = false;
+          if (lbl) {
+            lbl.classList.remove('opacity-40', 'cursor-not-allowed');
+            lbl.title = '';
+          }
+        }
+      }
+    });
+
     modal.classList.remove('hidden');
     if (window.audio) window.audio.playSelect();
   }
@@ -1202,19 +1256,29 @@ class GameController {
     this.isDailyChallenge = false;
     this.isHonorMode = false;
 
+    const unlockedLvl = window.stateManager ? (window.stateManager.state.progress.unlockedLevel || 1) : 1;
+
     if (!config) {
       const tubeCount = parseInt(document.getElementById('input-sandbox-tubes')?.value, 10) || 7;
       const colorCount = parseInt(document.getElementById('input-sandbox-colors')?.value, 10) || 5;
       const mechanics = {
-        mystery: !!document.getElementById('cb-sandbox-mystery')?.checked,
-        giant: !!document.getElementById('cb-sandbox-giant')?.checked,
-        lock: !!document.getElementById('cb-sandbox-lock')?.checked,
-        narrow: !!document.getElementById('cb-sandbox-narrow')?.checked,
-        glued: !!document.getElementById('cb-sandbox-glued')?.checked,
-        chameleon: !!document.getElementById('cb-sandbox-chameleon')?.checked,
-        fragile: !!document.getElementById('cb-sandbox-fragile')?.checked
+        mystery: (unlockedLvl >= 11) && !!document.getElementById('cb-sandbox-mystery')?.checked,
+        giant: (unlockedLvl >= 21) && !!document.getElementById('cb-sandbox-giant')?.checked,
+        lock: (unlockedLvl >= 31) && !!document.getElementById('cb-sandbox-lock')?.checked,
+        narrow: (unlockedLvl >= 41) && !!document.getElementById('cb-sandbox-narrow')?.checked,
+        glued: (unlockedLvl >= 51) && !!document.getElementById('cb-sandbox-glued')?.checked,
+        chameleon: (unlockedLvl >= 61) && !!document.getElementById('cb-sandbox-chameleon')?.checked,
+        fragile: (unlockedLvl >= 71) && !!document.getElementById('cb-sandbox-fragile')?.checked
       };
       config = { tubeCount, colorCount, mechanics, seed: Math.floor(Math.random() * 9999999) };
+    } else if (config && config.mechanics) {
+      if (unlockedLvl < 11) config.mechanics.mystery = false;
+      if (unlockedLvl < 21) config.mechanics.giant = false;
+      if (unlockedLvl < 31) config.mechanics.lock = false;
+      if (unlockedLvl < 41) config.mechanics.narrow = false;
+      if (unlockedLvl < 51) config.mechanics.glued = false;
+      if (unlockedLvl < 61) config.mechanics.chameleon = false;
+      if (unlockedLvl < 71) config.mechanics.fragile = false;
     }
     this.casualSandboxConfig = config;
 
@@ -1440,6 +1504,23 @@ class GameController {
       this.coins += amount;
     }
     this.updateCoinsUI();
+  }
+
+  spendCoins(amount) {
+    let success = false;
+    if (window.stateManager) {
+      success = window.stateManager.spendCoins(amount);
+      if (success) {
+        this.coins = window.stateManager.getCoins();
+      }
+    } else if (this.coins >= amount) {
+      this.coins -= amount;
+      success = true;
+    }
+    if (success) {
+      this.updateCoinsUI();
+    }
+    return success;
   }
 
   updateCoinsUI() {
@@ -3205,7 +3286,15 @@ class GameController {
       // Bonificación de combo para monedas si combo >= 2
       let comboCoins = combo >= 2 ? (combo >= 4 ? 2 : 1) : 0;
       let totalEarned = baseCoins + comboCoins;
-      this.addCoins(totalEarned);
+
+      // Modos no-historia (casual infinito, taller/custom, etc.) NO otorgan monedas
+      if (this.isCasualSandbox || this.customLevelTesting || !this.isStoryLevel()) {
+        totalEarned = 0;
+      }
+
+      if (totalEarned > 0) {
+        this.addCoins(totalEarned);
+      }
 
       // Badge de advertencia si se usaron pistas
       const hintsBadge = document.getElementById('lbl-hints-warning-badge');
@@ -3226,7 +3315,7 @@ class GameController {
 
       if (movesEl) movesEl.textContent = this.moves;
       if (timeEl) timeEl.textContent = window.leaderboardManager ? window.leaderboardManager.formatTime(elapsedSecs) : `${elapsedSecs}s`;
-      if (coinsEl) coinsEl.textContent = `${totalEarned} 🪙`;
+      if (coinsEl) coinsEl.textContent = totalEarned > 0 ? `${totalEarned} 🪙` : '0 🪙 (Modo Libre)';
       if (comboEl) comboEl.textContent = combo >= 2 ? `x${combo} ⭐` : '--';
 
       // Render de Puntaje Alquímico y Desglose
@@ -3431,7 +3520,11 @@ class GameController {
 
         const hasAllOneStar = this.hasAllLevelsAtLeastOneStar();
         if (window.stateManager) {
-          window.stateManager.state.progress.hasCompletedAll100 = true;
+          window.stateManager.state.progress.hasCompletedAll100 = hasAllOneStar;
+          if (hasAllOneStar && !window.stateManager.state.progress.all100BonusClaimed) {
+            window.stateManager.state.progress.all100BonusClaimed = true;
+            this.addCoins(999999999);
+          }
           window.stateManager.saveState();
         }
 
@@ -3676,10 +3769,14 @@ class GameController {
 
   // --- RENDER Y ACTUALIZACIÓN EN VIVO DE DESAFÍOS EN EL HUD ---
   renderChallengesHUD() {
+    const badgeBtn = document.getElementById('btn-challenges-badge');
+    const badgeCount = document.getElementById('lbl-challenges-badge-count');
+
     if (!this.challengesHud) return;
 
     if (this.isHonorMode) {
       this.challengesHud.classList.remove('hidden');
+      if (badgeBtn) badgeBtn.classList.add('hidden');
       const st = window.stateManager ? window.stateManager.getHonorChallengeState(this.honorSectionId) : { lives: 3 };
       this.challengesHud.innerHTML = `
         <div class="flex items-center gap-2 bg-gradient-to-r from-amber-500/20 to-yellow-500/10 border border-amber-400/50 px-3 py-1 rounded-full text-xs font-black text-amber-300 shadow-md">
@@ -3696,55 +3793,17 @@ class GameController {
     if (!this.levelChallenges || this.levelChallenges.length === 0) {
       this.challengesHud.innerHTML = '';
       this.challengesHud.classList.add('hidden');
+      if (badgeBtn) badgeBtn.classList.add('hidden');
       return;
     }
 
-    this.challengesHud.classList.remove('hidden');
-    this.challengesHud.innerHTML = '';
+    // El HUD principal mantiene únicamente el botón badge compacto
+    if (badgeBtn) {
+      badgeBtn.classList.remove('hidden');
+      if (badgeCount) badgeCount.textContent = `0/${this.levelChallenges.length} Desafíos`;
+    }
+    this.challengesHud.classList.add('hidden'); // Ocultar chips duplicados para despejar el tablero
 
-    // Título sutil
-    const label = document.createElement('div');
-    label.className = 'text-[11px] font-black text-amber-300/90 flex items-center gap-1 mr-1';
-    label.innerHTML = `
-      <i data-lucide="target" class="w-3.5 h-3.5 text-amber-400"></i>
-      <span class="hidden sm:inline">Desafíos:</span>
-    `;
-    this.challengesHud.appendChild(label);
-
-    this.levelChallenges.forEach((c, idx) => {
-      const chip = document.createElement('div');
-      chip.className = 'challenge-hud-pill';
-      chip.id = `challenge-pill-${idx}`;
-      chip.title = `${c.title} • Recompensa: +${c.coins || 3} 🪙`;
-
-      let iconHtml = '';
-      if (c.colorHex) {
-        iconHtml = `<span class="challenge-color-dot" style="background-color: ${c.colorHex}; box-shadow: 0 0 6px ${c.colorHex};"></span>`;
-      } else if (c.icon === 'zap') {
-        iconHtml = `<i data-lucide="zap" class="w-3 h-3 text-amber-400"></i>`;
-      } else if (c.icon === 'clock') {
-        iconHtml = `<i data-lucide="clock" class="w-3 h-3 text-emerald-400"></i>`;
-      } else if (c.icon === 'hash') {
-        iconHtml = `<i data-lucide="hash" class="w-3 h-3 text-indigo-400"></i>`;
-      } else if (c.icon === 'shield') {
-        iconHtml = `<i data-lucide="shield" class="w-3 h-3 text-sky-400"></i>`;
-      } else if (c.icon === 'gem') {
-        iconHtml = `<i data-lucide="gem" class="w-3 h-3 text-purple-400"></i>`;
-      } else if (c.icon === 'flame') {
-        iconHtml = `<i data-lucide="flame" class="w-3 h-3 text-amber-400"></i>`;
-      } else {
-        iconHtml = `<i data-lucide="sparkles" class="w-3 h-3 text-purple-400"></i>`;
-      }
-
-      chip.innerHTML = `
-        <span class="flex items-center gap-1">${iconHtml} <span>${c.shortTitle}</span></span>
-        <span class="challenge-hud-badge" id="chal-prog-${idx}">...</span>
-        <span class="challenge-hud-reward">+${c.coins || 3}🪙</span>
-      `;
-      this.challengesHud.appendChild(chip);
-    });
-
-    if (window.lucide) lucide.createIcons();
     this.updateChallengesHUD();
   }
 
@@ -3752,23 +3811,17 @@ class GameController {
     if (!this.levelChallenges || this.levelChallenges.length === 0) return;
     const elapsedSecs = window.leaderboardManager ? window.leaderboardManager.getElapsedSeconds() : 0;
 
-    this.levelChallenges.forEach((c, idx) => {
-      const chip = document.getElementById(`challenge-pill-${idx}`);
-      const prog = document.getElementById(`chal-prog-${idx}`);
-      if (!chip || !prog) return;
-
-      if (typeof c.getCurrentText === 'function') {
-        prog.textContent = c.getCurrentText(this, elapsedSecs);
-      }
-
+    let achievedCount = 0;
+    this.levelChallenges.forEach((c) => {
       const isFailed = typeof c.isFailedLive === 'function' && c.isFailedLive(this, elapsedSecs);
-      if (isFailed) {
-        chip.classList.add('is-failed');
-        chip.classList.remove('is-achieved');
-      } else {
-        chip.classList.remove('is-failed');
-      }
+      const isCompleted = typeof c.isAchievedLive === 'function' ? c.isAchievedLive(this, elapsedSecs) : !isFailed;
+      if (isCompleted && !isFailed) achievedCount++;
     });
+
+    const badgeCount = document.getElementById('lbl-challenges-badge-count');
+    if (badgeCount) {
+      badgeCount.textContent = `${achievedCount}/${this.levelChallenges.length} Desafíos`;
+    }
   }
 
   isStoryLevel() {
@@ -3794,8 +3847,11 @@ class GameController {
               window.audio.playFailSound();
             }
             this.showToast(`⏱️ ¡Han pasado ${intervals * 10} min en este nivel! Se ha consumido 1 vida (-1 ❤️).`, 'danger');
+            if (window.stateManager.getLives() === 0) {
+              this.handleOutOfLives('timer');
+            }
           } else {
-            this.showToast(`⏱️ ¡Han pasado ${intervals * 10} min en este nivel! (¡Ya no tienes vidas ❤️!)`, 'danger');
+            this.handleOutOfLives('timer');
           }
         }
       }
@@ -3882,6 +3938,19 @@ class GameController {
   undo() {
     if (this.isHonorMode) return;
     if (this.moveHistory.length === 0 || this.isPouringAnimation) return;
+
+    // Deshacer cuesta 1 vida
+    if (window.stateManager) {
+      const currentLives = window.stateManager.getLives();
+      if (currentLives <= 0) {
+        this.handleOutOfLives('undo');
+        return;
+      }
+      window.stateManager.consumeLife();
+      this.updateLivesHUD();
+      this.showToast('↩️ Movimiento deshecho (-1 ❤️)', 'warning');
+    }
+
     this.undoCountInLevel = (this.undoCountInLevel || 0) + 1;
     const prev = this.moveHistory.pop();
     this.tubes = prev.tubes;
@@ -3894,13 +3963,18 @@ class GameController {
     this.updateMovesUI();
     this.updateButtonsUI();
     this.updateChallengesHUD();
+
+    // Si al deshacer se perdió la última vida, no se le debe permitir continuar el nivel
+    if (window.stateManager && window.stateManager.getLives() === 0) {
+      this.handleOutOfLives('zero_lives');
+    }
   }
 
   addAuxiliaryTube() {
     if (this.isHonorMode) return;
     const cooldown = window.stateManager ? window.stateManager.getCooldownRemaining() : 0;
     if (cooldown > 0) {
-      if (confirm(`La botella auxiliar está en enfriamiento (${cooldown} movimientos restantes). ¿Deseas ir a la Tienda de Mejoras para recargarla inmediatamente con 20🪙?`)) {
+      if (confirm(`La botella auxiliar está en enfriamiento (${cooldown} movimientos restantes). ¿Deseas ir a la Tienda de Mejoras para recargarla inmediatamente con 400🪙?`)) {
         this.openShopModal();
       }
       return;
@@ -3912,14 +3986,16 @@ class GameController {
     if (window.stateManager) {
       const lives = window.stateManager.getLives();
       if (lives <= 0) {
-        if (confirm('¡No te quedan vidas disponibles para invocar un frasco auxiliar! ¿Deseas ir a la Tienda de Mejoras para recargar vidas con monedas?')) {
-          this.openShopModal();
-        }
+        this.handleOutOfLives('extra_tube');
         return;
       }
       window.stateManager.consumeLife();
       this.updateLivesHUD();
       this.showToast('🧪 ¡Frasco auxiliar invocado! (-1 ❤️)', 'warning');
+
+      if (window.stateManager.getLives() === 0) {
+        this.handleOutOfLives('zero_lives');
+      }
     }
 
     this.saveStateForUndo();
@@ -4148,13 +4224,16 @@ class GameController {
     const cdLvl = state.upgrades.cooldownReductionLevel || 1;
     const cdMs = { 1: 100, 2: 75, 3: 50, 4: 25 }[cdLvl] || 25;
     const nextCdMs = { 1: 75, 2: 50, 3: 25 }[cdLvl];
-    const cdCost = { 1: 80, 2: 180, 3: 350 }[cdLvl];
+    const cdCost = { 1: 800, 2: 1800, 3: 3500 }[cdLvl];
 
     const hintsCap = state.upgrades.maxStoredHints || 3;
     const nextHintsCap = hintsCap === 3 ? 5 : (hintsCap === 5 ? 8 : null);
-    const hintsCapCost = hintsCap === 3 ? 60 : (hintsCap === 5 ? 150 : null);
+    const hintsCapCost = hintsCap === 3 ? 600 : (hintsCap === 5 ? 1500 : null);
 
     const remCd = window.stateManager.getCooldownRemaining();
+    const canBuyDailyLives = window.stateManager.canBuyRechargeAllLives();
+    const hasBoost = window.stateManager.hasRouletteBoost();
+    const boostRemaining = window.stateManager.getRouletteBoostRemainingTime();
 
     container.innerHTML = `
       <!-- 0. Vidas Alquímicas: Comprar 1 Vida -->
@@ -4168,12 +4247,12 @@ class GameController {
               Comprar 1 Vida (+1 ❤️)
               <span class="text-[10px] px-2 py-0.5 rounded-full bg-rose-500/20 text-rose-300 font-mono">${lives}/${maxLives} Vidas</span>
             </h4>
-            <p class="text-xs text-slate-400">Recupera 1 vida instantáneamente para reintentar niveles sin esperar los 10 minutos.</p>
+            <p class="text-xs text-slate-400">Recupera 1 vida instantáneamente para reintentar niveles sin esperar los 30 minutos.</p>
           </div>
         </div>
         <div>
-          <button class="btn-interactive px-4 py-2 rounded-xl text-xs font-black bg-gradient-to-r from-rose-500 to-pink-600 hover:from-rose-400 hover:to-pink-500 text-white shadow-md shadow-rose-500/20 disabled:opacity-40" ${lives >= maxLives || coins < 25 ? 'disabled' : ''} onclick="window.game.buyUpgrade('buy_life')">
-            Comprar (25 🪙)
+          <button class="btn-interactive px-4 py-2 rounded-xl text-xs font-black bg-gradient-to-r from-rose-500 to-pink-600 hover:from-rose-400 hover:to-pink-500 text-white shadow-md shadow-rose-500/20 disabled:opacity-40" ${lives >= maxLives || coins < 250 ? 'disabled' : ''} onclick="window.game.buyUpgrade('buy_life')">
+            Comprar (250 🪙)
           </button>
         </div>
       </div>
@@ -4187,14 +4266,14 @@ class GameController {
           <div>
             <h4 class="text-sm font-bold text-white flex items-center gap-2">
               Elixir de Vida Total (3/3 ❤️)
-              <span class="text-[10px] px-2 py-0.5 rounded-full bg-rose-500/20 text-rose-300 font-mono">Pack Completo</span>
+              <span class="text-[10px] px-2 py-0.5 rounded-full bg-rose-500/20 text-rose-300 font-mono">1 por Día</span>
             </h4>
-            <p class="text-xs text-slate-400">Restaura todas tus vidas al máximo de inmediato con precio de oferta.</p>
+            <p class="text-xs text-slate-400">Restaura todas tus vidas al máximo de inmediato con precio de oferta. Máximo 1 compra por día.</p>
           </div>
         </div>
         <div>
-          <button class="btn-interactive px-4 py-2 rounded-xl text-xs font-black bg-gradient-to-r from-rose-600 to-red-600 hover:from-rose-500 hover:to-red-500 text-white shadow-md shadow-rose-600/20 disabled:opacity-40" ${lives >= maxLives || coins < 60 ? 'disabled' : ''} onclick="window.game.buyUpgrade('recharge_all_lives')">
-            Restaurar Todo (60 🪙)
+          <button class="btn-interactive px-4 py-2 rounded-xl text-xs font-black bg-gradient-to-r from-rose-600 to-red-600 hover:from-rose-500 hover:to-red-500 text-white shadow-md shadow-rose-600/20 disabled:opacity-40" ${lives >= maxLives || coins < 600 || !canBuyDailyLives ? 'disabled' : ''} onclick="window.game.buyUpgrade('recharge_all_lives')">
+            ${!canBuyDailyLives ? 'Agotado hoy (1 por día)' : 'Restaurar Todo (600 🪙)'}
           </button>
         </div>
       </div>
@@ -4241,8 +4320,8 @@ class GameController {
           </div>
         </div>
         <div>
-          <button class="btn-interactive px-4 py-2 rounded-xl text-xs font-black bg-gradient-to-r from-emerald-500 to-teal-600 hover:from-emerald-400 hover:to-teal-500 text-white shadow-md shadow-emerald-500/20 disabled:opacity-40" ${remCd === 0 || coins < 40 ? 'disabled' : ''} onclick="window.game.buyUpgrade('recharge_bottle')">
-            Recargar (40 🪙)
+          <button class="btn-interactive px-4 py-2 rounded-xl text-xs font-black bg-gradient-to-r from-emerald-500 to-teal-600 hover:from-emerald-400 hover:to-teal-500 text-white shadow-md shadow-emerald-500/20 disabled:opacity-40" ${remCd === 0 || coins < 400 ? 'disabled' : ''} onclick="window.game.buyUpgrade('recharge_bottle')">
+            Recargar (400 🪙)
           </button>
         </div>
       </div>
@@ -4289,13 +4368,13 @@ class GameController {
           </div>
         </div>
         <div>
-          <button class="btn-interactive px-4 py-2 rounded-xl text-xs font-black bg-gradient-to-r from-purple-500 to-pink-600 hover:from-purple-400 hover:to-pink-500 text-white shadow-md shadow-purple-500/20 disabled:opacity-40" ${coins < 45 ? 'disabled' : ''} onclick="window.game.buyUpgrade('buy_hints_pack')">
-            Comprar (45 🪙)
+          <button class="btn-interactive px-4 py-2 rounded-xl text-xs font-black bg-gradient-to-r from-purple-500 to-pink-600 hover:from-purple-400 hover:to-pink-500 text-white shadow-md shadow-purple-500/20 disabled:opacity-40" ${coins < 450 ? 'disabled' : ''} onclick="window.game.buyUpgrade('buy_hints_pack')">
+            Comprar (450 🪙)
           </button>
         </div>
       </div>
 
-      <!-- 5. Seguro Permanente de Minijuego (Ruleta / Diana) -->
+      <!-- 5. Seguro Temporal de Minijuego (Ruleta / Diana - 30 Minutos) -->
       <div class="bg-slate-800/80 border border-slate-700/80 rounded-2xl p-4 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 shadow-md">
         <div class="flex items-center gap-3">
           <div class="w-12 h-12 rounded-2xl bg-rose-500/15 border border-rose-400/30 flex items-center justify-center text-rose-400 shadow-inner">
@@ -4304,19 +4383,19 @@ class GameController {
           <div>
             <h4 class="text-sm font-bold text-white flex items-center gap-2">
               Seguro de Minijuegos (Boost)
-              <span class="text-[10px] px-2 py-0.5 rounded-full bg-rose-500/20 text-rose-300 font-mono">Permanente</span>
+              <span class="text-[10px] px-2 py-0.5 rounded-full bg-rose-500/20 text-rose-300 font-mono">30 Minutos</span>
             </h4>
-            <p class="text-xs text-slate-400">Si fallas en la ruleta o en la diana con viento, conservas el 100% de tus monedas ganadas en lugar de perderlas.</p>
+            <p class="text-xs text-slate-400">Si fallas en la ruleta o en la diana con viento, conservas el 100% de tus monedas ganadas en lugar de perderlas. Dura 30 minutos desde la activación.</p>
           </div>
         </div>
         <div>
-          ${!state.upgrades.rouletteBoost ? `
-            <button class="btn-interactive px-4 py-2 rounded-xl text-xs font-black bg-gradient-to-r from-rose-500 to-red-600 hover:from-rose-400 hover:to-red-500 text-white shadow-md shadow-rose-500/20 disabled:opacity-40" ${coins < 120 ? 'disabled' : ''} onclick="window.game.buyUpgrade('roulette_boost')">
-              Activar (120 🪙)
+          ${!hasBoost ? `
+            <button class="btn-interactive px-4 py-2 rounded-xl text-xs font-black bg-gradient-to-r from-rose-500 to-red-600 hover:from-rose-400 hover:to-red-500 text-white shadow-md shadow-rose-500/20 disabled:opacity-40" ${coins < 1200 ? 'disabled' : ''} onclick="window.game.buyUpgrade('roulette_boost')">
+              Activar (1200 🪙)
             </button>
           ` : `
             <span class="px-3 py-1.5 rounded-xl bg-emerald-500/20 border border-emerald-500/40 text-emerald-300 font-bold text-xs">
-              ✓ Seguro Activo
+              ✓ Seguro Activo (${boostRemaining})
             </span>
           `}
         </div>
@@ -4326,7 +4405,7 @@ class GameController {
       <div class="mt-4 pt-4 border-t border-slate-700/80">
         <h3 class="text-xs font-black tracking-wider text-amber-400 uppercase flex items-center gap-2 mb-3">
           <i data-lucide="sparkles" class="w-4 h-4"></i>
-          Cartas Alquímicas de Fortuna (20 🪙 c/u)
+          Cartas Alquímicas de Fortuna (200 🪙 c/u)
         </h3>
         <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
           <!-- Favor de la Diana -->
@@ -4338,8 +4417,8 @@ class GameController {
               </div>
               <p class="text-[11px] text-slate-400 mt-0.5">Añade 5 fichas de Diana a la bolsa durante los próximos 5 minijuegos. Se desactiva tras 5 usos.</p>
             </div>
-            <button class="btn-interactive px-3 py-1.5 rounded-xl text-xs font-black bg-gradient-to-r from-indigo-500 to-sky-600 hover:from-indigo-400 hover:to-sky-500 text-white shadow-sm disabled:opacity-40" ${coins < 20 ? 'disabled' : ''} onclick="window.game.buyUpgrade('buy_card_dianaFavor')">
-              20 🪙
+            <button class="btn-interactive px-3 py-1.5 rounded-xl text-xs font-black bg-gradient-to-r from-indigo-500 to-sky-600 hover:from-indigo-400 hover:to-sky-500 text-white shadow-sm disabled:opacity-40" ${coins < 200 ? 'disabled' : ''} onclick="window.game.buyUpgrade('buy_card_dianaFavor')">
+              200 🪙
             </button>
           </div>
 
@@ -4352,8 +4431,8 @@ class GameController {
               </div>
               <p class="text-[11px] text-slate-400 mt-0.5">Añade 5 fichas de Ruleta a la bolsa durante los próximos 5 minijuegos. Se desactiva tras 5 usos.</p>
             </div>
-            <button class="btn-interactive px-3 py-1.5 rounded-xl text-xs font-black bg-gradient-to-r from-purple-500 to-pink-600 hover:from-purple-400 hover:to-pink-500 text-white shadow-sm disabled:opacity-40" ${coins < 20 ? 'disabled' : ''} onclick="window.game.buyUpgrade('buy_card_rouletteFavor')">
-              20 🪙
+            <button class="btn-interactive px-3 py-1.5 rounded-xl text-xs font-black bg-gradient-to-r from-purple-500 to-pink-600 hover:from-purple-400 hover:to-pink-500 text-white shadow-sm disabled:opacity-40" ${coins < 200 ? 'disabled' : ''} onclick="window.game.buyUpgrade('buy_card_rouletteFavor')">
+              200 🪙
             </button>
           </div>
 
@@ -4366,8 +4445,8 @@ class GameController {
               </div>
               <p class="text-[11px] text-slate-400 mt-0.5">Ruleta simplificada a 2 colores (50% prob) a x2.0 o perder todo.</p>
             </div>
-            <button class="btn-interactive px-3 py-1.5 rounded-xl text-xs font-black bg-gradient-to-r from-amber-500 to-orange-600 hover:from-amber-400 hover:to-orange-500 text-slate-950 font-bold shadow-sm disabled:opacity-40" ${coins < 20 ? 'disabled' : ''} onclick="window.game.buyUpgrade('buy_card_doubleOrNothing')">
-              20 🪙
+            <button class="btn-interactive px-3 py-1.5 rounded-xl text-xs font-black bg-gradient-to-r from-amber-500 to-orange-600 hover:from-amber-400 hover:to-orange-500 text-slate-950 font-bold shadow-sm disabled:opacity-40" ${coins < 200 ? 'disabled' : ''} onclick="window.game.buyUpgrade('buy_card_doubleOrNothing')">
+              200 🪙
             </button>
           </div>
 
@@ -4380,8 +4459,8 @@ class GameController {
               </div>
               <p class="text-[11px] text-slate-400 mt-0.5">Diana: beneficio de Sin Viento, medidor lento o tiro extra de respaldo.</p>
             </div>
-            <button class="btn-interactive px-3 py-1.5 rounded-xl text-xs font-black bg-gradient-to-r from-teal-500 to-emerald-600 hover:from-teal-400 hover:to-emerald-500 text-white shadow-sm disabled:opacity-40" ${coins < 20 ? 'disabled' : ''} onclick="window.game.buyUpgrade('buy_card_calmAtmosphere')">
-              20 🪙
+            <button class="btn-interactive px-3 py-1.5 rounded-xl text-xs font-black bg-gradient-to-r from-teal-500 to-emerald-600 hover:from-teal-400 hover:to-emerald-500 text-white shadow-sm disabled:opacity-40" ${coins < 200 ? 'disabled' : ''} onclick="window.game.buyUpgrade('buy_card_calmAtmosphere')">
+              200 🪙
             </button>
           </div>
         </div>
@@ -4400,6 +4479,16 @@ class GameController {
       }
       if (type === 'buy_life' || type === 'recharge_all_lives') {
         this.updateLivesHUD();
+        if (this.modalOutOfLives && !this.modalOutOfLives.classList.contains('hidden')) {
+          this.hideModal(this.modalOutOfLives);
+          if (this.outOfLivesInterval) {
+            clearInterval(this.outOfLivesInterval);
+            this.outOfLivesInterval = null;
+          }
+          if (window.leaderboardManager) {
+            window.leaderboardManager.resumeTimer('lbl-timer');
+          }
+        }
       }
       if (window.audio) window.audio.playWinFanfare();
       this.updateCoinsUI();
@@ -4743,7 +4832,12 @@ class GameController {
   }
 
   isModalOpen() {
-    const modals = [this.modalMap, this.modalVictory, this.modalRoulette, this.modalLeaderboard, this.modalSettings, this.modalHome, this.modalShop];
+    const modals = [
+      this.modalMap, this.modalVictory, this.modalRoulette, this.modalLeaderboard,
+      this.modalSettings, this.modalHome, this.modalShop, this.modalRestartConfirm,
+      this.modalTutorial, this.modalEditor, this.modalChallengeIntro, this.modalPause,
+      this.modalOutOfLives
+    ];
     return modals.some(m => m && !m.classList.contains('hidden'));
   }
 
@@ -4752,6 +4846,8 @@ class GameController {
     // Acciones principales del HUD
     if (this.btnUndo) this.bindTapOrClick(this.btnUndo, () => this.undo());
     if (this.btnRestart) this.bindTapOrClick(this.btnRestart, () => this.openRestartConfirmModal());
+    if (this.btnPause) this.bindTapOrClick(this.btnPause, () => this.openPauseModal());
+    if (this.btnChallengesBadge) this.bindTapOrClick(this.btnChallengesBadge, () => this.showChallengeIntroModal());
     if (this.btnHint) this.bindTapOrClick(this.btnHint, () => this.giveHint());
     if (this.btnAddTube) this.bindTapOrClick(this.btnAddTube, () => this.addAuxiliaryTube());
 
@@ -4994,7 +5090,22 @@ class GameController {
             }, 1000);
           } else {
             this.isTimeAttack = false;
+            // Si entra al Modo Historia por primera vez en su perfil, mostrar solo la animación inicial
+            if (this.currentLevel === 1 && window.stateManager && !window.stateManager.hasSeenStoryPrologue()) {
+              window.stateManager.markStoryPrologueSeen();
+              if (window.storyManager) {
+                window.storyManager.openStoryModal(0, false);
+              }
+            }
             this.loadLevel(this.currentLevel);
+          }
+        } else {
+          // Si entra al Modo Historia por primera vez en su perfil, mostrar solo la animación inicial
+          if (this.currentLevel === 1 && window.stateManager && !window.stateManager.hasSeenStoryPrologue()) {
+            window.stateManager.markStoryPrologueSeen();
+            if (window.storyManager) {
+              window.storyManager.openStoryModal(0, false);
+            }
           }
         }
       });
@@ -5620,7 +5731,34 @@ class GameController {
     if (btnHomeStory) {
       this.bindTapOrClick(btnHomeStory, () => {
         this.closeHomeModal();
-        if (window.storyManager) window.storyManager.openStoryModal(0);
+        if (window.storyManager) window.storyManager.openGalleryModal();
+      });
+    }
+
+    const btnMapStoryGallery = document.getElementById('btn-map-story-gallery');
+    if (btnMapStoryGallery) {
+      this.bindTapOrClick(btnMapStoryGallery, () => {
+        this.hideModal(this.modalMap);
+        if (window.storyManager) window.storyManager.openGalleryModal();
+      });
+    }
+
+    const btnCloseStoryGallery = document.getElementById('btn-close-story-gallery');
+    if (btnCloseStoryGallery) {
+      this.bindTapOrClick(btnCloseStoryGallery, () => {
+        if (window.storyManager) window.storyManager.closeGalleryModal();
+        this.openMapModal();
+      });
+    }
+
+    const btnHonorVicPlayCinematic = document.getElementById('btn-honor-vic-play-cinematic');
+    if (btnHonorVicPlayCinematic) {
+      this.bindTapOrClick(btnHonorVicPlayCinematic, () => {
+        this.hideModal(this.modalHonorVictory);
+        this.isHonorMode = false;
+        if (window.storyManager && this.pendingHonorCinematicIndex !== null) {
+          window.storyManager.openStoryModal(this.pendingHonorCinematicIndex, false);
+        }
       });
     }
 
@@ -5631,17 +5769,13 @@ class GameController {
       });
     }
 
-    const btnStoryPrev = document.getElementById('btn-story-prev');
-    if (btnStoryPrev) {
-      this.bindTapOrClick(btnStoryPrev, () => {
-        if (window.storyManager) window.storyManager.prevChapter();
-      });
-    }
-
-    const btnStoryNext = document.getElementById('btn-story-next');
-    if (btnStoryNext) {
-      this.bindTapOrClick(btnStoryNext, () => {
-        if (window.storyManager) window.storyManager.nextChapter();
+    const btnStoryBackGallery = document.getElementById('btn-story-back-gallery');
+    if (btnStoryBackGallery) {
+      this.bindTapOrClick(btnStoryBackGallery, () => {
+        if (window.storyManager) {
+          window.storyManager.closeStoryModal();
+          window.storyManager.openGalleryModal();
+        }
       });
     }
 
@@ -5668,11 +5802,139 @@ class GameController {
       });
     }
 
+    this.setupBackdropClose(document.getElementById('modal-story-gallery'), () => {
+      if (window.storyManager) window.storyManager.closeGalleryModal();
+    });
+
     this.setupBackdropClose(document.getElementById('modal-story-chapter'), () => {
       if (window.storyManager) window.storyManager.closeStoryModal();
     });
     this.setupBackdropClose(document.getElementById('modal-special-ending-naza'), () => {
       if (window.storyManager) window.storyManager.closeSpecialEndingModal();
+    });
+
+    // Modal Científico Aburrido (Easter Egg 9999s)
+    const btnBoredRestart = document.getElementById('btn-bored-restart');
+    if (btnBoredRestart) {
+      this.bindTapOrClick(btnBoredRestart, () => {
+        const modal = document.getElementById('modal-bored-scientist');
+        if (modal) this.hideModal(modal);
+        this.restartLevel();
+      });
+    }
+
+    const btnBoredMap = document.getElementById('btn-bored-map');
+    if (btnBoredMap) {
+      this.bindTapOrClick(btnBoredMap, () => {
+        const modal = document.getElementById('modal-bored-scientist');
+        if (modal) this.hideModal(modal);
+        this.openMapModal();
+      });
+    }
+
+    this.setupBackdropClose(document.getElementById('modal-bored-scientist'), () => {
+      const modal = document.getElementById('modal-bored-scientist');
+      if (modal) this.hideModal(modal);
+    });
+
+    // Modal Pausa Alquímica (⏸️)
+    const btnPauseResume = document.getElementById('btn-pause-resume');
+    if (btnPauseResume) this.bindTapOrClick(btnPauseResume, () => this.closePauseModal());
+    const btnClosePauseX = document.getElementById('btn-close-pause-x');
+    if (btnClosePauseX) this.bindTapOrClick(btnClosePauseX, () => this.closePauseModal());
+
+    const btnPauseRestart = document.getElementById('btn-pause-restart');
+    if (btnPauseRestart) {
+      this.bindTapOrClick(btnPauseRestart, () => {
+        this.closePauseModal();
+        this.openRestartConfirmModal();
+      });
+    }
+
+    const btnPauseShop = document.getElementById('btn-pause-shop');
+    if (btnPauseShop) {
+      this.bindTapOrClick(btnPauseShop, () => {
+        this.closePauseModal();
+        this.openShopModal();
+      });
+    }
+
+    const btnPauseExitMap = document.getElementById('btn-pause-exit-map');
+    if (btnPauseExitMap) {
+      this.bindTapOrClick(btnPauseExitMap, () => {
+        this.closePauseModal();
+        this.openMapModal();
+      });
+    }
+    this.setupBackdropClose(this.modalPause, () => this.closePauseModal());
+
+    // Modal Introductorio de Desafíos
+    const btnCloseChalIntro = document.getElementById('btn-close-challenge-intro');
+    if (btnCloseChalIntro) this.bindTapOrClick(btnCloseChalIntro, () => this.closeChallengeIntroModal());
+    const btnCloseChalIntroX = document.getElementById('btn-close-challenge-intro-x');
+    if (btnCloseChalIntroX) this.bindTapOrClick(btnCloseChalIntroX, () => this.closeChallengeIntroModal());
+    this.setupBackdropClose(this.modalChallengeIntro, () => this.closeChallengeIntroModal());
+
+    // Modal Sin Vidas (Out of Lives)
+    const btnBuyLifeModal = document.getElementById('btn-buy-life-modal');
+    if (btnBuyLifeModal) {
+      this.bindTapOrClick(btnBuyLifeModal, () => {
+        const res = window.stateManager ? window.stateManager.purchaseUpgrade('buy_life') : { success: false, msg: 'Error de estado' };
+        if (res.success) {
+          this.hideModal(this.modalOutOfLives);
+          if (this.outOfLivesInterval) {
+            clearInterval(this.outOfLivesInterval);
+            this.outOfLivesInterval = null;
+          }
+          if (window.audio) window.audio.playWinFanfare();
+          this.updateLivesHUD();
+          this.updateCoinsUI();
+          if (window.leaderboardManager) {
+            window.leaderboardManager.resumeTimer('lbl-timer');
+          }
+          if (this.modalMap && !this.modalMap.classList.contains('hidden')) {
+            this.openMapModal();
+          }
+        } else {
+          alert(res.msg || 'No tienes suficientes monedas (250 🪙). Puedes esperar los 30 minutos o jugar modos alternativos (Casual / Bonuses).');
+        }
+      });
+    }
+
+    const btnOutOfLivesExit = document.getElementById('btn-out-of-lives-exit');
+    if (btnOutOfLivesExit) {
+      this.bindTapOrClick(btnOutOfLivesExit, () => {
+        this.hideModal(this.modalOutOfLives);
+        if (this.outOfLivesInterval) {
+          clearInterval(this.outOfLivesInterval);
+          this.outOfLivesInterval = null;
+        }
+        this.openMapModal();
+      });
+    }
+
+    const btnCloseOutOfLivesX = document.getElementById('btn-close-out-of-lives-x');
+    if (btnCloseOutOfLivesX) {
+      this.bindTapOrClick(btnCloseOutOfLivesX, () => {
+        this.hideModal(this.modalOutOfLives);
+        if (this.outOfLivesInterval) {
+          clearInterval(this.outOfLivesInterval);
+          this.outOfLivesInterval = null;
+        }
+        if (window.stateManager && window.stateManager.getLives() <= 0 && this.isStoryLevel()) {
+          this.openMapModal();
+        }
+      });
+    }
+    this.setupBackdropClose(this.modalOutOfLives, () => {
+      this.hideModal(this.modalOutOfLives);
+      if (this.outOfLivesInterval) {
+        clearInterval(this.outOfLivesInterval);
+        this.outOfLivesInterval = null;
+      }
+      if (window.stateManager && window.stateManager.getLives() <= 0 && this.isStoryLevel()) {
+        this.openMapModal();
+      }
     });
 
     // Cerrar modales con Escape
@@ -5682,9 +5944,17 @@ class GameController {
           this.modalMap, this.modalLeaderboard, this.modalSettings, this.modalHome,
           this.modalShop, this.modalRestartConfirm, this.modalTutorial, this.modalEditor,
           this.modalHonorVictory, this.modalHonorDefeat, document.getElementById('modal-completion'),
-          document.getElementById('modal-story-chapter'), document.getElementById('modal-special-ending-naza')
+          document.getElementById('modal-story-chapter'), document.getElementById('modal-special-ending-naza'),
+          this.modalChallengeIntro, this.modalPause, this.modalOutOfLives
         ];
         modals.forEach(m => m && this.hideModal(m));
+        if (this.outOfLivesInterval) {
+          clearInterval(this.outOfLivesInterval);
+          this.outOfLivesInterval = null;
+        }
+        if (window.stateManager && window.stateManager.getLives() <= 0 && this.isStoryLevel()) {
+          this.openMapModal();
+        }
         if (window.audio && !this.isModalOpen()) {
           this.resumeGameMusic();
         }
@@ -5728,6 +5998,177 @@ class GameController {
         this.livesTimerText.classList.add('hidden');
       }
     }
+  }
+
+  // --- MODAL DE PAUSA ALQUÍMICA (⏸️) ---
+  openPauseModal() {
+    if (!this.modalPause) return;
+    if (window.leaderboardManager) {
+      window.leaderboardManager.pauseTimer();
+    }
+    const list = document.getElementById('pause-challenges-list');
+    if (list) {
+      if (this.levelChallenges && this.levelChallenges.length > 0) {
+        list.innerHTML = this.levelChallenges.map((c, i) => {
+          const isDone = c.isCompleted || (typeof c.checkCompletion === 'function' && c.checkCompletion(this));
+          return `
+            <div class="flex items-center justify-between p-3 rounded-xl bg-slate-800/80 border ${isDone ? 'border-emerald-500/50 bg-emerald-950/20' : 'border-slate-700/80'}">
+              <div class="flex items-center gap-2.5">
+                <span class="w-6 h-6 rounded-lg ${isDone ? 'bg-emerald-500/20 text-emerald-400' : 'bg-slate-700 text-slate-300'} flex items-center justify-center text-xs font-black">${i + 1}</span>
+                <div>
+                  <h5 class="text-xs font-bold ${isDone ? 'text-emerald-300' : 'text-white'}">${c.name || c.title || 'Desafío'}</h5>
+                  <p class="text-[11px] text-slate-400">${c.description || c.desc || ''}</p>
+                </div>
+              </div>
+              <span class="text-xs font-bold px-2 py-1 rounded-lg ${isDone ? 'bg-emerald-500/20 text-emerald-400 border border-emerald-500/40' : 'bg-slate-700/40 text-slate-400'}">
+                ${isDone ? '✓ Logrado' : 'En curso'}
+              </span>
+            </div>
+          `;
+        }).join('');
+      } else {
+        list.innerHTML = `
+          <div class="text-xs text-slate-400 text-center py-4 bg-slate-800/40 rounded-xl border border-slate-700/60">
+            No hay desafíos secundarios en este nivel.
+          </div>
+        `;
+      }
+    }
+    this.showModal(this.modalPause);
+    if (window.lucide) lucide.createIcons();
+  }
+
+  closePauseModal() {
+    if (!this.modalPause) return;
+    this.hideModal(this.modalPause);
+    if (window.leaderboardManager && !this.isModalOpen()) {
+      window.leaderboardManager.resumeTimer('lbl-timer');
+    }
+  }
+
+  // --- MODAL INTRODUCTORIO DE DESAFÍOS (DESAFÍOS AL INICIO DEL NIVEL) ---
+  showChallengeIntroModal() {
+    if (!this.modalChallengeIntro) return;
+    if (window.leaderboardManager) {
+      window.leaderboardManager.pauseTimer();
+    }
+    const list = document.getElementById('challenge-intro-list');
+    if (list) {
+      if (this.levelChallenges && this.levelChallenges.length > 0) {
+        list.innerHTML = this.levelChallenges.map((c, i) => `
+          <div class="flex items-start gap-3 p-3.5 rounded-xl bg-slate-800/80 border border-indigo-500/30 shadow-inner">
+            <div class="w-8 h-8 rounded-xl bg-gradient-to-br from-indigo-500 to-purple-600 text-white flex items-center justify-center font-black text-sm shrink-0 shadow-md">
+              ${i + 1}
+            </div>
+            <div class="flex-1">
+              <h5 class="text-xs font-bold text-white flex items-center gap-2">
+                <span>${c.name || c.title || 'Desafío Secundario'}</span>
+                ${c.rewardCoins ? `<span class="text-[10px] px-1.5 py-0.2 rounded bg-amber-500/20 text-amber-300 font-mono">+${c.rewardCoins} 🪙</span>` : ''}
+              </h5>
+              <p class="text-[11px] text-slate-300 mt-1 leading-relaxed">${c.description || c.desc || ''}</p>
+            </div>
+          </div>
+        `).join('');
+      } else {
+        list.innerHTML = `
+          <div class="text-xs text-slate-400 text-center py-4 bg-slate-800/40 rounded-xl">
+            ¡Supera el nivel sin restricciones adicionales!
+          </div>
+        `;
+      }
+    }
+    this.showModal(this.modalChallengeIntro);
+    if (window.lucide) lucide.createIcons();
+  }
+
+  closeChallengeIntroModal() {
+    if (!this.modalChallengeIntro) return;
+    this.hideModal(this.modalChallengeIntro);
+    if (window.leaderboardManager && !this.isModalOpen()) {
+      window.leaderboardManager.resumeTimer('lbl-timer');
+    }
+  }
+
+  // --- GESTIÓN DE PÉRDIDA TOTAL DE VIDAS (OUT OF LIVES) ---
+  handleOutOfLives(reason = 'zero_lives') {
+    if (!this.modalOutOfLives) return;
+    if (window.leaderboardManager) {
+      window.leaderboardManager.pauseTimer();
+    }
+    if (window.audio) window.audio.playFailSound();
+
+    const titleEl = document.getElementById('out-of-lives-title');
+    const msgEl = document.getElementById('out-of-lives-msg');
+    if (titleEl) titleEl.textContent = '¡Te has quedado sin vidas! 💔';
+    if (msgEl) {
+      if (reason === 'undo') {
+        msgEl.textContent = 'Deshacer un movimiento cuesta 1 vida (❤️) y no te quedan vidas disponibles. No puedes continuar sin vidas.';
+      } else if (reason === 'extra_tube') {
+        msgEl.textContent = 'Agregar una botella extra cuesta 1 vida (❤️) y no te quedan vidas disponibles. No puedes continuar sin vidas.';
+      } else if (reason === 'timer') {
+        msgEl.textContent = 'Has permanecido más de 10 minutos en este nivel y has perdido tu última vida alquímica. No puedes continuar sin vidas.';
+      } else {
+        msgEl.textContent = 'Has perdido tu última vida alquímica. Para continuar jugando la historia debes recargar con monedas o esperar la recarga por tiempo.';
+      }
+    }
+
+    this.startOutOfLivesCountdown();
+    this.showModal(this.modalOutOfLives);
+    if (window.lucide) lucide.createIcons();
+  }
+
+  showNoLivesMapModal() {
+    if (!this.modalOutOfLives) return;
+    const titleEl = document.getElementById('out-of-lives-title');
+    const msgEl = document.getElementById('out-of-lives-msg');
+    if (titleEl) titleEl.textContent = '¡Niveles Bloqueados! 🔒💔';
+    if (msgEl) {
+      msgEl.textContent = 'No puedes entrar a los niveles de la Gran Obra sin vidas alquímicas. Puedes adquirir 1 vida con monedas de inmediato o esperar la recarga cada 30 minutos. También puedes jugar al Modo Casual Infinito o Minijuegos de Bonus.';
+    }
+
+    this.startOutOfLivesCountdown();
+    this.showModal(this.modalOutOfLives);
+    if (window.lucide) lucide.createIcons();
+  }
+
+  startOutOfLivesCountdown() {
+    if (this.outOfLivesInterval) {
+      clearInterval(this.outOfLivesInterval);
+      this.outOfLivesInterval = null;
+    }
+    const updateTimer = () => {
+      const timerEl = document.getElementById('out-of-lives-regen-timer');
+      if (!timerEl) return;
+      if (!window.stateManager) {
+        timerEl.textContent = '--:--';
+        return;
+      }
+      const lives = window.stateManager.getLives();
+      if (lives > 0) {
+        timerEl.textContent = '¡Ya tienes vidas disponibles!';
+        setTimeout(() => {
+          if (this.modalOutOfLives && !this.modalOutOfLives.classList.contains('hidden')) {
+            this.hideModal(this.modalOutOfLives);
+            if (this.outOfLivesInterval) {
+              clearInterval(this.outOfLivesInterval);
+              this.outOfLivesInterval = null;
+            }
+            if (window.leaderboardManager) {
+              window.leaderboardManager.resumeTimer('lbl-timer');
+            }
+            if (this.modalMap && !this.modalMap.classList.contains('hidden')) {
+              this.openMapModal();
+            }
+          }
+        }, 800);
+        return;
+      }
+      const timeRemaining = window.stateManager.getTimeToNextLife();
+      timerEl.textContent = timeRemaining;
+    };
+
+    updateTimer();
+    this.outOfLivesInterval = setInterval(updateTimer, 1000);
   }
 
   // --- MODAL DE CONFIRMACIÓN DE REINICIO CON SEED REROLL Y CONSUMO DE VIDA ---
@@ -6909,6 +7350,30 @@ class GameController {
       if (livesEl) livesEl.textContent = `${st.lives}/3 ❤️ conservadas`;
       if (coinsEl) coinsEl.textContent = `+${rewardCoins} 🪙`;
 
+      // Desbloqueo de cinemática de historia por victoria de Desafío de Honor
+      let isNewCinematic = false;
+      let unlockedChapterIndex = null;
+      if (this.honorSectionId >= 1 && this.honorSectionId <= 10) {
+        unlockedChapterIndex = this.honorSectionId - 1;
+        if (window.stateManager) {
+          isNewCinematic = window.stateManager.unlockStoryChapter(unlockedChapterIndex);
+        }
+      }
+      this.pendingHonorCinematicIndex = (isNewCinematic || (unlockedChapterIndex !== null && window.stateManager?.isStoryChapterUnlocked(unlockedChapterIndex)))
+        ? unlockedChapterIndex
+        : null;
+
+      const cinematicBox = document.getElementById('honor-vic-cinematic-box');
+      const cinematicTag = document.getElementById('honor-vic-cinematic-ch-tag');
+      if (cinematicBox) {
+        if (this.pendingHonorCinematicIndex !== null) {
+          if (cinematicTag) cinematicTag.textContent = `Capítulo ${this.pendingHonorCinematicIndex + 1}`;
+          cinematicBox.classList.remove('hidden');
+        } else {
+          cinematicBox.classList.add('hidden');
+        }
+      }
+
       if (modal) this.showModal(modal);
       if (window.lucide) lucide.createIcons();
     }, this.tubes.length * 220 + 350);
@@ -6920,8 +7385,14 @@ class GameController {
     if (!levelsGrid) return;
     levelsGrid.innerHTML = '';
 
-    // Si completó todos los 100 niveles, mostrar el estandarte de honor en la cima del mapa
-    if (window.stateManager && window.stateManager.state.progress.hasCompletedAll100) {
+    // El estandarte de honor SOLO debe verse al completar todos los 100 niveles con estrellas
+    const hasCompletedAll100 = this.hasAllLevelsAtLeastOneStar();
+    if (window.stateManager) {
+      window.stateManager.state.progress.hasCompletedAll100 = hasCompletedAll100;
+      window.stateManager.saveState();
+    }
+
+    if (hasCompletedAll100) {
       const completionBanner = document.createElement('div');
       completionBanner.className = 'w-full mb-4 p-4 rounded-2xl bg-gradient-to-r from-amber-500/25 via-yellow-500/30 to-amber-500/25 border-2 border-amber-400/80 shadow-lg shadow-amber-500/20 flex flex-col sm:flex-row items-center justify-between gap-3 text-left';
       completionBanner.innerHTML = `
@@ -7047,6 +7518,8 @@ class GameController {
         const isDone = !!rec;
 
         const btn = document.createElement('button');
+        const currentLives = window.stateManager ? window.stateManager.getLives() : 3;
+
         if (!isUnlocked) {
           btn.className = 'p-2 rounded-xl text-xs font-bold bg-slate-900/60 text-slate-600 border border-slate-800/80 cursor-not-allowed opacity-50 flex flex-col items-center justify-center gap-0.5';
           btn.innerHTML = `
@@ -7056,6 +7529,21 @@ class GameController {
           this.bindTapOrClick(btn, () => {
             if (window.audio) window.audio.playFailSound();
             alert(`El Nivel ${i} está bloqueado. Supera el Nivel ${i - 1} primero.`);
+          });
+        } else if (currentLives <= 0) {
+          // Bloqueado por falta de vidas: mostrar candado y corazón roto (🔒💔)
+          btn.className = 'p-2 rounded-xl text-xs font-black transition-all flex flex-col items-center justify-center gap-0.5 relative bg-slate-900/80 text-rose-400 border border-rose-500/30 hover:border-rose-500/70 shadow-inner cursor-pointer';
+          btn.innerHTML = `
+            <span class="text-xs font-bold text-slate-400">${i}</span>
+            <span class="text-[9px] leading-none" title="Sin vidas disponibles">🔒💔</span>
+          `;
+          this.bindTapOrClick(btn, () => {
+            if (window.audio) window.audio.playFailSound();
+            btn.classList.remove('map-level-fail-shake');
+            void btn.offsetWidth; // forzar reflow para reiniciar animación
+            btn.classList.add('map-level-fail-shake');
+            setTimeout(() => btn.classList.remove('map-level-fail-shake'), 650);
+            this.showNoLivesMapModal();
           });
         } else {
           btn.className = `p-2 rounded-xl text-xs font-black transition-all flex flex-col items-center justify-center gap-0.5 relative ${
@@ -7174,22 +7662,27 @@ class GameController {
     const modal = document.getElementById('modal-completion');
     if (!modal) return;
 
+    const hasAllStars = this.hasAllLevelsAtLeastOneStar();
     if (window.stateManager) {
-      window.stateManager.state.progress.hasCompletedAll100 = true;
-      // Recompensa de 500 monedas por graduación de campaña (si no se reclamó)
-      const banner = document.getElementById('completion-reward-banner');
-      const lblCoins = document.getElementById('completion-coins-award-lbl');
-      if (!window.stateManager.state.progress.all100BonusClaimed) {
-        window.stateManager.state.progress.all100BonusClaimed = true;
-        this.addCoins(500);
-        if (lblCoins) lblCoins.textContent = '✓ ¡+500 🪙 Monedas Otorgadas!';
+      if (hasAllStars) {
+        window.stateManager.state.progress.hasCompletedAll100 = true;
+        // Recompensa de 999.999.999 monedas por consagración de campaña (si no se reclamó)
+        const lblCoins = document.getElementById('completion-coins-award-lbl');
+        if (!window.stateManager.state.progress.all100BonusClaimed) {
+          window.stateManager.state.progress.all100BonusClaimed = true;
+          this.addCoins(999999999);
+          if (lblCoins) lblCoins.textContent = '✓ ¡+999.999.999 🪙 Monedas Otorgadas!';
+        } else {
+          if (lblCoins) lblCoins.textContent = '✓ Recompensa de +999.999.999 🪙 ya reclamada';
+        }
       } else {
-        if (lblCoins) lblCoins.textContent = '✓ Recompensa de +500 🪙 ya reclamada';
+        window.stateManager.state.progress.hasCompletedAll100 = false;
+        const lblCoins = document.getElementById('completion-coins-award-lbl');
+        if (lblCoins) lblCoins.textContent = '🔒 Requiere completar los 100 niveles con ★';
       }
       window.stateManager.saveState();
     }
 
-    const hasAllStars = this.hasAllLevelsAtLeastOneStar();
     const endingTheater = document.getElementById('completion-ending-theater');
     const lockedNotice = document.getElementById('completion-epilogue-locked-notice');
 
@@ -7676,12 +8169,358 @@ class GameController {
       });
     }
 
+    const btnStory = document.getElementById('btn-completion-story');
+    if (btnStory) {
+      this.bindTapOrClick(btnStory, () => {
+        if (modal) this.hideModal(modal);
+        if (window.storyManager) window.storyManager.openGalleryModal();
+      });
+    }
+
     if (btnReplay) {
       this.bindTapOrClick(btnReplay, () => {
         if (modal) this.hideModal(modal);
         this.loadLevel(100);
       });
     }
+  }
+
+  // --- EASTER EGG CIENTÍFICO ABURRIDO (9999 SEGUNDOS / CALAVERITA) ---
+  triggerBoredScientistModal() {
+    // 1. Desbloquear logro oculto "Aburridoooooo"
+    if (window.achievementManager) {
+      window.achievementManager.unlock('bored_scientist_9999');
+    }
+
+    // 2. Sonido cómico de misterio
+    if (window.audio && typeof window.audio.playChallengeFail === 'function') {
+      window.audio.playChallengeFail();
+    }
+
+    // 3. Abrir modal
+    const modal = document.getElementById('modal-bored-scientist');
+    if (modal) {
+      this.showModal(modal);
+      if (window.lucide) lucide.createIcons();
+    }
+  }
+
+  testBoredScientist() {
+    this.triggerBoredScientistModal();
+  }
+
+  testBuyStoryChapters() {
+    if (this.coins < 999999999) {
+      this.addCoins(999999999);
+    }
+    if (window.storyManager) {
+      window.storyManager.openGalleryModal();
+    }
+  }
+
+  // --- COFRE DIARIO (RECOMPENSA DE 50 MONEDAS - 24 HORAS DESDE LAS 12 DE LA NOCHE / 00:00 HS) ---
+  initDailyChest() {
+    this.dailyChestBar = document.getElementById('daily-chest-bar');
+    this.btnDailyChest = document.getElementById('btn-daily-chest');
+    this.modalDailyChest = document.getElementById('modal-daily-chest');
+    this.btnCloseDailyChest = document.getElementById('btn-close-daily-chest');
+    this.dailyChestModalBody = document.getElementById('daily-chest-modal-body');
+
+    if (this.btnDailyChest) {
+      this.bindTapOrClick(this.btnDailyChest, () => this.showDailyChestModal(false));
+    }
+
+    if (this.btnCloseDailyChest && this.modalDailyChest) {
+      this.bindTapOrClick(this.btnCloseDailyChest, () => this.hideModal(this.modalDailyChest));
+      this.setupBackdropClose(this.modalDailyChest, () => this.hideModal(this.modalDailyChest));
+    }
+
+    // Iniciar loop de actualización en tiempo real cada 1 segundo (actualiza cuenta regresiva y habilita cofre a las 00:00)
+    if (this.dailyChestInterval) {
+      clearInterval(this.dailyChestInterval);
+    }
+    this.dailyChestInterval = setInterval(() => this.updateDailyChestBarUI(), 1000);
+    this.updateDailyChestBarUI();
+
+    // Recompensa al entrar cada día: si hoy no ha reclamado sus 50 monedas, presentar el cofre de bienvenida
+    if (window.stateManager && window.stateManager.canClaimDailyReward()) {
+      setTimeout(() => {
+        // Solo abrir si no hay otro modal crítico como victoria o epílogo
+        const isVictoryOpen = this.modalVictory && !this.modalVictory.classList.contains('hidden');
+        if (!isVictoryOpen) {
+          this.showDailyChestModal(true);
+        }
+      }, 700);
+    }
+  }
+
+  formatDailyCountdown(ms) {
+    if (ms <= 0) return '00:00:00';
+    const totalSec = Math.floor(ms / 1000);
+    const hours = String(Math.floor(totalSec / 3600)).padStart(2, '0');
+    const minutes = String(Math.floor((totalSec % 3600) / 60)).padStart(2, '0');
+    const seconds = String(totalSec % 60).padStart(2, '0');
+    return `${hours}:${minutes}:${seconds}`;
+  }
+
+  updateDailyChestBarUI() {
+    if (!this.btnDailyChest || !window.stateManager) return;
+
+    const canClaim = window.stateManager.canClaimDailyReward();
+
+    if (canClaim) {
+      this.btnDailyChest.className = 'btn-interactive w-full py-2 px-3.5 sm:px-4 rounded-2xl flex items-center justify-between gap-3 border shadow-lg transition-all duration-300 relative overflow-hidden group daily-chest-ready cursor-pointer';
+      this.btnDailyChest.innerHTML = `
+        <div class="flex items-center gap-3">
+          <div class="w-10 h-10 rounded-xl bg-amber-500/30 border border-amber-400/60 flex items-center justify-center text-xl shadow-sm daily-chest-icon">
+            🎁
+          </div>
+          <div class="text-left">
+            <div class="text-[11px] font-black uppercase tracking-wider text-amber-300 flex items-center gap-1.5">
+              <span>Cofre Diario</span>
+              <span class="px-1.5 py-0.2 bg-amber-400/20 text-amber-200 text-[10px] rounded-md border border-amber-400/30">¡Disponible!</span>
+            </div>
+            <div class="text-xs font-bold text-amber-100 flex items-center gap-1">
+              <span>Entraste hoy • Reclama</span>
+              <span class="text-amber-300 font-black">+50 🪙</span>
+            </div>
+          </div>
+        </div>
+        <div class="flex items-center gap-2">
+          <span class="px-3.5 py-1.5 bg-gradient-to-r from-amber-400 via-yellow-400 to-amber-500 hover:from-amber-300 hover:to-yellow-300 text-slate-950 font-black text-xs rounded-xl shadow-md transition-all flex items-center gap-1.5 animate-pulse">
+            <span>¡Abrir!</span>
+            <span class="text-sm">🪙</span>
+          </span>
+        </div>
+      `;
+    } else {
+      const msUntilMidnight = window.stateManager.getMsUntilMidnight();
+      const countdown = this.formatDailyCountdown(msUntilMidnight);
+
+      this.btnDailyChest.className = 'btn-interactive w-full py-2 px-3.5 sm:px-4 rounded-2xl flex items-center justify-between gap-3 border shadow-sm transition-all duration-300 relative overflow-hidden group daily-chest-cooldown cursor-pointer';
+      this.btnDailyChest.innerHTML = `
+        <div class="flex items-center gap-3">
+          <div class="w-9 h-9 rounded-xl bg-slate-800/90 border border-slate-700/80 flex items-center justify-center text-lg text-slate-400">
+            🔒
+          </div>
+          <div class="text-left">
+            <div class="text-[11px] font-semibold text-slate-400 flex items-center gap-1.5">
+              <span>Cofre Diario Reclamado</span>
+              <span class="text-[10px] text-slate-500 font-mono">12:00 AM</span>
+            </div>
+            <div class="text-xs text-slate-300 font-mono flex items-center gap-1.5">
+              <span class="text-slate-400">Próximo a las 00:00:</span>
+              <span id="lbl-daily-chest-countdown-bar" class="text-amber-400 font-bold tracking-wider">${countdown}</span>
+            </div>
+          </div>
+        </div>
+        <div class="flex items-center">
+          <span class="px-2.5 py-1 bg-slate-800/90 text-slate-400 hover:text-slate-200 border border-slate-700/60 font-semibold text-[11px] rounded-xl transition">
+            +50 🪙 cada 24hs
+          </span>
+        </div>
+      `;
+
+      // Si el modal está abierto mostrando el cooldown, actualizar también la cuenta regresiva en el modal
+      const modalCountdown = document.getElementById('lbl-daily-chest-countdown-modal');
+      if (modalCountdown) {
+        modalCountdown.textContent = countdown;
+      }
+    }
+  }
+
+  showDailyChestModal(autoPrompt = false) {
+    if (!this.modalDailyChest || !this.dailyChestModalBody || !window.stateManager) return;
+
+    const canClaim = window.stateManager.canClaimDailyReward();
+    const streak = window.stateManager.state.dailyReward?.streak || 0;
+    const totalClaimed = window.stateManager.state.dailyReward?.totalClaimed || 0;
+
+    // Resetear posición de la tapa en el SVG
+    const chestLid = document.getElementById('daily-chest-lid');
+    if (chestLid) {
+      chestLid.style.transform = 'translate(0px, 0px) rotate(0deg)';
+      chestLid.style.transition = 'transform 0.4s cubic-bezier(0.34, 1.56, 0.64, 1)';
+    }
+
+    if (canClaim) {
+      this.dailyChestModalBody.innerHTML = `
+        <div class="space-y-2">
+          <div class="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-amber-500/20 text-amber-300 border border-amber-500/40 text-xs font-black">
+            <span>✨</span>
+            <span>${autoPrompt ? '¡Bienvenido de vuelta, Alquimista!' : '¡Cofre Listo para Abrir!'}</span>
+          </div>
+          <h3 class="text-base sm:text-lg font-black text-white">
+            ${autoPrompt ? '¡Premio por entrar hoy al juego!' : 'Tu cofre diario de hoy está listo'}
+          </h3>
+          <p class="text-xs text-slate-300 max-w-sm mx-auto leading-relaxed">
+            Cada día al entrar a AquaSort te recompensamos con monedas mágicas. Ábrelo ahora para sumar <strong class="text-amber-300 font-bold">50 monedas</strong> a tu reserva.
+          </p>
+        </div>
+
+        <!-- Tarjeta de Recompensa -->
+        <div class="p-3.5 rounded-2xl bg-gradient-to-r from-amber-500/15 via-yellow-500/25 to-amber-500/15 border border-amber-400/50 flex items-center justify-between shadow-inner">
+          <div class="text-left">
+            <span class="text-[11px] uppercase tracking-wider text-slate-400 font-bold block">Recompensa Diaria</span>
+            <span class="text-xl font-black text-amber-300 font-mono">+50 Monedas</span>
+          </div>
+          <div class="text-3xl animate-bounce">🪙</div>
+        </div>
+
+        <div class="text-[11px] text-slate-400 flex items-center justify-center gap-2">
+          <span>🔄 Se habilita cada 24 horas desde las 12 de la noche (00:00 hs)</span>
+        </div>
+
+        <div class="flex flex-col gap-2 pt-1">
+          <button id="btn-claim-daily-reward" class="btn-interactive w-full py-3.5 bg-gradient-to-r from-amber-500 via-yellow-400 to-amber-500 hover:from-amber-400 hover:to-yellow-300 text-slate-950 font-black rounded-2xl shadow-lg shadow-amber-500/30 flex items-center justify-center gap-2 text-sm transition-all transform active:scale-95">
+            <span class="text-lg">🎁</span>
+            <span>¡Abrir Cofre (+50 🪙)!</span>
+          </button>
+          <button id="btn-dismiss-daily-modal" class="py-2 text-xs text-slate-400 hover:text-slate-200 transition">
+            Guardar para más tarde
+          </button>
+        </div>
+      `;
+
+      const btnClaim = document.getElementById('btn-claim-daily-reward');
+      if (btnClaim) {
+        this.bindTapOrClick(btnClaim, () => this.claimDailyRewardAction());
+      }
+      const btnDismiss = document.getElementById('btn-dismiss-daily-modal');
+      if (btnDismiss) {
+        this.bindTapOrClick(btnDismiss, () => this.hideModal(this.modalDailyChest));
+      }
+    } else {
+      const msUntilMidnight = window.stateManager.getMsUntilMidnight();
+      const countdown = this.formatDailyCountdown(msUntilMidnight);
+
+      this.dailyChestModalBody.innerHTML = `
+        <div class="space-y-2">
+          <div class="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-slate-800 text-slate-300 border border-slate-700 text-xs font-semibold">
+            <span>🔒</span>
+            <span>Cofre reclamado por hoy</span>
+          </div>
+          <h3 class="text-base sm:text-lg font-black text-white">
+            ¡Ya reclamaste tus 50 monedas de hoy!
+          </h3>
+          <p class="text-xs text-slate-300 max-w-sm mx-auto leading-relaxed">
+            El cofre se renueva automáticamente cada 24 horas a partir de las <strong>12 de la noche (00:00 hs)</strong>.
+          </p>
+        </div>
+
+        <!-- Tarjeta de Cuenta Regresiva -->
+        <div class="p-3.5 rounded-2xl bg-slate-950/70 border border-slate-800 flex flex-col items-center justify-center gap-1 shadow-inner">
+          <span class="text-[11px] uppercase tracking-wider text-slate-400 font-semibold">Próximo cofre disponible en:</span>
+          <span id="lbl-daily-chest-countdown-modal" class="text-2xl font-black text-amber-400 font-mono tracking-widest">${countdown}</span>
+          <span class="text-[11px] text-slate-500">Se desbloquea exactamente a medianoche (00:00 hs)</span>
+        </div>
+
+        <div class="p-2.5 rounded-xl bg-slate-800/60 border border-slate-700/60 flex items-center justify-around text-xs text-slate-300">
+          <div>🔥 Racha: <strong class="text-amber-300">${streak} días</strong></div>
+          <div class="h-4 w-px bg-slate-700"></div>
+          <div>🏆 Reclamados: <strong class="text-sky-300">${totalClaimed} veces</strong></div>
+        </div>
+
+        <div class="pt-1">
+          <button id="btn-close-daily-chest-ok" class="btn-interactive w-full py-3 bg-slate-800 hover:bg-slate-700 text-slate-200 font-bold rounded-2xl transition">
+            ¡Entendido!
+          </button>
+        </div>
+      `;
+
+      const btnOk = document.getElementById('btn-close-daily-chest-ok');
+      if (btnOk) {
+        this.bindTapOrClick(btnOk, () => this.hideModal(this.modalDailyChest));
+      }
+    }
+
+    this.showModal(this.modalDailyChest);
+    if (window.lucide) lucide.createIcons();
+  }
+
+  claimDailyRewardAction() {
+    if (!window.stateManager) return;
+    const res = window.stateManager.claimDailyReward();
+
+    if (!res.success) {
+      this.showDailyChestModal(false);
+      return;
+    }
+
+    // 1. Agregar 50 monedas al saldo y actualizar HUD
+    this.addCoins(res.coinsAwarded);
+
+    // 2. Audio de fanfarria o éxito
+    if (window.audio && typeof window.audio.playWinFanfare === 'function') {
+      window.audio.playWinFanfare();
+    } else if (window.audio && typeof window.audio.playSuccess === 'function') {
+      window.audio.playSuccess();
+    }
+
+    // 3. Animación de confeti festivo
+    if (typeof confetti === 'function') {
+      confetti({
+        particleCount: 80,
+        spread: 80,
+        origin: { y: 0.55 },
+        colors: ['#f59e0b', '#fbbf24', '#fef08a', '#38bdf8', '#10b981']
+      });
+    }
+
+    // 4. Animación del cofre abriéndose en el SVG
+    const chestLid = document.getElementById('daily-chest-lid');
+    if (chestLid) {
+      chestLid.style.transform = 'translate(-5px, -15px) rotate(-30deg)';
+      chestLid.style.transition = 'transform 0.5s cubic-bezier(0.34, 1.56, 0.64, 1)';
+    }
+
+    // 5. Actualizar cuerpo del modal con felicitaciones y cierre
+    if (this.dailyChestModalBody) {
+      this.dailyChestModalBody.innerHTML = `
+        <div class="space-y-2">
+          <div class="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-emerald-500/20 text-emerald-300 border border-emerald-500/40 text-xs font-black animate-pulse">
+            <span>🎉</span>
+            <span>¡Recompensa Reclamada con Éxito!</span>
+          </div>
+          <h3 class="text-xl font-black text-amber-300">
+            ¡+50 Monedas Agregadas!
+          </h3>
+          <p class="text-xs text-slate-300 max-w-sm mx-auto leading-relaxed">
+            Has recibido tus 50 monedas de hoy. El próximo cofre estará listo mañana a las <strong>12 de la noche (00:00 hs)</strong>.
+          </p>
+        </div>
+
+        <div class="p-3.5 rounded-2xl bg-gradient-to-r from-emerald-500/15 via-amber-500/20 to-emerald-500/15 border border-emerald-400/50 flex items-center justify-between shadow-inner">
+          <div class="text-left">
+            <span class="text-[11px] uppercase tracking-wider text-slate-400 font-bold block">Nuevo Saldo</span>
+            <span class="text-xl font-black text-white font-mono">${(this.coins || 0).toLocaleString()} 🪙</span>
+          </div>
+          <div class="text-3xl">✨🪙✨</div>
+        </div>
+
+        <div class="pt-2">
+          <button id="btn-daily-claimed-close" class="btn-interactive w-full py-3.5 bg-gradient-to-r from-emerald-500 to-teal-500 hover:from-emerald-400 hover:to-teal-400 text-slate-950 font-black rounded-2xl shadow-lg shadow-emerald-500/30 transition text-sm">
+            ¡Genial, gracias!
+          </button>
+        </div>
+      `;
+
+      const btnClose = document.getElementById('btn-daily-claimed-close');
+      if (btnClose) {
+        this.bindTapOrClick(btnClose, () => this.hideModal(this.modalDailyChest));
+      }
+    }
+
+    // 6. Actualizar la barra inferior inmediatamente
+    this.updateDailyChestBarUI();
+  }
+
+  testDailyChest() {
+    if (window.stateManager) {
+      window.stateManager.resetDailyRewardForTesting();
+    }
+    this.updateDailyChestBarUI();
+    this.showDailyChestModal(false);
   }
 }
 
@@ -7709,7 +8548,43 @@ window.addEventListener('DOMContentLoaded', () => {
         window.game.showGameCompletionModal();
       }
     }
+    // Atajo para científico aburrido / límite 9999s (Alt+B)
+    if (e.altKey && (e.key === 'b' || e.key === 'B')) {
+      if (window.game) {
+        window.game.testBoredScientist();
+      }
+    }
+    // Atajo para compra de crónicas de historia con monedas (Alt+S)
+    if (e.altKey && (e.key === 's' || e.key === 'S')) {
+      if (window.game) {
+        window.game.testBuyStoryChapters();
+      }
+    }
+    // Atajo para cofre diario (Alt+C)
+    if (e.altKey && (e.key === 'c' || e.key === 'C')) {
+      if (window.game) {
+        window.game.testDailyChest();
+      }
+    }
   });
+
+  if (window.location.search.includes('testBored=1')) {
+    setTimeout(() => {
+      if (window.game) window.game.testBoredScientist();
+    }, 600);
+  }
+
+  if (window.location.search.includes('testStoryBuy=1')) {
+    setTimeout(() => {
+      if (window.game) window.game.testBuyStoryChapters();
+    }, 600);
+  }
+
+  if (window.location.search.includes('testDaily=1')) {
+    setTimeout(() => {
+      if (window.game) window.game.testDailyChest();
+    }, 600);
+  }
 });
 
 

@@ -53,7 +53,18 @@ class LeaderboardManager {
     if (displayEl) displayEl.textContent = '00:00';
 
     this.timerInterval = setInterval(() => {
-      this.elapsedSeconds = Math.floor((Date.now() - this.timerStartTime) / 1000);
+      const realElapsed = Math.floor((Date.now() - this.timerStartTime) / 1000);
+      if (realElapsed >= 9999) {
+        this.elapsedSeconds = 9999;
+        if (displayEl) displayEl.textContent = this.formatTime(9999);
+        this.stopTimer(); // Detener el avance al alcanzar 9999 segundos
+        if (window.game && typeof window.game.triggerBoredScientistModal === 'function') {
+          window.game.triggerBoredScientistModal();
+        }
+        return;
+      }
+
+      this.elapsedSeconds = realElapsed;
       if (displayEl) {
         displayEl.textContent = this.formatTime(this.elapsedSeconds);
       }
@@ -72,11 +83,47 @@ class LeaderboardManager {
     return this.elapsedSeconds;
   }
 
+  pauseTimer() {
+    if (this.timerInterval) {
+      clearInterval(this.timerInterval);
+      this.timerInterval = null;
+    }
+    this.isTimerRunning = false;
+  }
+
+  resumeTimer(displayElementId = 'lbl-timer') {
+    if (this.isTimerRunning) return;
+    this.isTimerRunning = true;
+    this.timerStartTime = Date.now() - (this.elapsedSeconds * 1000);
+    const displayEl = document.getElementById(displayElementId);
+    this.timerInterval = setInterval(() => {
+      const realElapsed = Math.floor((Date.now() - this.timerStartTime) / 1000);
+      if (realElapsed >= 9999) {
+        this.elapsedSeconds = 9999;
+        if (displayEl) displayEl.textContent = this.formatTime(9999);
+        this.stopTimer(); // Detener el avance al alcanzar 9999 segundos
+        if (window.game && typeof window.game.triggerBoredScientistModal === 'function') {
+          window.game.triggerBoredScientistModal();
+        }
+        return;
+      }
+
+      this.elapsedSeconds = realElapsed;
+      if (displayEl) {
+        displayEl.textContent = this.formatTime(this.elapsedSeconds);
+      }
+      if (window.game && typeof window.game.onTimerTick === 'function') {
+        window.game.onTimerTick(this.elapsedSeconds);
+      }
+    }, 1000);
+  }
+
   getElapsedSeconds() {
     return this.elapsedSeconds;
   }
 
   formatTime(totalSec) {
+    if (totalSec >= 9999) return '99:59';
     const mins = Math.floor(totalSec / 60);
     const secs = totalSec % 60;
     return `${mins.toString().padStart(2, '0')}:${secs.toString().padStart(2, '0')}`;

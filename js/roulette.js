@@ -374,9 +374,14 @@ class MinigameEngine {
     const tabDiana = document.getElementById('tab-game-diana');
     const tabMoving = document.getElementById('tab-game-moving');
 
-    if (tabRoulette) tabRoulette.addEventListener('click', () => this.setMode('roulette', false));
-    if (tabDiana) tabDiana.addEventListener('click', () => this.setMode('diana', false));
-    if (tabMoving) tabMoving.addEventListener('click', () => this.setMode('moving_targets', false));
+    const handleTabClick = (mode) => {
+      if (this.fromVictory) return; // En Modo Historia no se puede elegir el minijuego
+      this.setMode(mode, false);
+    };
+
+    if (tabRoulette) tabRoulette.addEventListener('click', () => handleTabClick('roulette'));
+    if (tabDiana) tabDiana.addEventListener('click', () => handleTabClick('diana'));
+    if (tabMoving) tabMoving.addEventListener('click', () => handleTabClick('moving_targets'));
   }
 
   getWindDirectionArrow(deg) {
@@ -609,7 +614,9 @@ class MinigameEngine {
         this.timingFeedbackLbl.innerHTML = '⭐ <strong class="text-amber-300">¡TIRO PERFECTO!</strong> Se eliminó el sector negativo y quiebras x0 ⭐';
         this.timingFeedbackLbl.className = 'text-center text-[11px] font-black text-amber-300 mt-1 min-h-[16px] animate-pulse';
       }
-      if (window.audio) window.audio.playWinFanfare();
+      
+      // Animación especial al acertar al centro ANTES de girar la ruleta
+      this.triggerPerfectCelebration("¡TIRO PERFECTO! 🌟", "¡Centro Dorado! Eliminadas las pérdidas");
 
       // Ventaja inmediata: convertir sector negativo y x0 en sectores ganadores de x2.0
       this.sliceValues = this.sliceValues.map(s => {
@@ -737,28 +744,24 @@ class MinigameEngine {
     const mult = landedSector.value;
 
     if (isWinner && mult > 0) {
-      if (timingResult === 'perfect') {
-        this.triggerPerfectCelebration("¡MAGISTRAL! 🌟", "¡Giro de Precisión Absoluta!");
-      } else {
-        if (window.audio) {
-          window.audio.playWinFanfare();
-          window.audio.playCrowdCheer();
-        }
-        if (typeof confetti === 'function') {
-          confetti({ particleCount: 90, spread: 75, origin: { y: 0.6 } });
-        }
+      if (window.audio) {
+        window.audio.playWinFanfare();
+        window.audio.playCrowdCheer();
+      }
+      if (typeof confetti === 'function') {
+        confetti({ particleCount: 90, spread: 75, origin: { y: 0.6 } });
       }
       if (this.timingFeedbackLbl) {
         this.timingFeedbackLbl.innerHTML = `🎉 ¡PREMIO ${landedSector.label}! GANAS MULTIPLICADOR ${mult}x 🪙`;
         this.timingFeedbackLbl.className = 'text-center text-sm font-black text-emerald-400 mt-1';
       }
-      if (window.game) window.game.multiplyCoins(mult);
+      if (window.game && !this.isTrainingMode) window.game.multiplyCoins(mult);
     } else {
       if (modalBox) modalBox.classList.add('roulette-lose-glow');
       if (window.audio) window.audio.playDisappointedCrowd();
 
-      const hasBoost = window.stateManager && window.stateManager.state.upgrades.rouletteBoost;
-      if (!hasBoost && window.game) {
+      const hasBoost = window.stateManager ? (typeof window.stateManager.hasRouletteBoost === 'function' ? window.stateManager.hasRouletteBoost() : window.stateManager.state.upgrades.rouletteBoost) : false;
+      if (!hasBoost && window.game && !this.isTrainingMode) {
         window.game.multiplyCoins(mult); // Aplica pérdida de monedas si mult < 0 o reduce
       }
 
@@ -814,8 +817,13 @@ class MinigameEngine {
     this.isDartFlying = false;
     this.isDraggingSlingshot = false;
     this.isReverseShot = false;
+    this.isDianaFinished = false;
+    this.isRoundOver = false;
     this.currentDartPos = { x: 150, y: 315 };
     this.updateSlingshotVisuals(150, 315, 0, 0, false, false);
+
+    const container = document.getElementById('diana-target-container');
+    if (container) container.style.pointerEvents = 'auto';
 
     const impactsGroup = document.getElementById('diana-impacts-group');
     if (impactsGroup) impactsGroup.innerHTML = '';
@@ -837,7 +845,7 @@ class MinigameEngine {
     if (!container) return;
 
     const onPointerDown = (e) => {
-      if (this.isDartFlying) return;
+      if (this.isDartFlying || this.isDianaFinished || this.isRoundOver) return;
       if (e.target.closest('button') || e.target.closest('#alchemy-cards-drawer') || e.target.closest('#tab-minigame-selector')) {
         return;
       }
@@ -851,7 +859,7 @@ class MinigameEngine {
     };
 
     const onPointerMove = (e) => {
-      if (!this.isDraggingSlingshot || this.isDartFlying) return;
+      if (!this.isDraggingSlingshot || this.isDartFlying || this.isDianaFinished || this.isRoundOver) return;
       const rect = container.getBoundingClientRect();
       const scaleX = 300 / rect.width;
       const scaleY = 360 / rect.height;
@@ -878,6 +886,8 @@ class MinigameEngine {
       if (!this.isDraggingSlingshot) return;
       this.isDraggingSlingshot = false;
       try { container.releasePointerCapture?.(e.pointerId); } catch (_) {}
+
+      if (this.isDartFlying || this.isDianaFinished || this.isRoundOver) return;
 
       const pullDistance = Math.hypot(this.currentDartPos.x - 150, this.currentDartPos.y - 315);
       if (pullDistance > 10) {
@@ -1015,8 +1025,15 @@ class MinigameEngine {
 
   // Lanzamiento normal hacia adelante (diana)
   launchSlingshotDart() {
-    if (this.isDartFlying) return;
+    if (this.isDartFlying || this.isDianaFinished || this.isRoundOver) return;
     this.isDartFlying = true;
+
+    // Si no tiene tiro extra, bloquear inmediatamente para evitar tiros dobles rápidos
+    if (!this.extraShotAvailable) {
+      this.isDianaFinished = true;
+      const container = document.getElementById('diana-target-container');
+      if (container) container.style.pointerEvents = 'none';
+    }
 
     if (window.audio) window.audio.playDartThrow();
 
@@ -1086,8 +1103,12 @@ class MinigameEngine {
 
   // --- EASTER EGG: LANZAMIENTO AL REVÉS (DISPARO DIRECTO A LA CARA) ---
   launchReverseSlingshotDart() {
-    if (this.isDartFlying) return;
+    if (this.isDartFlying || this.isDianaFinished || this.isRoundOver) return;
     this.isDartFlying = true;
+    this.isDianaFinished = true;
+
+    const container = document.getElementById('diana-target-container');
+    if (container) container.style.pointerEvents = 'none';
 
     if (window.audio) window.audio.playDartThrow();
 
@@ -1282,8 +1303,8 @@ class MinigameEngine {
       const modalBox = document.querySelector('#modal-roulette .modal-content');
       if (modalBox) modalBox.classList.add('roulette-lose-glow');
 
-      const hasBoost = window.stateManager && window.stateManager.state.upgrades.rouletteBoost;
-      if (!hasBoost && window.game) {
+      const hasBoost = window.stateManager ? (typeof window.stateManager.hasRouletteBoost === 'function' ? window.stateManager.hasRouletteBoost() : window.stateManager.state.upgrades.rouletteBoost) : false;
+      if (!hasBoost && window.game && !this.isTrainingMode) {
         window.game.multiplyCoins(0.5); // reducción por tiro fallido
       }
 
@@ -1330,6 +1351,11 @@ class MinigameEngine {
 
     if (this.extraShotAvailable && multiplier < 1.5) {
       this.extraShotAvailable = false;
+      this.isDianaFinished = false;
+      this.isDartFlying = false;
+      const container = document.getElementById('diana-target-container');
+      if (container) container.style.pointerEvents = 'auto';
+
       if (hintEl) {
         hintEl.textContent = '¡Tiro extra de respaldo activo! ¡Vuelve a estirar el resorte!';
         hintEl.className = 'text-center text-xs font-black text-amber-300 mt-1 mb-2 animate-bounce';
@@ -1338,9 +1364,15 @@ class MinigameEngine {
       return;
     }
 
+    // Tiro final concluido: bloquear diana permanentemente
+    this.isDianaFinished = true;
+    this.isRoundOver = true;
+    const dianaCont = document.getElementById('diana-target-container');
+    if (dianaCont) dianaCont.style.pointerEvents = 'none';
+
     if (multiplier > 0) {
-      if (multiplier >= 3.0) {
-        this.triggerPerfectCelebration("¡DIANA DE ORO! 🎯", "¡Impacto Directo al Centro!");
+      if (dist <= 28 || multiplier >= 3.0) {
+        this.triggerPerfectCelebration("¡DIANA DE ORO! 🎯", "¡Impacto Perfecto al Centro!");
       } else {
         if (window.audio) {
           window.audio.playWinFanfare();
@@ -1354,13 +1386,13 @@ class MinigameEngine {
         hintEl.innerHTML = `${label} • <strong class="text-amber-300">GANAS ${multiplier}x 🪙</strong>`;
         hintEl.className = 'text-center text-sm font-black text-emerald-400 mt-1 mb-2';
       }
-      if (window.game) window.game.multiplyCoins(multiplier);
+      if (window.game && !this.isTrainingMode) window.game.multiplyCoins(multiplier);
     } else {
       if (modalBox) modalBox.classList.add('roulette-lose-glow');
       if (window.audio) window.audio.playDisappointedCrowd();
 
-      const hasBoost = window.stateManager && window.stateManager.state.upgrades.rouletteBoost;
-      if (!hasBoost && window.game) {
+      const hasBoost = window.stateManager ? (typeof window.stateManager.hasRouletteBoost === 'function' ? window.stateManager.hasRouletteBoost() : window.stateManager.state.upgrades.rouletteBoost) : false;
+      if (!hasBoost && window.game && !this.isTrainingMode) {
         window.game.multiplyCoins(0.5);
       }
 
@@ -1374,10 +1406,16 @@ class MinigameEngine {
     this.finalizeRound(null, modalBox);
   }
 
-  // --- DIANAS MÓVILES (MINIJUEGO 3: 3 BLANCOS FLOTANTES EN MOVIMIENTO) ---
   resetMovingTargets() {
     this.movingDartsLeft = 4;
     this.movingHitsCount = 0;
+    this.isMovingFinished = false;
+    this.isDartFlying = false;
+    this.isRoundOver = false;
+
+    const container = document.getElementById('moving-target-container');
+    if (container) container.style.pointerEvents = 'auto';
+
     this.movingTargets = [
       { id: 0, x: 150, y: 65, r: 16, vx: 1.3, minX: 45, maxX: 255, hit: false, mult: 3.0, name: 'Oro', color: '#facc15' },
       { id: 1, x: 100, y: 125, r: 20, vx: -1.6, minX: 40, maxX: 260, hit: false, mult: 2.0, name: 'Plata', color: '#e2e8f0' },
@@ -1482,7 +1520,7 @@ class MinigameEngine {
     };
 
     container.addEventListener('pointerdown', (e) => {
-      if (this.isDartFlying || this.movingDartsLeft <= 0) return;
+      if (this.isDartFlying || this.movingDartsLeft <= 0 || this.isMovingFinished || this.isRoundOver) return;
       if (e.target.closest('button')) return;
       if (window.audio) window.audio.init();
 
@@ -1492,7 +1530,7 @@ class MinigameEngine {
     });
 
     container.addEventListener('pointermove', (e) => {
-      if (!isMovingDragging || this.isDartFlying) return;
+      if (!isMovingDragging || this.isDartFlying || this.isMovingFinished || this.isRoundOver) return;
       const rect = container.getBoundingClientRect();
       const scaleX = 300 / rect.width;
       const scaleY = 360 / rect.height;
@@ -1510,6 +1548,8 @@ class MinigameEngine {
       isMovingDragging = false;
       try { container.releasePointerCapture?.(e.pointerId); } catch (_) {}
 
+      if (this.isDartFlying || this.movingDartsLeft <= 0 || this.isMovingFinished || this.isRoundOver) return;
+
       updateVisuals(0, 0, false);
       this.launchMovingDart(currentMovingDartPos, currentMovingImpact);
     };
@@ -1519,10 +1559,17 @@ class MinigameEngine {
   }
 
   launchMovingDart(startPos, hitPos) {
-    if (this.isDartFlying || this.movingDartsLeft <= 0) return;
+    if (this.isDartFlying || this.movingDartsLeft <= 0 || this.isMovingFinished || this.isRoundOver) return;
     this.isDartFlying = true;
     this.movingDartsLeft--;
     this.updateMovingTargetsHUD();
+
+    // Si ya no quedan dardos, bloquear inmediatamente para evitar tiros dobles rápidos
+    if (this.movingDartsLeft <= 0) {
+      this.isMovingFinished = true;
+      const container = document.getElementById('moving-target-container');
+      if (container) container.style.pointerEvents = 'none';
+    }
 
     if (window.audio) window.audio.playDartThrow();
 
@@ -1612,6 +1659,12 @@ class MinigameEngine {
 
   evaluateMovingTargetsFinal(isPleno = false) {
     this.stopMovingTargetsAnim();
+    this.isMovingFinished = true;
+    this.isRoundOver = true;
+
+    const container = document.getElementById('moving-target-container');
+    if (container) container.style.pointerEvents = 'none';
+
     const modalBox = document.querySelector('#modal-roulette .modal-content');
     const hintEl = document.getElementById('moving-gesture-hint');
 
@@ -1627,18 +1680,22 @@ class MinigameEngine {
     }
 
     if (mult >= 1.4) {
-      if (window.audio) {
-        window.audio.playWinFanfare();
-        window.audio.playCrowdCheer();
-      }
-      if (typeof confetti === 'function') {
-        confetti({ particleCount: 90, spread: 75, origin: { y: 0.6 } });
+      if (isPleno || this.movingHitsCount >= 3) {
+        this.triggerPerfectCelebration("¡PLENO PERFECTO! 🎯", "¡3 de 3 Blancos Acertados!");
+      } else {
+        if (window.audio) {
+          window.audio.playWinFanfare();
+          window.audio.playCrowdCheer();
+        }
+        if (typeof confetti === 'function') {
+          confetti({ particleCount: 90, spread: 75, origin: { y: 0.6 } });
+        }
       }
       if (hintEl) {
         hintEl.innerHTML = `🏆 ¡PLENO ALQUÍMICO! ${this.movingHitsCount}/3 DIANAS • GANAS ${mult}x 🪙`;
         hintEl.className = 'text-center text-sm font-black text-emerald-400 mt-1 mb-2';
       }
-      if (window.game) window.game.multiplyCoins(mult);
+      if (window.game && !this.isTrainingMode) window.game.multiplyCoins(mult);
     } else {
       if (modalBox) modalBox.classList.add('roulette-lose-glow');
       if (window.audio) window.audio.playDisappointedCrowd();
@@ -1646,7 +1703,7 @@ class MinigameEngine {
         hintEl.textContent = `❌ ${this.movingHitsCount}/3 aciertos. Fin de dardos.`;
         hintEl.className = 'text-center text-xs font-black text-rose-400 mt-1 mb-2';
       }
-      if (window.game) window.game.multiplyCoins(mult);
+      if (window.game && !this.isTrainingMode) window.game.multiplyCoins(mult);
     }
 
     this.finalizeRound(null, modalBox);
@@ -1701,19 +1758,20 @@ class MinigameEngine {
   updateTrainingModeUI() {
     const btnCashout = document.getElementById('btn-cashout-roulette');
     const bannerEl = document.getElementById('minigame-assigned-banner');
+    const tabRoulette = document.getElementById('tab-game-roulette');
+    const tabDiana = document.getElementById('tab-game-diana');
+    const tabMoving = document.getElementById('tab-game-moving');
 
-    if (this.isTrainingMode) {
-      if (btnCashout) {
-        btnCashout.innerHTML = `
-          <i data-lucide="door-open" class="w-4 h-4 text-rose-200"></i>
-          <span>Cobrar y Salir (Modo Entrenamiento)</span>
-        `;
-      }
-      if (bannerEl) {
-        bannerEl.innerHTML = `🎯 ¡Modo Entrenamiento Libre! Practica y gana bonos sin restricciones`;
-        bannerEl.className = 'mb-1 py-1 px-3 rounded-xl text-[11px] font-black bg-gradient-to-r from-emerald-500/20 via-sky-500/20 to-indigo-500/20 text-emerald-300 border border-emerald-500/40 flex items-center justify-center gap-1.5 shadow-sm';
-      }
-    } else {
+    if (this.fromVictory) {
+      // En Modo Historia: no se pueden elegir los minijuegos
+      [tabRoulette, tabDiana, tabMoving].forEach(t => {
+        if (t) {
+          t.style.cursor = 'not-allowed';
+          t.style.pointerEvents = 'none';
+          t.classList.add('opacity-60');
+          t.title = 'En Modo Historia el minijuego se asigna al azar desde la Bolsa Alquímica';
+        }
+      });
       if (btnCashout) {
         btnCashout.innerHTML = `
           <i data-lucide="shield-check" class="w-4 h-4 text-rose-200"></i>
@@ -1721,8 +1779,28 @@ class MinigameEngine {
         `;
       }
       if (bannerEl) {
-        bannerEl.innerHTML = `🎲 ¡Minijuego de Bonificación por Victoria!`;
+        bannerEl.innerHTML = `🎲 ¡Minijuego Asignado desde la Bolsa! (Elección deshabilitada en Historia)`;
         bannerEl.className = 'mb-1 py-1 px-3 rounded-xl text-[11px] font-black bg-slate-800 text-amber-300 border border-amber-500/30 flex items-center justify-center gap-1.5 shadow-sm';
+      }
+    } else {
+      // En Modo Bonus / Entrenamiento libre: se puede elegir libremente pero NO da monedas
+      [tabRoulette, tabDiana, tabMoving].forEach(t => {
+        if (t) {
+          t.style.cursor = 'pointer';
+          t.style.pointerEvents = 'auto';
+          t.classList.remove('opacity-60');
+          t.title = 'Elegir este minijuego';
+        }
+      });
+      if (btnCashout) {
+        btnCashout.innerHTML = `
+          <i data-lucide="door-open" class="w-4 h-4 text-rose-200"></i>
+          <span>Cobrar y Salir (Modo Bonus Libre)</span>
+        `;
+      }
+      if (bannerEl) {
+        bannerEl.innerHTML = `🎯 ¡Modo Bonus Libre! Puedes elegir el minijuego (Sin recompensa de monedas)`;
+        bannerEl.className = 'mb-1 py-1 px-3 rounded-xl text-[11px] font-black bg-gradient-to-r from-emerald-500/20 via-sky-500/20 to-indigo-500/20 text-emerald-300 border border-emerald-500/40 flex items-center justify-center gap-1.5 shadow-sm';
       }
     }
     if (window.lucide && typeof window.lucide.createIcons === 'function') {
