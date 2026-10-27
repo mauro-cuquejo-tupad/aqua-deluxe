@@ -46,10 +46,10 @@
   <link rel="icon" type="image/svg+xml" href="icons/icon.svg">
 
   <!-- Modular Stylesheets -->
-  <link rel="stylesheet" href="css/main.css?v=65">
-  <link rel="stylesheet" href="css/tubes.css?v=65">
-  <link rel="stylesheet" href="css/roulette.css?v=65">
-  <link rel="stylesheet" href="css/accessibility.css?v=65">
+  <link rel="stylesheet" href="css/main.css?v=66">
+  <link rel="stylesheet" href="css/tubes.css?v=66">
+  <link rel="stylesheet" href="css/roulette.css?v=66">
+  <link rel="stylesheet" href="css/accessibility.css?v=66">
 </head>
 <body class="min-h-screen flex flex-col justify-between select-none relative">
 
@@ -196,12 +196,11 @@
         </div>
       </div>
 
-      <!-- Botones de Acción (Deshacer -1 ❤️, Pistas, +Botella, Desafíos badge, Pausa) -->
+      <!-- Botones de Acción (Deshacer, Pistas, +Botella, Desafíos badge, Pausa) -->
       <div class="flex items-center gap-1.5 sm:gap-2">
-        <button id="btn-undo" class="btn-interactive flex items-center gap-1 px-3 py-1.5 bg-slate-800/90 hover:bg-slate-700 active:scale-95 border border-slate-700/90 rounded-xl text-xs font-bold text-slate-200 transition-all disabled:opacity-40 disabled:pointer-events-none" title="Deshacer último movimiento (Cuesta 1 vida ❤️)">
+        <button id="btn-undo" class="btn-interactive flex items-center gap-1 px-3 py-1.5 bg-slate-800/90 hover:bg-slate-700 active:scale-95 border border-slate-700/90 rounded-xl text-xs font-bold text-slate-200 transition-all disabled:opacity-40 disabled:pointer-events-none" title="Deshacer último movimiento">
           <i data-lucide="rotate-ccw" class="w-4 h-4 text-sky-400"></i>
-          <span class="hidden sm:inline">Deshacer (-1 ❤️)</span>
-          <span class="sm:hidden text-[10px] text-rose-300">(-1 ❤️)</span>
+          <span>Deshacer</span>
         </button>
 
         <button id="btn-hint" class="btn-interactive flex items-center gap-1 px-3 py-1.5 bg-amber-500/20 hover:bg-amber-500/30 active:scale-95 border border-amber-500/40 rounded-xl text-xs font-bold text-amber-300 transition-all" title="Pedir una pista">
@@ -2677,19 +2676,19 @@
   <input type="file" id="input-save-file" accept=".json" class="hidden">
 
   <!-- Scripts modulares -->
-  <script src="js/firebase-config.js?v=65"></script>
-  <script src="js/cloud-sync.js?v=65"></script>
-  <script src="js/audio.js?v=65"></script>
-  <script src="js/palette.js?v=65"></script>
-  <script src="js/levels.js?v=65"></script>
-  <script src="js/challenges.js?v=65"></script>
-  <script src="js/honor.js?v=65"></script>
-  <script src="js/state.js?v=65"></script>
-  <script src="js/achievements.js?v=65"></script>
-  <script src="js/leaderboard.js?v=65"></script>
-  <script src="js/roulette.js?v=65"></script>
-  <script src="js/story.js?v=65"></script>
-  <script src="js/game.js?v=65"></script>
+  <script src="js/firebase-config.js?v=66"></script>
+  <script src="js/cloud-sync.js?v=66"></script>
+  <script src="js/audio.js?v=66"></script>
+  <script src="js/palette.js?v=66"></script>
+  <script src="js/levels.js?v=66"></script>
+  <script src="js/challenges.js?v=66"></script>
+  <script src="js/honor.js?v=66"></script>
+  <script src="js/state.js?v=66"></script>
+  <script src="js/achievements.js?v=66"></script>
+  <script src="js/leaderboard.js?v=66"></script>
+  <script src="js/roulette.js?v=66"></script>
+  <script src="js/story.js?v=66"></script>
+  <script src="js/game.js?v=66"></script>
 
   <!-- Registro de Service Worker PWA -->
   <script>

@@ -271,7 +271,15 @@ class AchievementManager {
 
       // Sincronizar en la nube si hay usuario activo
       if (window.cloudSyncManager && window.cloudSyncManager.currentUser) {
-        window.cloudSyncManager.scheduleAutoSave();
+        try {
+          if (typeof window.cloudSyncManager.triggerAutoSave === 'function') {
+            window.cloudSyncManager.triggerAutoSave();
+          } else if (typeof window.cloudSyncManager.scheduleAutoSave === 'function') {
+            window.cloudSyncManager.scheduleAutoSave();
+          }
+        } catch (syncErr) {
+          console.warn('Error al auto-guardar tras logro:', syncErr);
+        }
       }
     }
   }

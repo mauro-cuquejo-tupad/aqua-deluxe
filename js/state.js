@@ -5,7 +5,7 @@
    ========================================================================== */
 
 const STORAGE_KEY = 'aquasort_state_v1';
-const LIFE_REGEN_TIME_MS = 1800000; // 30 minutos por vida
+const LIFE_REGEN_TIME_MS = 600000; // 10 minutos por vida (600.000 ms)
 
 const DEFAULT_STATE = {
   player: {
@@ -813,7 +813,7 @@ class StateManager {
     this.state.dailyReward.totalClaimed = (this.state.dailyReward.totalClaimed || 0) + 1;
     this.state.dailyReward.streak = streak;
 
-    const coinsAwarded = 50;
+    const coinsAwarded = 75;
     this.addCoins(coinsAwarded);
     this.saveState();
 

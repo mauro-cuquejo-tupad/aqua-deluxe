@@ -1862,7 +1862,7 @@ class MinigameEngine {
     }, 4200);
   }
 
-  openModal(coins = 50, fromVictory = false) {
+  openModal(coins = 75, fromVictory = false) {
     this.fromVictory = Boolean(fromVictory);
     this.isTrainingMode = !this.fromVictory;
     if (!this.wheelGroup) this.initDOM();

@@ -504,6 +504,12 @@ class GameController {
     // Mostrar cartel de desafíos al inicio del nivel (los desafíos se presentan en un cartel antes de empezar)
     if (this.levelChallenges && this.levelChallenges.length > 0 && !customLevelData && !this.isHonorMode && !this.isDailyChallenge && !this.isTimeAttack && !this.isCasualSandbox) {
       setTimeout(() => {
+        const isBonusActive = (this.modalRoulette && !this.modalRoulette.classList.contains('hidden')) ||
+                              (window.rouletteEngine && (window.rouletteEngine.isSpinning || window.rouletteEngine.isDartFlying));
+        if (isBonusActive) {
+          this.pendingChallengeIntro = true;
+          return;
+        }
         if (!this.isModalOpen()) {
           this.showChallengeIntroModal();
         }
@@ -2925,90 +2931,101 @@ class GameController {
     this.saveStateForUndo();
     this.isPouringAnimation = true;
 
-    if (window.achievementManager) {
-      window.achievementManager.increment('chemical_master_10', 1);
-    }
+    try {
+      if (window.achievementManager) {
+        try {
+          window.achievementManager.increment('chemical_master_10', 1);
+        } catch (achErr) {
+          console.warn('Error al incrementar logro de reacción química:', achErr);
+        }
+      }
 
-    const fromTube = this.tubes[fromIdx];
-    const toTube = this.tubes[toIdx];
+      const fromTube = this.tubes[fromIdx];
+      const toTube = this.tubes[toIdx];
 
-    const allTubeEls = this.tubesGrid.querySelectorAll('.test-tube');
-    const fromEl = allTubeEls[fromIdx];
-    const toEl = allTubeEls[toIdx];
+      const allTubeEls = this.tubesGrid.querySelectorAll('.test-tube');
+      const fromEl = allTubeEls[fromIdx];
+      const toEl = allTubeEls[toIdx];
 
-    // Reproducir audio de reacción química
-    if (window.audio && typeof window.audio.playChemicalReactionSound === 'function') {
-      window.audio.playChemicalReactionSound();
-    } else if (window.audio) {
-      window.audio.playFailSound();
-    }
+      // Reproducir audio de reacción química
+      if (window.audio && typeof window.audio.playChemicalReactionSound === 'function') {
+        window.audio.playChemicalReactionSound();
+      } else if (window.audio) {
+        window.audio.playFailSound();
+      }
 
-    // Efectos visuales de sobrecarga y ebullición en DOM:
-    if (toEl) {
-      toEl.classList.add('tube-overload-flash');
-      setTimeout(() => toEl.classList.remove('tube-overload-flash'), 900);
-    }
-    if (fromEl) {
-      fromEl.classList.add('tube-boil-overflow');
-      setTimeout(() => fromEl.classList.remove('tube-boil-overflow'), 900);
-    }
+      // Efectos visuales de sobrecarga y ebullición en DOM:
+      if (toEl) {
+        toEl.classList.add('tube-overload-flash');
+        setTimeout(() => toEl.classList.remove('tube-overload-flash'), 900);
+      }
+      if (fromEl) {
+        fromEl.classList.add('tube-boil-overflow');
+        setTimeout(() => fromEl.classList.remove('tube-boil-overflow'), 900);
+      }
 
-    // Vaciado del tubo y dispersión aleatoria en tubos incompletos
-    const spilled = [...fromTube.liquids];
-    fromTube.liquids = [];
+      // Vaciado del tubo y dispersión aleatoria en tubos incompletos
+      const spilled = [...fromTube.liquids];
+      fromTube.liquids = [];
 
-    // Efectos de salpicaduras de líquido desparramándose por la pantalla y banner cerca del tubo
-    if (toEl) {
-      const rect = toEl.getBoundingClientRect();
-      const originX = rect.left + rect.width / 2;
-      const originY = rect.top + rect.height / 2;
-      this.triggerScreenLiquidSplatter(originX, originY, spilled.map(s => s.color));
-      this.showChemicalReactionBannerNear(toEl);
-    } else {
-      this.showChemicalReactionBannerNear(null);
-    }
-
-    // Distribuir cada unidad en los demás tubos que NO estén completos y tengan espacio libre
-    for (let i = 0; i < spilled.length; i++) {
-      const item = spilled[i];
-      item.isMystery = false; // Se revela por la reacción química
-
-      const eligibleTubes = this.tubes.filter((t, idx) => {
-        if (idx === fromIdx) return false;
-        if (t.isLocked) return false;
-        if (t.isNarrow) return false;
-        if (t.isGlued) return false; // NUNCA esparcir en frascos inamovibles (roca)
-        if (this.isTubeComplete(t)) return false; // NUNCA alterar tubos completos
-        return t.liquids.length < t.capacity;
-      });
-
-      if (eligibleTubes.length > 0) {
-        const dest = eligibleTubes[Math.floor(Math.random() * eligibleTubes.length)];
-        dest.liquids.push(item);
+      // Efectos de salpicaduras de líquido desparramándose por la pantalla y banner cerca del tubo
+      if (toEl) {
+        const rect = toEl.getBoundingClientRect();
+        const originX = rect.left + rect.width / 2;
+        const originY = rect.top + rect.height / 2;
+        this.triggerScreenLiquidSplatter(originX, originY, spilled.map(s => s.color));
+        this.showChemicalReactionBannerNear(toEl);
       } else {
-        // Si ningún otro frasco tiene lugar, regresa al frasco origen
-        fromTube.liquids.push(item);
+        this.showChemicalReactionBannerNear(null);
       }
-    }
 
-    // Incrementar movimientos (penalización que retrasa y afecta el récord y monedas)
-    this.moves++;
-    if (window.stateManager) {
-      window.stateManager.onMoveMade();
-    }
-    this.updateMovesUI();
+      // Distribuir cada unidad en los demás tubos que NO estén completos, tengan espacio libre
+      // y NUNCA en frascos inamovibles (roca) ni frascos de afinidad con color incompatible
+      for (let i = 0; i < spilled.length; i++) {
+        const item = spilled[i];
+        item.isMystery = false; // Se revela por la reacción química
 
-    setTimeout(() => {
-      this.selectedTubeIndex = null;
-      this.clearHintHighlight();
-      this.isPouringAnimation = false;
-      this.renderTubes();
-      this.updateButtonsUI();
-      this.checkVictory();
-      if (this.isTimeAttack) {
-        this.checkTimeAttackDeadlock();
+        const eligibleTubes = this.tubes.filter((t, idx) => {
+          if (idx === fromIdx) return false;
+          if (t.isLocked) return false;
+          if (t.isNarrow) return false;
+          if (t.isGlued || t.isImmovable || t.immovable) return false; // NUNCA esparcir en frascos inamovibles (roca)
+          if (t.isBroken) return false;
+          if (t.isAffinity && (!t.allowedColors || !t.allowedColors.includes(item.color))) return false;
+          if (this.isTubeComplete(t)) return false; // NUNCA alterar tubos completos
+          return t.liquids.length < t.capacity;
+        });
+
+        if (eligibleTubes.length > 0) {
+          const dest = eligibleTubes[Math.floor(Math.random() * eligibleTubes.length)];
+          dest.liquids.push(item);
+        } else {
+          // Si ningún otro frasco tiene lugar disponible, regresa al frasco origen
+          fromTube.liquids.push(item);
+        }
       }
-    }, 850);
+
+      // Incrementar movimientos (penalización que retrasa y afecta el récord y monedas)
+      this.moves++;
+      if (window.stateManager) {
+        window.stateManager.onMoveMade();
+      }
+      this.updateMovesUI();
+    } catch (err) {
+      console.error('Error durante la reacción química inesperada del tubo 1x1:', err);
+    } finally {
+      setTimeout(() => {
+        this.selectedTubeIndex = null;
+        this.clearHintHighlight();
+        this.isPouringAnimation = false;
+        this.renderTubes();
+        this.updateButtonsUI();
+        this.checkVictory();
+        if (this.isTimeAttack) {
+          this.checkTimeAttackDeadlock();
+        }
+      }, 850);
+    }
   }
 
   // --- EFECTO DE LÍQUIDO DESPARRAMÁNDOSE POR LA PANTALLA ---
@@ -3278,13 +3295,13 @@ class GameController {
 
   showVictoryModal(elapsedSecs, combo, stars, recordResult, scoreData = null) {
     try {
-      // Reajuste de economía alquímica: recompensas sostenibles (2 a 4 monedas base)
-      let baseCoins = 2;
-      if (this.moves <= this.levelData.optimalMoves) baseCoins = 4;
-      else if (this.moves <= this.levelData.optimalMoves * 1.5) baseCoins = 3;
+      // Reajuste de economía alquímica aumentado x1.5 (o próximo entero): 3 a 6 monedas base
+      let baseCoins = 3;
+      if (this.moves <= this.levelData.optimalMoves) baseCoins = 6;
+      else if (this.moves <= this.levelData.optimalMoves * 1.5) baseCoins = 5;
 
-      // Bonificación de combo para monedas si combo >= 2
-      let comboCoins = combo >= 2 ? (combo >= 4 ? 2 : 1) : 0;
+      // Bonificación de combo para monedas si combo >= 2 (aumentado x1.5)
+      let comboCoins = combo >= 2 ? (combo >= 4 ? 3 : 2) : 0;
       let totalEarned = baseCoins + comboCoins;
 
       // Modos no-historia (casual infinito, taller/custom, etc.) NO otorgan monedas
@@ -3911,6 +3928,15 @@ class GameController {
     if (this.modalRoulette) {
       this.hideModal(this.modalRoulette);
     }
+    // Si había un cartel de desafíos pausado mientras corría el bonus, mostrarlo al cerrar
+    if (this.pendingChallengeIntro) {
+      this.pendingChallengeIntro = false;
+      setTimeout(() => {
+        if (!this.isModalOpen() && this.levelChallenges && this.levelChallenges.length > 0) {
+          this.showChallengeIntroModal();
+        }
+      }, 400);
+    }
     if (window.rouletteEngine && window.rouletteEngine.fromVictory) {
       window.rouletteEngine.fromVictory = false;
       if (this.currentLevel >= 100) {
@@ -3939,18 +3965,6 @@ class GameController {
     if (this.isHonorMode) return;
     if (this.moveHistory.length === 0 || this.isPouringAnimation) return;
 
-    // Deshacer cuesta 1 vida
-    if (window.stateManager) {
-      const currentLives = window.stateManager.getLives();
-      if (currentLives <= 0) {
-        this.handleOutOfLives('undo');
-        return;
-      }
-      window.stateManager.consumeLife();
-      this.updateLivesHUD();
-      this.showToast('↩️ Movimiento deshecho (-1 ❤️)', 'warning');
-    }
-
     this.undoCountInLevel = (this.undoCountInLevel || 0) + 1;
     const prev = this.moveHistory.pop();
     this.tubes = prev.tubes;
@@ -3963,11 +3977,7 @@ class GameController {
     this.updateMovesUI();
     this.updateButtonsUI();
     this.updateChallengesHUD();
-
-    // Si al deshacer se perdió la última vida, no se le debe permitir continuar el nivel
-    if (window.stateManager && window.stateManager.getLives() === 0) {
-      this.handleOutOfLives('zero_lives');
-    }
+    this.showToast('↩️ Movimiento deshecho', 'info');
   }
 
   addAuxiliaryTube() {
@@ -4247,7 +4257,7 @@ class GameController {
               Comprar 1 Vida (+1 ❤️)
               <span class="text-[10px] px-2 py-0.5 rounded-full bg-rose-500/20 text-rose-300 font-mono">${lives}/${maxLives} Vidas</span>
             </h4>
-            <p class="text-xs text-slate-400">Recupera 1 vida instantáneamente para reintentar niveles sin esperar los 30 minutos.</p>
+            <p class="text-xs text-slate-400">Recupera 1 vida instantáneamente para reintentar niveles sin esperar los 10 minutos.</p>
           </div>
         </div>
         <div>
@@ -5604,7 +5614,7 @@ class GameController {
       this.bindTapOrClick(btnVicRoulette, () => {
         this.hideModal(this.modalVictory);
         if (window.rouletteEngine) {
-          window.rouletteEngine.openModal(50, true);
+          window.rouletteEngine.openModal(75, true);
         } else {
           this.showModal(this.modalRoulette);
         }
@@ -5960,6 +5970,27 @@ class GameController {
         }
       }
     });
+
+    // Pausa automática y detención del tiempo cuando la aplicación pasa a segundo plano
+    document.addEventListener('visibilitychange', () => {
+      if (document.hidden) {
+        // La app pasó a segundo plano o se bloqueó la pantalla: pausar temporizadores
+        if (window.leaderboardManager) {
+          window.leaderboardManager.pauseTimer();
+        }
+        // Si hay una partida activa (sin modal de victoria ni pantalla de carga), pausar automáticamente
+        const isGamePlaying = this.levelData && !this.isModalOpen() && (!this.modalVictory || this.modalVictory.classList.contains('hidden'));
+        if (isGamePlaying) {
+          this.openPauseModal();
+        }
+      } else {
+        // La app volvió a primer plano:
+        // Si NO está abierto ningún modal (incluido modalPause), reanudar tiempo
+        if (!this.isModalOpen() && window.leaderboardManager) {
+          window.leaderboardManager.resumeTimer('lbl-timer');
+        }
+      }
+    });
   }
 
   // --- GESTIÓN DEL SISTEMA DE VIDAS Y REGENERACIÓN EN TIEMPO REAL ---
@@ -6049,6 +6080,15 @@ class GameController {
   // --- MODAL INTRODUCTORIO DE DESAFÍOS (DESAFÍOS AL INICIO DEL NIVEL) ---
   showChallengeIntroModal() {
     if (!this.modalChallengeIntro) return;
+
+    // Si el bonus (ruleta / diana) está activo o visible, pausar el cartel de desafíos hasta que finalice
+    const isBonusActive = (this.modalRoulette && !this.modalRoulette.classList.contains('hidden')) ||
+                          (window.rouletteEngine && (window.rouletteEngine.isSpinning || window.rouletteEngine.isDartFlying));
+    if (isBonusActive) {
+      this.pendingChallengeIntro = true;
+      return;
+    }
+
     if (window.leaderboardManager) {
       window.leaderboardManager.pauseTimer();
     }
@@ -8282,7 +8322,7 @@ class GameController {
             </div>
             <div class="text-xs font-bold text-amber-100 flex items-center gap-1">
               <span>Entraste hoy • Reclama</span>
-              <span class="text-amber-300 font-black">+50 🪙</span>
+              <span class="text-amber-300 font-black">+75 🪙</span>
             </div>
           </div>
         </div>
@@ -8316,7 +8356,7 @@ class GameController {
         </div>
         <div class="flex items-center">
           <span class="px-2.5 py-1 bg-slate-800/90 text-slate-400 hover:text-slate-200 border border-slate-700/60 font-semibold text-[11px] rounded-xl transition">
-            +50 🪙 cada 24hs
+            +75 🪙 cada 24hs
           </span>
         </div>
       `;
@@ -8354,7 +8394,7 @@ class GameController {
             ${autoPrompt ? '¡Premio por entrar hoy al juego!' : 'Tu cofre diario de hoy está listo'}
           </h3>
           <p class="text-xs text-slate-300 max-w-sm mx-auto leading-relaxed">
-            Cada día al entrar a AquaSort te recompensamos con monedas mágicas. Ábrelo ahora para sumar <strong class="text-amber-300 font-bold">50 monedas</strong> a tu reserva.
+            Cada día al entrar a AquaSort te recompensamos con monedas mágicas. Ábrelo ahora para sumar <strong class="text-amber-300 font-bold">75 monedas</strong> a tu reserva.
           </p>
         </div>
 
@@ -8362,7 +8402,7 @@ class GameController {
         <div class="p-3.5 rounded-2xl bg-gradient-to-r from-amber-500/15 via-yellow-500/25 to-amber-500/15 border border-amber-400/50 flex items-center justify-between shadow-inner">
           <div class="text-left">
             <span class="text-[11px] uppercase tracking-wider text-slate-400 font-bold block">Recompensa Diaria</span>
-            <span class="text-xl font-black text-amber-300 font-mono">+50 Monedas</span>
+            <span class="text-xl font-black text-amber-300 font-mono">+75 Monedas</span>
           </div>
           <div class="text-3xl animate-bounce">🪙</div>
         </div>
@@ -8374,7 +8414,7 @@ class GameController {
         <div class="flex flex-col gap-2 pt-1">
           <button id="btn-claim-daily-reward" class="btn-interactive w-full py-3.5 bg-gradient-to-r from-amber-500 via-yellow-400 to-amber-500 hover:from-amber-400 hover:to-yellow-300 text-slate-950 font-black rounded-2xl shadow-lg shadow-amber-500/30 flex items-center justify-center gap-2 text-sm transition-all transform active:scale-95">
             <span class="text-lg">🎁</span>
-            <span>¡Abrir Cofre (+50 🪙)!</span>
+            <span>¡Abrir Cofre (+75 🪙)!</span>
           </button>
           <button id="btn-dismiss-daily-modal" class="py-2 text-xs text-slate-400 hover:text-slate-200 transition">
             Guardar para más tarde
@@ -8401,7 +8441,7 @@ class GameController {
             <span>Cofre reclamado por hoy</span>
           </div>
           <h3 class="text-base sm:text-lg font-black text-white">
-            ¡Ya reclamaste tus 50 monedas de hoy!
+            ¡Ya reclamaste tus 75 monedas de hoy!
           </h3>
           <p class="text-xs text-slate-300 max-w-sm mx-auto leading-relaxed">
             El cofre se renueva automáticamente cada 24 horas a partir de las <strong>12 de la noche (00:00 hs)</strong>.
