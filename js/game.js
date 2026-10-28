@@ -441,14 +441,17 @@ class GameController {
       if (customLevelData.isCasualSandbox || lvl === 'casual_sandbox') {
         this.isCasualSandbox = true;
         this.customLevelTesting = null;
+        this.isCommunityPlay = false;
         this.initialSandboxTubes = JSON.parse(JSON.stringify(customLevelData.tubes));
       } else {
         this.isCasualSandbox = false;
         this.customLevelTesting = customLevelData;
+        this.isCommunityPlay = !!customLevelData.isCommunityPlay;
       }
     } else {
       this.customLevelTesting = null;
       this.isCasualSandbox = false;
+      this.isCommunityPlay = false;
       this.levelData = window.LevelGenerator.generate(this.currentLevel, this.seedVariation);
       this.tubes = this.levelData.tubes;
     }
@@ -3369,14 +3372,8 @@ class GameController {
   }
 
   triggerVictorySequence() {
-    // Si estamos en modo de juego o prueba de nivel personalizado
-    if (this.customLevelTesting) {
-      if (this.customLevelTesting.isCommunityPlay) {
-        if (window.audio) window.audio.playWinFanfare();
-        alert(`¡Felicitaciones! Has completado el nivel de la comunidad '${this.customLevelTesting.name}' en ${this.moves} movimientos.`);
-        this.openCommunityLevelsModal();
-        return;
-      }
+    // Si estamos en modo de prueba del editor manual (para validar y publicar)
+    if (this.customLevelTesting && !this.customLevelTesting.isCommunityPlay) {
       this.customLevelTesting.hasBeenPassed = true;
       this.editorLevel.hasBeenPassed = true;
       if (window.audio) window.audio.playWinFanfare();
@@ -3435,7 +3432,7 @@ class GameController {
     // Guardar récord en el gestor de clasificaciones y persistir progreso (incluso si se usaron pistas)
     let recordResult = null;
     const usedHints = (this.hintsUsedInLevel > 0);
-    if (window.leaderboardManager) {
+    if (window.leaderboardManager && !this.customLevelTesting) {
       recordResult = window.leaderboardManager.recordLevelCompletion(
         this.currentLevel,
         elapsedSecs,
@@ -3665,6 +3662,28 @@ class GameController {
             window.achievementManager.check('daily_streak_7', totalDaily);
           }
         }
+      } else if (this.isCommunityPlay || (this.customLevelTesting && this.customLevelTesting.isCommunityPlay)) {
+        if (vicTitle) {
+          vicTitle.innerHTML = '🧪 ¡NIVEL DE LA COMUNIDAD RESUELTO!';
+          vicTitle.className = 'text-2xl font-black text-transparent bg-clip-text bg-gradient-to-r from-purple-300 via-sky-200 to-indigo-300 mb-1';
+        }
+        if (vicSubtitle) {
+          vicSubtitle.innerHTML = `✨ Creación de ${this.customLevelTesting?.creator || 'la Comunidad'} completada en ${this.moves} movimientos.`;
+          vicSubtitle.className = 'text-xs text-purple-300 font-bold mb-3';
+        }
+        if (completionBadge) completionBadge.classList.add('hidden');
+        if (btnVicNext) {
+          btnVicNext.className = 'btn-interactive w-full py-3 bg-gradient-to-r from-purple-600 to-indigo-600 hover:from-purple-500 hover:to-indigo-500 text-white font-black rounded-2xl transition-all flex items-center justify-center gap-2 shadow-md';
+          btnVicNext.innerHTML = '<span>Volver a la Comunidad</span><i data-lucide="sparkles" class="w-4 h-4"></i>';
+        }
+
+        // Ocultar ruleta de campaña
+        const btnVicRoulette = document.getElementById('btn-vic-roulette');
+        if (btnVicRoulette) btnVicRoulette.classList.add('hidden');
+
+        // Asegurar 100% que la opción de publicar no aparece (ya está publicado)
+        const sandboxPublishCard = document.getElementById('vic-sandbox-publish-card');
+        if (sandboxPublishCard) sandboxPublishCard.classList.add('hidden');
       } else if (this.isCasualSandbox) {
         if (vicTitle) {
           vicTitle.innerHTML = '🎲 ¡NIVEL CASUAL RESUELTO!';
@@ -4835,12 +4854,17 @@ class GameController {
     const desc = document.getElementById('exit-mode-confirm-desc');
     if (desc) {
       let modeName = 'la partida en curso';
-      if (this.isTimeAttack) modeName = 'el Modo Contrarreloj';
-      else if (this.isCasualSandbox) modeName = 'el Modo Casual';
-      else if (this.isDailyChallenge) modeName = 'el Desafío Diario';
-      else if (this.isHonorMode) modeName = 'el Desafío de Honor';
-      else modeName = `el Nivel ${this.currentLevel}`;
-      desc.textContent = `Se cerrará ${modeName}. Si vuelves a iniciar este modo, deberás empezar de cero.`;
+      if (this.isCommunityPlay) {
+        modeName = `el nivel de la comunidad '${this.customLevelTesting?.name || 'Personalizado'}'`;
+        desc.textContent = `Se cerrará ${modeName}. ¿Deseas volver a la Biblioteca de Niveles de la Comunidad?`;
+      } else {
+        if (this.isTimeAttack) modeName = 'el Modo Contrarreloj';
+        else if (this.isCasualSandbox) modeName = 'el Modo Casual';
+        else if (this.isDailyChallenge) modeName = 'el Desafío Diario';
+        else if (this.isHonorMode) modeName = 'el Desafío de Honor';
+        else modeName = `el Nivel ${this.currentLevel}`;
+        desc.textContent = `Se cerrará ${modeName}. Si vuelves a iniciar este modo, deberás empezar de cero.`;
+      }
     }
     this.showModal(this.modalExitModeConfirm);
     if (window.lucide) lucide.createIcons();
@@ -4848,6 +4872,12 @@ class GameController {
 
   confirmExitCurrentMode() {
     this.hideModal(this.modalExitModeConfirm);
+    if (this.isCommunityPlay || this.pendingExitDestination === 'community') {
+      this.isCommunityPlay = false;
+      this.customLevelTesting = null;
+      this.openCommunityLevelsModal();
+      return;
+    }
     // Cerrar y resetear el modo a cero
     if (this.isTimeAttack) {
       this.endTimeAttack('exit');
@@ -6018,7 +6048,10 @@ class GameController {
     if (btnVicReplay) {
       this.bindTapOrClick(btnVicReplay, () => {
         this.hideModal(this.modalVictory);
-        if (this.isDailyChallenge) {
+        if (this.isCommunityPlay && this.customLevelTesting) {
+          const replayData = JSON.parse(JSON.stringify(this.customLevelTesting));
+          this.loadLevel(1, 0, replayData);
+        } else if (this.isDailyChallenge) {
           this.launchDailyChallenge();
         } else if (this.isCasualSandbox && this.casualSandboxConfig) {
           const data = window.LevelGenerator.generateCasualSandbox(this.casualSandboxConfig);
@@ -6034,7 +6067,11 @@ class GameController {
     if (btnVicNext) {
       this.bindTapOrClick(btnVicNext, () => {
         this.hideModal(this.modalVictory);
-        if (this.isCasualSandbox) {
+        if (this.isCommunityPlay || (this.customLevelTesting && this.customLevelTesting.isCommunityPlay)) {
+          this.isCommunityPlay = false;
+          this.customLevelTesting = null;
+          this.openCommunityLevelsModal();
+        } else if (this.isCasualSandbox) {
           this.nextCasualSandboxLevel();
         } else if (this.isDailyChallenge) {
           this.showLeaderboardModal();
@@ -6371,7 +6408,7 @@ class GameController {
     const btnPauseExitHome = document.getElementById('btn-pause-exit-home');
     if (btnPauseExitHome) {
       this.bindTapOrClick(btnPauseExitHome, () => {
-        this.promptExitCurrentMode('home');
+        this.promptExitCurrentMode(this.isCommunityPlay ? 'community' : 'home');
       });
     }
     this.setupBackdropClose(this.modalPause, () => this.closePauseModal());
@@ -6582,8 +6619,32 @@ class GameController {
     }
     this.updateCoinsUI();
     const pauseInfo = document.getElementById('pause-level-info');
-    if (pauseInfo) {
-      pauseInfo.textContent = `Nivel ${this.currentLevel}`;
+    const btnExitHome = document.getElementById('btn-pause-exit-home');
+    const btnExitMap = document.getElementById('btn-pause-exit-map');
+    const btnRestart = document.getElementById('btn-pause-restart');
+
+    if (this.isCommunityPlay) {
+      if (pauseInfo) pauseInfo.textContent = `🧪 Comunidad: ${this.customLevelTesting?.name || 'Nivel'}`;
+      if (btnExitHome) {
+        btnExitHome.innerHTML = '<i data-lucide="sparkles" class="w-4 h-4 text-purple-400"></i><span>Volver a Niveles de la Comunidad</span>';
+      }
+      if (btnExitMap) {
+        btnExitMap.classList.add('hidden');
+      }
+      if (btnRestart) {
+        btnRestart.innerHTML = '<i data-lucide="refresh-cw" class="w-4 h-4 text-purple-400"></i><span>Reiniciar Nivel</span>';
+      }
+    } else {
+      if (pauseInfo) pauseInfo.textContent = `Nivel ${this.currentLevel}`;
+      if (btnExitHome) {
+        btnExitHome.innerHTML = '<i data-lucide="home" class="w-4 h-4 text-amber-400"></i><span>Salir al Menú Principal</span>';
+      }
+      if (btnExitMap) {
+        btnExitMap.classList.remove('hidden');
+      }
+      if (btnRestart) {
+        btnRestart.innerHTML = '<i data-lucide="refresh-cw" class="w-4 h-4 text-rose-400"></i><span>Reiniciar Nivel (-1 ❤️)</span>';
+      }
     }
     const list = document.getElementById('pause-challenges-list');
     if (list) {
@@ -6761,6 +6822,12 @@ class GameController {
 
   // --- MODAL DE CONFIRMACIÓN DE REINICIO CON SEED REROLL Y CONSUMO DE VIDA ---
   openRestartConfirmModal() {
+    if (this.isCommunityPlay && this.customLevelTesting) {
+      const replayData = JSON.parse(JSON.stringify(this.customLevelTesting));
+      this.loadLevel(1, 0, replayData);
+      if (window.audio) window.audio.playSelect();
+      return;
+    }
     if (this.isTimeAttack) {
       this.startTimeAttack();
       if (window.audio) window.audio.playSelect();
@@ -8030,8 +8097,11 @@ class GameController {
     if (!found) return;
 
     this.closeCommunityLevelsModal();
-    this.closeExtrasModal();
-    if (this.modalEditor) this.closeEditorModal();
+    // Ocultar modales sin abrir la pantalla de inicio (Home)
+    this.hideModal(this.modalExtras);
+    if (this.modalHome) this.hideModal(this.modalHome);
+    if (this.modalEditor) this.hideModal(this.modalEditor);
+    if (this.modalPause) this.hideModal(this.modalPause);
 
     const customData = {
       level: 999,
@@ -8040,8 +8110,11 @@ class GameController {
       optimalMoves: found.moves || 15,
       mechanicTag: `Comunidad • ${found.creator}`,
       name: found.name,
-      creator: found.creator
+      creator: found.creator,
+      id: found.id
     };
+    this.isCommunityPlay = true;
+    this.customLevelTesting = customData;
     this.loadLevel(1, 0, customData);
   }
 
