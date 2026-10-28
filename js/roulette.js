@@ -68,6 +68,8 @@ class MinigameEngine {
     this.slingshotBandRight = null;
     this.slingshotTrajectory = null;
     this.trajectoryAimDot = null;
+    this._domInitialized = false;
+    this.openTimestamp = 0;
 
     if (document.readyState === 'loading') {
       document.addEventListener('DOMContentLoaded', () => this.initDOM());
@@ -77,6 +79,8 @@ class MinigameEngine {
   }
 
   initDOM() {
+    if (this._domInitialized) return;
+    this._domInitialized = true;
     this.wheelContainer = document.getElementById('roulette-view');
     this.dianaContainer = document.getElementById('diana-view');
     this.movingContainer = document.getElementById('moving-targets-view');
@@ -585,6 +589,9 @@ class MinigameEngine {
         if (e.target.closest('button') || e.target.closest('#alchemy-cards-drawer') || e.target.closest('#tab-minigame-selector')) {
           return;
         }
+        if (this.openTimestamp && (Date.now() - this.openTimestamp < 400)) {
+          return;
+        }
         if (this.timingActive && !this.isSpinning) {
           this.onSpinButtonClicked();
         }
@@ -860,6 +867,7 @@ class MinigameEngine {
     if (!container) return;
 
     const onPointerDown = (e) => {
+      if (this.openTimestamp && (Date.now() - this.openTimestamp < 400)) return;
       if (this.isDartFlying || this.isDianaFinished || this.isRoundOver) return;
       if (e.target.closest('button') || e.target.closest('#alchemy-cards-drawer') || e.target.closest('#tab-minigame-selector')) {
         return;
@@ -1561,6 +1569,7 @@ class MinigameEngine {
     };
 
     container.addEventListener('pointerdown', (e) => {
+      if (this.openTimestamp && (Date.now() - this.openTimestamp < 400)) return;
       if (this.isDartFlying || this.movingDartsLeft <= 0 || this.isMovingFinished || this.isRoundOver) return;
       if (e.target.closest('button')) return;
       if (window.audio) window.audio.init();
@@ -1916,53 +1925,62 @@ class MinigameEngine {
       return;
     }
 
-    // Actualizar botón para indicar avance directo al siguiente nivel
+    // Modo Victoria: Detener animaciones y preparar el botón de confirmación manual
+    this.roundCompleted = true;
+    this.stopTimingBar();
+    this.stopMovingTargetsAnim();
+    this.activeCard = null;
+    this.calmAtmosphereBenefit = null;
+    this.extraShotAvailable = false;
+
+    // Actualizar botón para confirmar la aceptación del premio y avance al siguiente nivel
     const btnCashout = document.getElementById('btn-cashout-roulette');
     if (btnCashout) {
       const nextLvlNum = window.game ? Math.min(window.game.maxLevels || 100, (window.game.currentLevel || 1) + 1) : '';
+      btnCashout.className = 'btn-interactive w-full py-3.5 bg-gradient-to-r from-emerald-500 via-teal-400 to-emerald-500 hover:from-emerald-400 hover:to-teal-300 active:scale-95 text-slate-950 font-black rounded-2xl shadow-xl shadow-emerald-500/40 text-sm tracking-wide transition-all flex items-center justify-center gap-2 cursor-pointer animate-pulse';
       btnCashout.innerHTML = `
-        <i data-lucide="arrow-right" class="w-4 h-4 text-emerald-200"></i>
-        <span>Avanzar al Siguiente Nivel${nextLvlNum ? ' (Nivel ' + nextLvlNum + ')' : ''}</span>
+        <i data-lucide="check-circle-2" class="w-5 h-5 text-slate-950"></i>
+        <span>Aceptar y Avanzar al Siguiente Nivel${nextLvlNum ? ' (Nivel ' + nextLvlNum + ')' : ''}</span>
+        <i data-lucide="arrow-right" class="w-5 h-5 text-slate-950"></i>
       `;
       if (window.lucide && typeof window.lucide.createIcons === 'function') {
         window.lucide.createIcons();
       }
     }
 
-    // Modo Victoria: Aumento de tiempo de visualización para ver claramente el premio ganado (~4.2s)
-    this.finalizeTimer = setTimeout(() => {
-      this.finalizeTimer = null;
-      const modal = document.getElementById('modal-roulette');
-      if (modal) {
-        if (window.game && typeof window.game.hideModal === 'function') {
-          window.game.hideModal(modal);
-        } else {
-          modal.classList.add('hidden');
-          modal.style.setProperty('display', 'none', 'important');
-        }
-      }
-
-      if (modalBox) modalBox.classList.remove('roulette-lose-glow');
-      if (winningSlice) winningSlice.classList.remove('winner-slice');
-      if (this.btnSpin) this.btnSpin.disabled = false;
-
-      this.stopTimingBar();
-      this.stopMovingTargetsAnim();
-      this.activeCard = null;
-      this.calmAtmosphereBenefit = null;
-      this.extraShotAvailable = false;
-
-      if (window.game) {
-        window.game.onRouletteClosed();
-      }
-    }, 4200);
+    // Modo Victoria: Sin temporizador de cierre automático.
+    // La pantalla de bonus permanece abierta para que el usuario disfrute y verifique sus ganancias,
+    // y solo avanzará al presionar el botón de Aceptar o Cancelar.
   }
 
   openModal(coins = 75, fromVictory = false) {
     this.cancelFinalizeTimer();
     this.fromVictory = Boolean(fromVictory);
     this.isTrainingMode = !this.fromVictory;
+    this.roundCompleted = false;
+    this.openTimestamp = Date.now();
     if (!this.wheelGroup) this.initDOM();
+
+    // Configurar estado inicial del botón de acción inferior
+    const btnCashout = document.getElementById('btn-cashout-roulette');
+    if (btnCashout) {
+      if (this.fromVictory) {
+        btnCashout.className = 'btn-interactive w-full py-2.5 bg-gradient-to-r from-slate-800 to-slate-900 hover:from-slate-700 hover:to-slate-800 active:scale-95 text-slate-300 hover:text-white font-bold rounded-2xl border border-slate-700 shadow-md text-xs sm:text-sm tracking-wide transition-all flex items-center justify-center gap-2 cursor-pointer';
+        btnCashout.innerHTML = `
+          <i data-lucide="fast-forward" class="w-4 h-4 text-slate-400"></i>
+          <span>Omitir Bonus y Continuar</span>
+        `;
+      } else {
+        btnCashout.className = 'btn-interactive w-full py-2.5 bg-gradient-to-r from-rose-600 to-red-600 hover:from-rose-500 hover:to-red-500 active:scale-95 text-white font-bold rounded-2xl shadow-md text-xs sm:text-sm tracking-wide transition-all uppercase flex items-center justify-center gap-2 cursor-pointer';
+        btnCashout.innerHTML = `
+          <i data-lucide="x" class="w-4 h-4 text-rose-200"></i>
+          <span>Salir al Menú Principal</span>
+        `;
+      }
+      if (window.lucide && typeof window.lucide.createIcons === 'function') {
+        window.lucide.createIcons();
+      }
+    }
     const modal = document.getElementById('modal-roulette');
     if (modal) {
       if (window.game && typeof window.game.showModal === 'function') {

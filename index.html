@@ -46,10 +46,10 @@
   <link rel="icon" type="image/svg+xml" href="icons/icon.svg">
 
   <!-- Modular Stylesheets -->
-  <link rel="stylesheet" href="css/main.css?v=77">
-  <link rel="stylesheet" href="css/tubes.css?v=77">
-  <link rel="stylesheet" href="css/roulette.css?v=77">
-  <link rel="stylesheet" href="css/accessibility.css?v=77">
+  <link rel="stylesheet" href="css/main.css?v=78">
+  <link rel="stylesheet" href="css/tubes.css?v=78">
+  <link rel="stylesheet" href="css/roulette.css?v=78">
+  <link rel="stylesheet" href="css/accessibility.css?v=78">
 </head>
 <body class="min-h-screen flex flex-col justify-between select-none relative">
 
@@ -691,7 +691,7 @@
       <div class="flex flex-col gap-2">
         <button id="btn-vic-roulette" class="btn-interactive w-full py-3.5 bg-gradient-to-r from-amber-500 to-orange-500 hover:from-amber-400 hover:to-orange-400 text-slate-950 font-black rounded-2xl shadow-lg shadow-orange-500/30 flex items-center justify-center gap-2 transition-all">
           <i data-lucide="sparkles" class="w-5 h-5"></i>
-          <span>Multiplicar en Minijuego de Fortuna (🎯 / 🎡)</span>
+          <span>Jugar Minijuego de Bonus (🎯 / 🎡)</span>
         </button>
 
         <div class="grid grid-cols-2 gap-2">
@@ -1042,10 +1042,10 @@
         </div>
       </div>
 
-      <!-- BOTÓN SECUNDARIO DE RETIRADA SEGURA (VISIBLE EN AMBOS MODOS) -->
-      <button id="btn-cashout-roulette" class="w-full py-2.5 bg-gradient-to-r from-rose-600 to-red-600 hover:from-rose-500 hover:to-red-500 active:scale-95 text-white font-bold rounded-2xl shadow-md text-xs sm:text-sm tracking-wide transition-all uppercase flex items-center justify-center gap-2">
-        <i data-lucide="shield-check" class="w-4 h-4 text-rose-200"></i>
-        <span>Cobrar Seguro y Continuar (Sin Riesgo)</span>
+      <!-- BOTÓN SECUNDARIO DE ACCIÓN / RETIRADA / OMISIÓN (VISIBLE EN AMBOS MODOS) -->
+      <button id="btn-cashout-roulette" class="btn-interactive w-full py-2.5 bg-gradient-to-r from-slate-800 to-slate-900 hover:from-slate-700 hover:to-slate-800 active:scale-95 text-slate-300 hover:text-white font-bold rounded-2xl border border-slate-700 shadow-md text-xs sm:text-sm tracking-wide transition-all flex items-center justify-center gap-2">
+        <i data-lucide="fast-forward" class="w-4 h-4 text-slate-400"></i>
+        <span>Omitir Bonus y Continuar</span>
       </button>
     </div>
   </div>
@@ -1110,7 +1110,7 @@
         <div class="space-y-1.5">
           <button id="btn-home-play" class="btn-interactive w-full py-3.5 bg-gradient-to-r from-sky-500 via-cyan-500 to-indigo-600 hover:from-sky-400 hover:to-indigo-500 text-white font-black text-sm rounded-2xl shadow-lg shadow-sky-500/30 flex items-center justify-center gap-2">
             <i data-lucide="play" class="w-5 h-5 fill-white"></i>
-            <span id="btn-home-play-text">Continuar Modo Historia (Nivel 1)</span>
+            <span id="btn-home-play-text">Jugar</span>
           </button>
           <button id="btn-home-map" class="btn-interactive w-full py-2 bg-slate-800/90 hover:bg-slate-700 border border-slate-700 text-sky-300 font-bold text-xs rounded-xl flex items-center justify-center gap-1.5">
             <i data-lucide="map" class="w-4 h-4 text-sky-400"></i>
@@ -2956,19 +2956,19 @@
   <input type="file" id="input-save-file" accept=".json" class="hidden">
 
   <!-- Scripts modulares -->
-  <script src="js/firebase-config.js?v=77"></script>
-  <script src="js/cloud-sync.js?v=77"></script>
-  <script src="js/audio.js?v=77"></script>
-  <script src="js/palette.js?v=77"></script>
-  <script src="js/levels.js?v=77"></script>
-  <script src="js/challenges.js?v=77"></script>
-  <script src="js/honor.js?v=77"></script>
-  <script src="js/state.js?v=77"></script>
-  <script src="js/achievements.js?v=77"></script>
-  <script src="js/leaderboard.js?v=77"></script>
-  <script src="js/roulette.js?v=77"></script>
-  <script src="js/story.js?v=77"></script>
-  <script src="js/game.js?v=77"></script>
+  <script src="js/firebase-config.js?v=78"></script>
+  <script src="js/cloud-sync.js?v=78"></script>
+  <script src="js/audio.js?v=78"></script>
+  <script src="js/palette.js?v=78"></script>
+  <script src="js/levels.js?v=78"></script>
+  <script src="js/challenges.js?v=78"></script>
+  <script src="js/honor.js?v=78"></script>
+  <script src="js/state.js?v=78"></script>
+  <script src="js/achievements.js?v=78"></script>
+  <script src="js/leaderboard.js?v=78"></script>
+  <script src="js/roulette.js?v=78"></script>
+  <script src="js/story.js?v=78"></script>
+  <script src="js/game.js?v=78"></script>
 
   <!-- Registro de Service Worker PWA -->
   <script>
@@ -2981,7 +2981,7 @@
         }
       });
       window.addEventListener('load', () => {
-        navigator.serviceWorker.register('./sw.js?v=77', { updateViaCache: 'none' }).then((reg) => {
+        navigator.serviceWorker.register('./sw.js?v=78', { updateViaCache: 'none' }).then((reg) => {
           reg.update();
           console.log('AquaSort PWA ServiceWorker activo:', reg.scope);
         }).catch((err) => {

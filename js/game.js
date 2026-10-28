@@ -3577,7 +3577,7 @@ class GameController {
       const btnVicRoulette = document.getElementById('btn-vic-roulette');
       if (btnVicRoulette) {
         const span = btnVicRoulette.querySelector('span');
-        if (span) span.textContent = 'Multiplicar en Minijuego de Fortuna (🎯 / 🎡)';
+        if (span) span.textContent = 'Jugar Minijuego de Bonus (🎯 / 🎡)';
       }
 
       // Render de estrellas
@@ -4853,11 +4853,7 @@ class GameController {
       statCd.className = `text-xs sm:text-sm font-black mt-1 ${cd > 0 ? 'text-amber-400' : 'text-emerald-400'}`;
     }
     if (playText) {
-      if (this.isTimeAttack && this.timeAttackSecondsRemaining > 0) {
-        playText.textContent = `Continuar Contrarreloj (⏳ ${this.timeAttackSecondsRemaining}s)`;
-      } else {
-        playText.textContent = `Continuar Nivel ${nextPlayableLevel}`;
-      }
+      playText.textContent = 'Jugar';
     }
 
     this.showModal(this.modalHome);
@@ -6128,7 +6124,16 @@ class GameController {
             this.showGameCompletionModal();
           }
         } else {
-          this.loadLevel(this.currentLevel + 1);
+          // Modo Historia / Campaña normal:
+          // Conducir al minijuego de bonus de victoria antes de avanzar al siguiente nivel
+          this.navigationSource = 'game';
+          this.isBonusFromVictory = true;
+          if (window.rouletteEngine) {
+            window.rouletteEngine.openModal(75, true);
+          } else {
+            this.showModal(this.modalRoulette);
+          }
+          if (window.audio) window.audio.playMusic('roulette');
         }
       });
     }
@@ -6172,10 +6177,14 @@ class GameController {
       });
     }
 
-    // Salir de la ruleta / Cobrar
+    // Salir de la ruleta / Cobrar / Aceptar avance
     const btnCashout = document.getElementById('btn-cashout-roulette');
     if (btnCashout) {
       this.bindTapOrClick(btnCashout, () => {
+        // Ignorar clicks fantasma o accidentales durante los primeros 400ms tras abrir
+        if (window.rouletteEngine && window.rouletteEngine.openTimestamp && (Date.now() - window.rouletteEngine.openTimestamp < 400)) {
+          return;
+        }
         this.onRouletteClosed();
       });
     }
@@ -6183,6 +6192,9 @@ class GameController {
     const btnCloseRoulette = document.getElementById('btn-close-roulette');
     if (btnCloseRoulette) {
       this.bindTapOrClick(btnCloseRoulette, () => {
+        if (window.rouletteEngine && window.rouletteEngine.openTimestamp && (Date.now() - window.rouletteEngine.openTimestamp < 400)) {
+          return;
+        }
         if (!window.rouletteEngine?.isSpinning && !window.rouletteEngine?.isDartFlying) {
           this.onRouletteClosed();
         }
@@ -6293,6 +6305,11 @@ class GameController {
     });
     this.setupBackdropClose(this.modalApocalypse, () => this.restartFromApocalypse());
     this.setupBackdropClose(this.modalRoulette, () => {
+      // Si el bonus viene de una victoria de nivel, no permitir cerrar tocando el fondo
+      // para evitar cancelaciones involuntarias o avances accidentales
+      if (this.isBonusFromVictory || window.rouletteEngine?.fromVictory) {
+        return;
+      }
       if (this.modalRoulette && !window.rouletteEngine?.isSpinning && !window.rouletteEngine?.isDartFlying) {
         this.onRouletteClosed();
       }
