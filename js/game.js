@@ -180,6 +180,10 @@ class GameController {
     this.modalPause = document.getElementById('modal-pause');
     this.modalOutOfLives = document.getElementById('modal-out-of-lives');
     this.modalShieldTutorial = document.getElementById('modal-shield-tutorial');
+    this.modalExtras = document.getElementById('modal-extras');
+    this.modalExitModeConfirm = document.getElementById('modal-exit-mode-confirm');
+    this.navigationSource = 'game';
+    this.pendingExitDestination = 'home';
 
     // Catálogo de Mecánicas y Guía de Tutoriales (Espaciadas cada 10 niveles)
     this.mechanicsCatalog = [
@@ -572,8 +576,8 @@ class GameController {
     this.timeAttackScore = 0;
     this.timeAttackTubesCleared = 0;
     this.timeAttackLevel = 1;
-    this.timeAttackBaseDropInterval = 30; // Demora inicial de 30s para planificar
-    this.timeAttackDropTimer = 30;
+    this.timeAttackBaseDropInterval = 20; // Demora inicial de 20s (se reduce 7% por nivel, mín 5s)
+    this.timeAttackDropTimer = 20;
     this.timeAttackActiveCountdowns = new Set();
     this.timeAttackPendingDrops = [];
 
@@ -582,7 +586,7 @@ class GameController {
       this.timeAttackInterval = null;
     }
 
-    // Generar tablero de Time Attack: 7 tubos (4 colores de 4 capas + 3 tubos vacíos)
+    // Generar tablero de Time Attack: 7 tubos iniciales (4 colores de 4 capas + 3 tubos vacíos)
     const pal = window.paletteManager ? window.paletteManager.getPalette() : [];
     const colors = pal.slice(0, 4);
     const tubes = [];
@@ -628,7 +632,7 @@ class GameController {
     const movesLbl = document.getElementById('lbl-moves');
     const optimalLbl = document.getElementById('lbl-optimal-moves');
     if (movesLbl) movesLbl.textContent = '0 pts';
-    if (optimalLbl) optimalLbl.textContent = 'Nivel 1 • 0/100 • Derrame: 30s';
+    if (optimalLbl) optimalLbl.textContent = 'Nivel 1 • 0/100 • Derrame: 20s';
 
     const timerEl = document.getElementById('lbl-timer');
     if (timerEl) {
@@ -652,17 +656,27 @@ class GameController {
     }
   }
 
-  // Intervalo de derrame según el nivel actual (cada 5 tubos se reduce un 5%, estilo Tetris)
+  // Cantidad de líquidos en circulación según el nivel:
+  // Nivel 1-4: 4 líquidos base
+  // A partir de nivel 5: +1 líquido cada 5 niveles (máximo 8 líquidos)
+  getTimeAttackColorCount(level = null) {
+    const lvl = (level !== null) ? level : this.timeAttackLevel;
+    if (lvl < 5) return 4;
+    return Math.min(8, 4 + Math.floor((lvl - 5) / 5) + 1);
+  }
+
+  // Intervalo de derrame según el nivel actual: 20s inicial, reducción de 7% por nivel, mínimo 5s
   getDropIntervalForLevel(level = null) {
     const lvl = (level !== null) ? level : this.timeAttackLevel;
-    return Math.max(10, Math.round(this.timeAttackBaseDropInterval * Math.pow(0.95, Math.max(0, lvl - 1))));
+    return Math.max(5, Math.round(this.timeAttackBaseDropInterval * Math.pow(0.93, Math.max(0, lvl - 1))));
   }
 
   // Planifica con antelación los 4 reactivos que van a caer y qué tubos recibirán cada uno
   planNextTimeAttackDrops() {
     if (!this.tubes || this.tubes.length === 0) return;
     const pal = window.paletteManager ? window.paletteManager.getPalette() : [];
-    const activeColors = pal.slice(0, Math.min(6, 4 + Math.floor(this.timeAttackTubesCleared / 5)));
+    const colorCount = this.getTimeAttackColorCount();
+    const activeColors = pal.slice(0, colorCount);
 
     const slots = this.tubes.map(t => (!t.isCountingDown && !t.isDraining ? Math.max(0, t.capacity - t.liquids.length) : 0));
 
@@ -772,7 +786,46 @@ class GameController {
       <span class="text-slate-500">•</span>
       <span class="ta-hud-timer">Próximo derrame en <b>${this.timeAttackDropTimer}s</b></span>
       <div class="ta-hud-previews">${previewsHtml}</div>
+      <button id="btn-ta-spill-now" class="ta-btn-spill active:scale-95" title="¡Derramar reactivos ahora! Suma ${this.timeAttackDropTimer}s al reloj y +${this.timeAttackDropTimer * 100} pts">
+        <span>⚡ ¡Derramar!</span>
+      </button>
     `;
+
+    const btnSpill = hud.querySelector('#btn-ta-spill-now');
+    if (btnSpill) {
+      btnSpill.onclick = (e) => {
+        e.stopPropagation();
+        this.spillNowTimeAttack();
+      };
+    }
+  }
+
+  // Fuerza el derrame inmediato, acumula el tiempo restante al reloj y multiplica x100 al puntaje
+  spillNowTimeAttack() {
+    if (!this.isTimeAttack) return;
+    const totalFreeSpaces = this.tubes.reduce((acc, t) => {
+      if (t.isCountingDown || t.isDraining) return acc;
+      return acc + Math.max(0, t.capacity - t.liquids.length);
+    }, 0);
+
+    if (totalFreeSpaces < 4) {
+      this.showTimeAttackNotice('⚠️ Huecos insuficientes para derramar (requiere 4 espacios libres)');
+      return;
+    }
+
+    const savedTime = Math.max(0, this.timeAttackDropTimer);
+    if (savedTime > 0) {
+      this.timeAttackSecondsRemaining += savedTime;
+      const bonusScore = savedTime * 100;
+      this.timeAttackScore += bonusScore;
+      this.showTimeAttackNotice(`⚡ ¡Derrame Rápido! +${savedTime}s ⏱️ +${bonusScore.toLocaleString()} pts`);
+      this.updateMovesUI();
+    }
+
+    this.triggerTimeAttackDrop();
+    if (window.audio && typeof window.audio.playPour === 'function') {
+      window.audio.playPour();
+    }
   }
 
   tickTimeAttack() {
@@ -848,14 +901,14 @@ class GameController {
       // Mostrar flotante de tiempo y puntos inmediatamente
       const floatTag = document.createElement('div');
       floatTag.className = 'time-attack-bonus-float';
-      floatTag.innerHTML = `+30s ⏱️ +3,000 pts ✨`;
+      floatTag.innerHTML = `+15s ⏱️ +1,500 pts ✨`;
       tubeEl.appendChild(floatTag);
       setTimeout(() => floatTag.remove(), 1300);
     }
 
-    // Sumar tiempo fijo de 30 segundos, puntos y contador de tubos vaciados
-    this.timeAttackSecondsRemaining += 30;
-    this.timeAttackScore += 3000;
+    // Sumar tiempo fijo de 15 segundos, puntos y contador de tubos vaciados
+    this.timeAttackSecondsRemaining += 15;
+    this.timeAttackScore += 1500;
     this.timeAttackTubesCleared++;
     this.updateMovesUI();
 
@@ -956,9 +1009,27 @@ class GameController {
     const existing = document.querySelector('.ta-levelup-banner');
     if (existing) existing.remove();
 
-    let extraSub = '⚡ Velocidad de derrame +5% ⚡';
-    if (newLevel === 2) extraSub = '🎨 ¡5º color en juego! • Derrame +5% ⚡';
-    else if (newLevel === 3) extraSub = '🎨 ¡6º color en juego! • Derrame +5% ⚡';
+    const prevCount = this.getTimeAttackColorCount(newLevel - 1);
+    const newCount = this.getTimeAttackColorCount(newLevel);
+    const newInterval = this.getDropIntervalForLevel();
+
+    let extraSub = `⚡ Velocidad de derrame -7% (${newInterval}s) ⚡`;
+    if (newCount > prevCount) {
+      extraSub = `🎨 ¡${newCount}º líquido en juego! • Derrame -7% (${newInterval}s) ⚡`;
+      // Añadir tubos vacíos para asegurar maniobrabilidad al introducir nuevo líquido
+      const neededTubes = Math.min(10, newCount + 2);
+      while (this.tubes.length < neededTubes) {
+        this.tubes.push({
+          id: this.tubes.length,
+          capacity: 4,
+          liquids: [],
+          isLocked: false,
+          isGlued: false,
+          isNarrow: false
+        });
+      }
+      this.renderTubes();
+    }
 
     const banner = document.createElement('div');
     banner.className = 'ta-levelup-banner';
@@ -971,7 +1042,6 @@ class GameController {
     setTimeout(() => banner.remove(), 2400);
 
     // 4. Actualizar temporizador si es mayor al nuevo intervalo reducido
-    const newInterval = this.getDropIntervalForLevel();
     if (this.timeAttackDropTimer > newInterval) {
       this.timeAttackDropTimer = newInterval;
     }
@@ -1250,9 +1320,13 @@ class GameController {
     if (!modal) return;
     modal.classList.add('hidden');
     if (window.audio) window.audio.playSelect();
+    if (this.navigationSource === 'home') {
+      this.openHomeModal();
+    }
   }
 
   startCasualSandbox(config = null) {
+    this.navigationSource = 'game';
     const cbSuggest = document.getElementById('cb-sandbox-suggest-publish');
     if (cbSuggest && window.stateManager) {
       window.stateManager.setSandboxPublishPromptEnabled(cbSuggest.checked);
@@ -3943,6 +4017,10 @@ class GameController {
     if (this.modalRoulette) {
       this.hideModal(this.modalRoulette);
     }
+    if (this.navigationSource === 'home') {
+      this.openHomeModal();
+      return;
+    }
     // Si había un cartel de desafíos pausado mientras corría el bonus, mostrarlo al cerrar
     if (this.pendingChallengeIntro) {
       this.pendingChallengeIntro = false;
@@ -4236,6 +4314,9 @@ class GameController {
     this.hideModal(this.modalShop);
     this.updateAuxiliaryButtonUI();
     this.updateLivesHUD();
+    if (this.navigationSource === 'home') {
+      this.openHomeModal();
+    }
   }
 
   renderShopItems() {
@@ -4605,6 +4686,77 @@ class GameController {
     }
   }
 
+  // --- MENÚ DE EXTRAS Y COLECCIONES ---
+  openExtrasModal() {
+    this.navigationSource = 'home';
+    if (this.modalHome) this.hideModal(this.modalHome);
+    this.showModal(this.modalExtras);
+    if (window.lucide) lucide.createIcons();
+  }
+
+  closeExtrasModal() {
+    this.hideModal(this.modalExtras);
+    this.openHomeModal();
+  }
+
+  // --- SALIDA Y CIERRE DE MODO CON CONFIRMACIÓN ---
+  promptExitCurrentMode(destination = 'home') {
+    this.pendingExitDestination = destination;
+    if (this.modalPause && !this.modalPause.classList.contains('hidden')) {
+      this.hideModal(this.modalPause);
+    }
+    const desc = document.getElementById('exit-mode-confirm-desc');
+    if (desc) {
+      let modeName = 'la partida en curso';
+      if (this.isTimeAttack) modeName = 'el Modo Contrarreloj';
+      else if (this.isCasualSandbox) modeName = 'el Modo Casual';
+      else if (this.isDailyChallenge) modeName = 'el Desafío Diario';
+      else if (this.isHonorMode) modeName = 'el Desafío de Honor';
+      else modeName = `el Nivel ${this.currentLevel}`;
+      desc.textContent = `Se cerrará ${modeName}. Si vuelves a iniciar este modo, deberás empezar de cero.`;
+    }
+    this.showModal(this.modalExitModeConfirm);
+    if (window.lucide) lucide.createIcons();
+  }
+
+  confirmExitCurrentMode() {
+    this.hideModal(this.modalExitModeConfirm);
+    // Cerrar y resetear el modo a cero
+    if (this.isTimeAttack) {
+      this.endTimeAttack('exit');
+      this.isTimeAttack = false;
+      this.timeAttackSecondsRemaining = 0;
+      this.timeAttackScore = 0;
+      this.timeAttackTubesCleared = 0;
+    } else if (this.isCasualSandbox) {
+      this.isCasualSandbox = false;
+    } else if (this.isDailyChallenge) {
+      this.isDailyChallenge = false;
+    } else if (this.isHonorMode) {
+      this.isHonorMode = false;
+    } else {
+      // Reiniciar el nivel de historia de cero
+      this.moves = 0;
+      this.history = [];
+      this.extraTubesUsed = 0;
+      this.loadLevel(this.currentLevel);
+    }
+
+    if (this.pendingExitDestination === 'map') {
+      this.navigationSource = 'home';
+      this.openMapModal();
+    } else {
+      this.openHomeModal();
+    }
+  }
+
+  cancelExitCurrentMode() {
+    this.hideModal(this.modalExitModeConfirm);
+    if (window.leaderboardManager && !this.isModalOpen()) {
+      window.leaderboardManager.resumeTimer('lbl-timer');
+    }
+  }
+
   // --- GUARDADO Y CARGA EN ARCHIVO (.JSON) ---
   exportGameFile() {
     if (window.stateManager) {
@@ -4923,7 +5075,7 @@ class GameController {
       this.modalMap, this.modalVictory, this.modalRoulette, this.modalLeaderboard,
       this.modalSettings, this.modalHome, this.modalShop, this.modalRestartConfirm,
       this.modalTutorial, this.modalEditor, this.modalChallengeIntro, this.modalPause,
-      this.modalOutOfLives, this.modalShieldTutorial
+      this.modalOutOfLives, this.modalShieldTutorial, this.modalExtras, this.modalExitModeConfirm
     ];
     return modals.some(m => m && !m.classList.contains('hidden'));
   }
@@ -4998,7 +5150,14 @@ class GameController {
     // Botón Inicio y Botón Tienda en Header
     const btnOpenHome = document.getElementById('btn-open-home');
     if (btnOpenHome) {
-      this.bindTapOrClick(btnOpenHome, () => this.openHomeModal());
+      this.bindTapOrClick(btnOpenHome, () => {
+        const isPlayingActiveGame = this.isTimeAttack || this.isCasualSandbox || this.isDailyChallenge || this.isHonorMode || (this.moves > 0 && !this.isModalOpen());
+        if (isPlayingActiveGame) {
+          this.promptExitCurrentMode('home');
+        } else {
+          this.openHomeModal();
+        }
+      });
     }
 
     const btnOpenShop = document.getElementById('btn-open-shop');
@@ -5008,7 +5167,12 @@ class GameController {
 
     const btnOpenDaily = document.getElementById('btn-open-daily');
     if (btnOpenDaily) {
-      this.bindTapOrClick(btnOpenDaily, () => this.launchDailyChallenge());
+      this.bindTapOrClick(btnOpenDaily, () => {
+        this.navigationSource = 'game';
+        if (this.modalExtras) this.hideModal(this.modalExtras);
+        this.hideModal(this.modalHome);
+        this.launchDailyChallenge();
+      });
     }
 
     const btnOpenMinigame = document.getElementById('btn-open-minigame');
@@ -5059,12 +5223,14 @@ class GameController {
       this.bindTapOrClick(btnQuickHelp, () => this.openTutorialsHelp(this.levelData?.primaryMechanicId));
     }
 
-    // Botón Guía de Tubos en Pantalla de Inicio
+    // Botón Guía de Tubos en Pantalla de Inicio / Extras
     const btnHomeTutorials = document.getElementById('btn-home-tutorials');
     if (btnHomeTutorials) {
       this.bindTapOrClick(btnHomeTutorials, () => {
-        this.closeHomeModal();
-        this.openTutorialsHelp();
+        this.navigationSource = 'home';
+        this.hideModal(this.modalHome);
+        if (this.modalExtras) this.hideModal(this.modalExtras);
+        this.openTutorialModal();
       });
     }
 
@@ -5201,7 +5367,8 @@ class GameController {
     const btnHomeMap = document.getElementById('btn-home-map');
     if (btnHomeMap) {
       this.bindTapOrClick(btnHomeMap, () => {
-        this.closeHomeModal();
+        this.navigationSource = 'home';
+        this.hideModal(this.modalHome);
         if (this.isTimeAttack) {
           this.isTimeAttack = false;
           this.loadLevel(this.currentLevel);
@@ -5214,7 +5381,8 @@ class GameController {
     const btnHomeShop = document.getElementById('btn-home-shop');
     if (btnHomeShop) {
       this.bindTapOrClick(btnHomeShop, () => {
-        this.closeHomeModal();
+        this.navigationSource = 'home';
+        this.hideModal(this.modalHome);
         this.openShopModal();
       });
     }
@@ -5222,31 +5390,51 @@ class GameController {
     const btnHomeLeaderboard = document.getElementById('btn-home-leaderboard');
     if (btnHomeLeaderboard) {
       this.bindTapOrClick(btnHomeLeaderboard, () => {
-        this.closeHomeModal();
-        const btnLB = document.getElementById('btn-open-leaderboard');
-        if (btnLB) btnLB.click();
+        this.navigationSource = 'home';
+        this.hideModal(this.modalHome);
+        if (this.modalExtras) this.hideModal(this.modalExtras);
+        this.showModal(this.modalLeaderboard);
+        if (window.leaderboardManager) {
+          window.leaderboardManager.renderLeaderboardUI('leaderboard-table-container', 'global');
+        }
       });
     }
 
     const btnHomeSettings = document.getElementById('btn-home-settings');
     if (btnHomeSettings) {
       this.bindTapOrClick(btnHomeSettings, () => {
-        this.closeHomeModal();
-        const btnSet = document.getElementById('btn-open-settings');
-        if (btnSet) btnSet.click();
+        this.navigationSource = 'home';
+        this.hideModal(this.modalHome);
+        this.openSettingsModal();
       });
     }
 
     const btnHomeMinigame = document.getElementById('btn-home-minigame');
     if (btnHomeMinigame) {
       this.bindTapOrClick(btnHomeMinigame, () => {
-        this.closeHomeModal();
-        if (window.rouletteEngine) {
+        this.navigationSource = 'home';
+        this.hideModal(this.modalHome);
+        if (window.minigameEngine) {
+          window.minigameEngine.openModal();
+        } else if (window.rouletteEngine) {
           window.rouletteEngine.openModal();
         } else {
           this.showModal(this.modalRoulette);
         }
       });
+    }
+
+    const btnHomeExtras = document.getElementById('btn-home-extras');
+    if (btnHomeExtras) {
+      this.bindTapOrClick(btnHomeExtras, () => this.openExtrasModal());
+    }
+
+    const btnCloseExtras = document.getElementById('btn-close-extras');
+    if (btnCloseExtras) {
+      this.bindTapOrClick(btnCloseExtras, () => this.closeExtrasModal());
+    }
+    if (this.modalExtras) {
+      this.setupBackdropClose(this.modalExtras, () => this.closeExtrasModal());
     }
 
     // Guardado y Carga de Partida en Archivo (.json)
@@ -5351,7 +5539,11 @@ class GameController {
     if (btnCloseMap) {
       this.bindTapOrClick(btnCloseMap, () => {
         this.hideModal(this.modalMap);
-        this.resumeGameMusic();
+        if (this.navigationSource === 'home') {
+          this.openHomeModal();
+        } else {
+          this.resumeGameMusic();
+        }
       });
     }
 
@@ -5448,6 +5640,9 @@ class GameController {
     if (btnCloseLeaderboard) {
       this.bindTapOrClick(btnCloseLeaderboard, () => {
         this.hideModal(this.modalLeaderboard);
+        if (this.navigationSource === 'home') {
+          this.openHomeModal();
+        }
       });
     }
 
@@ -5476,7 +5671,11 @@ class GameController {
     if (btnCloseSettings) {
       this.bindTapOrClick(btnCloseSettings, () => {
         this.hideModal(this.modalSettings);
-        this.resumeGameMusic();
+        if (this.navigationSource === 'home') {
+          this.openHomeModal();
+        } else {
+          this.resumeGameMusic();
+        }
       });
     }
 
@@ -5528,7 +5727,8 @@ class GameController {
     const btnHomeCasual = document.getElementById('btn-home-casual');
     if (btnHomeCasual) {
       this.bindTapOrClick(btnHomeCasual, () => {
-        this.closeHomeModal();
+        this.navigationSource = 'home';
+        this.hideModal(this.modalHome);
         this.openCasualSandboxModal();
       });
     }
@@ -5536,6 +5736,7 @@ class GameController {
     const btnHomeTimeAttack = document.getElementById('btn-home-time-attack');
     if (btnHomeTimeAttack) {
       this.bindTapOrClick(btnHomeTimeAttack, () => {
+        this.navigationSource = 'game';
         this.closeHomeModal();
         this.startTimeAttack();
       });
@@ -5544,7 +5745,9 @@ class GameController {
     const btnHomeAchievements = document.getElementById('btn-home-achievements');
     if (btnHomeAchievements) {
       this.bindTapOrClick(btnHomeAchievements, () => {
-        this.closeHomeModal();
+        this.navigationSource = 'home';
+        this.hideModal(this.modalHome);
+        if (this.modalExtras) this.hideModal(this.modalExtras);
         if (window.achievementManager) window.achievementManager.openModal();
       });
     }
@@ -5554,6 +5757,9 @@ class GameController {
     if (btnCloseAchievements) {
       this.bindTapOrClick(btnCloseAchievements, () => {
         if (window.achievementManager) window.achievementManager.closeModal();
+        if (this.navigationSource === 'home') {
+          this.openHomeModal();
+        }
       });
     }
 
@@ -5759,12 +5965,25 @@ class GameController {
     this.setupBackdropClose(this.modalShop, () => this.closeShopModal());
     this.setupBackdropClose(this.modalMap, () => {
       this.hideModal(this.modalMap);
-      this.resumeGameMusic();
+      if (this.navigationSource === 'home') {
+        this.openHomeModal();
+      } else {
+        this.resumeGameMusic();
+      }
     });
-    this.setupBackdropClose(this.modalLeaderboard, () => this.hideModal(this.modalLeaderboard));
+    this.setupBackdropClose(this.modalLeaderboard, () => {
+      this.hideModal(this.modalLeaderboard);
+      if (this.navigationSource === 'home') {
+        this.openHomeModal();
+      }
+    });
     this.setupBackdropClose(this.modalSettings, () => {
       this.hideModal(this.modalSettings);
-      this.resumeGameMusic();
+      if (this.navigationSource === 'home') {
+        this.openHomeModal();
+      } else {
+        this.resumeGameMusic();
+      }
     });
     this.setupBackdropClose(this.modalRestartConfirm, () => this.closeRestartConfirmModal());
     this.setupBackdropClose(this.modalTutorial, () => this.closeTutorialModal());
@@ -5782,6 +6001,9 @@ class GameController {
     this.setupBackdropClose(document.getElementById('modal-completion'), () => {
       const mc = document.getElementById('modal-completion');
       if (mc) this.hideModal(mc);
+      if (this.navigationSource === 'home') {
+        this.openHomeModal();
+      }
     });
     this.setupBackdropClose(this.modalApocalypse, () => this.restartFromApocalypse());
     this.setupBackdropClose(this.modalRoulette, () => {
@@ -5941,11 +6163,30 @@ class GameController {
     const btnPauseExitMap = document.getElementById('btn-pause-exit-map');
     if (btnPauseExitMap) {
       this.bindTapOrClick(btnPauseExitMap, () => {
-        this.closePauseModal();
-        this.openMapModal();
+        this.promptExitCurrentMode('map');
+      });
+    }
+
+    const btnPauseExitHome = document.getElementById('btn-pause-exit-home');
+    if (btnPauseExitHome) {
+      this.bindTapOrClick(btnPauseExitHome, () => {
+        this.promptExitCurrentMode('home');
       });
     }
     this.setupBackdropClose(this.modalPause, () => this.closePauseModal());
+
+    // Modal Confirmar Salida y Cierre de Modo
+    const btnConfirmExitMode = document.getElementById('btn-confirm-exit-mode');
+    if (btnConfirmExitMode) {
+      this.bindTapOrClick(btnConfirmExitMode, () => this.confirmExitCurrentMode());
+    }
+    const btnCancelExitMode = document.getElementById('btn-cancel-exit-mode');
+    if (btnCancelExitMode) {
+      this.bindTapOrClick(btnCancelExitMode, () => this.cancelExitCurrentMode());
+    }
+    if (this.modalExitModeConfirm) {
+      this.setupBackdropClose(this.modalExitModeConfirm, () => this.cancelExitCurrentMode());
+    }
 
     // Modal Tutorial del Escudo de Vida Alquímico (🛡️)
     const btnCloseShieldTutorial = document.getElementById('btn-close-shield-tutorial');
@@ -6812,6 +7053,9 @@ class GameController {
 
   closeTutorialModal() {
     this.hideModal(this.modalTutorial);
+    if (this.navigationSource === 'home') {
+      this.openHomeModal();
+    }
   }
 
   // --- TALLER DE CREACIÓN DE NIVELES (LEVEL EDITOR) ---
@@ -8281,7 +8525,9 @@ class GameController {
     const btnHomeEndings = document.getElementById('btn-home-endings');
     if (btnHomeEndings) {
       this.bindTapOrClick(btnHomeEndings, () => {
-        this.closeHomeModal();
+        this.navigationSource = 'home';
+        this.hideModal(this.modalHome);
+        if (this.modalExtras) this.hideModal(this.modalExtras);
         this.showGameCompletionModal();
       });
     }
@@ -8291,6 +8537,16 @@ class GameController {
       this.bindTapOrClick(btnMapEndings, () => {
         this.hideModal(this.modalMap);
         this.showGameCompletionModal();
+      });
+    }
+
+    const btnCloseCompletion = document.getElementById('btn-close-completion');
+    if (btnCloseCompletion) {
+      this.bindTapOrClick(btnCloseCompletion, () => {
+        if (modal) this.hideModal(modal);
+        if (this.navigationSource === 'home') {
+          this.openHomeModal();
+        }
       });
     }
 
