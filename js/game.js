@@ -38,6 +38,7 @@ class GameController {
     this.timeAttackInterval = null;
     this.timeAttackActiveCountdowns = new Set();
     this.timeAttackPendingDrops = [];
+    this.timeAttackPendingDropExecution = false;
 
     // Modo Casual Infinito (Sandbox)
     this.isCasualSandbox = false;
@@ -580,6 +581,7 @@ class GameController {
     this.timeAttackDropTimer = 20;
     this.timeAttackActiveCountdowns = new Set();
     this.timeAttackPendingDrops = [];
+    this.timeAttackPendingDropExecution = false;
 
     if (this.timeAttackInterval) {
       clearInterval(this.timeAttackInterval);
@@ -803,6 +805,10 @@ class GameController {
   // Fuerza el derrame inmediato, acumula el tiempo restante al reloj y multiplica x100 al puntaje
   spillNowTimeAttack() {
     if (!this.isTimeAttack) return;
+    if (this.isPouringAnimation) {
+      this.showTimeAttackNotice('⏳ Espera a que termine el movimiento para derramar...');
+      return;
+    }
     const totalFreeSpaces = this.tubes.reduce((acc, t) => {
       if (t.isCountingDown || t.isDraining) return acc;
       return acc + Math.max(0, t.capacity - t.liquids.length);
@@ -849,14 +855,32 @@ class GameController {
     }
 
     // Temporizador de caída de los 4 reactivos telegrafiados
-    this.timeAttackDropTimer--;
-    if (this.timeAttackDropTimer <= 0) {
-      this.triggerTimeAttackDrop();
+    if (this.timeAttackPendingDropExecution) {
+      if (!this.isPouringAnimation) {
+        this.timeAttackPendingDropExecution = false;
+        this.triggerTimeAttackDrop();
+      } else {
+        this.timeAttackDropTimer = 0;
+        this.renderTimeAttackDropHUD();
+      }
     } else {
-      this.renderTimeAttackDropHUD();
-      if (this.timeAttackDropTimer <= 4) {
-        const markers = this.tubesGrid?.querySelectorAll('.ta-incoming-marker');
-        markers?.forEach(m => m.classList.add('ta-urgent'));
+      this.timeAttackDropTimer--;
+      if (this.timeAttackDropTimer <= 0) {
+        if (this.isPouringAnimation) {
+          // Si el contador de derrame llega a 0 y se está ejecutando una animación de vertido/movimiento,
+          // esperar a que finalice la animación para derramar los líquidos
+          this.timeAttackDropTimer = 0;
+          this.timeAttackPendingDropExecution = true;
+          this.renderTimeAttackDropHUD();
+        } else {
+          this.triggerTimeAttackDrop();
+        }
+      } else {
+        this.renderTimeAttackDropHUD();
+        if (this.timeAttackDropTimer <= 4) {
+          const markers = this.tubesGrid?.querySelectorAll('.ta-incoming-marker');
+          markers?.forEach(m => m.classList.add('ta-urgent'));
+        }
       }
     }
 
@@ -1075,6 +1099,14 @@ class GameController {
   triggerTimeAttackDrop() {
     if (!this.isTimeAttack) return;
 
+    // Si aún se está ejecutando una animación de movimiento o vertido, diferir y esperar
+    if (this.isPouringAnimation) {
+      this.timeAttackPendingDropExecution = true;
+      this.timeAttackDropTimer = 0;
+      this.renderTimeAttackDropHUD();
+      return;
+    }
+
     // "Solo deben caer si existen cuatro espacios disponibles."
     const totalFreeSpaces = this.tubes.reduce((acc, t) => {
       if (t.isCountingDown || t.isDraining) return acc;
@@ -1203,6 +1235,7 @@ class GameController {
       clearInterval(this.timeAttackInterval);
       this.timeAttackInterval = null;
     }
+    this.timeAttackPendingDropExecution = false;
     if (this.timeAttackActiveCountdowns) {
       this.timeAttackActiveCountdowns.clear();
     }
@@ -2712,6 +2745,14 @@ class GameController {
                 this.checkVictory();
                 if (this.isTimeAttack) {
                   this.checkTimeAttackDeadlock();
+                  if (this.timeAttackPendingDropExecution) {
+                    this.timeAttackPendingDropExecution = false;
+                    setTimeout(() => {
+                      if (this.isTimeAttack && !this.isPouringAnimation) {
+                        this.triggerTimeAttackDrop();
+                      }
+                    }, 50);
+                  }
                 }
               }, 250);
             }, 190);
@@ -3100,6 +3141,14 @@ class GameController {
         this.checkVictory();
         if (this.isTimeAttack) {
           this.checkTimeAttackDeadlock();
+          if (this.timeAttackPendingDropExecution) {
+            this.timeAttackPendingDropExecution = false;
+            setTimeout(() => {
+              if (this.isTimeAttack && !this.isPouringAnimation) {
+                this.triggerTimeAttackDrop();
+              }
+            }, 50);
+          }
         }
       }, 850);
     }
