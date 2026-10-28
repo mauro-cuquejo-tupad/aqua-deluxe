@@ -46,10 +46,10 @@
   <link rel="icon" type="image/svg+xml" href="icons/icon.svg">
 
   <!-- Modular Stylesheets -->
-  <link rel="stylesheet" href="css/main.css?v=78">
-  <link rel="stylesheet" href="css/tubes.css?v=78">
-  <link rel="stylesheet" href="css/roulette.css?v=78">
-  <link rel="stylesheet" href="css/accessibility.css?v=78">
+  <link rel="stylesheet" href="css/main.css?v=79">
+  <link rel="stylesheet" href="css/tubes.css?v=79">
+  <link rel="stylesheet" href="css/roulette.css?v=79">
+  <link rel="stylesheet" href="css/accessibility.css?v=79">
 </head>
 <body class="min-h-screen flex flex-col justify-between select-none relative">
 
@@ -1036,9 +1036,30 @@
         </div>
 
         <!-- HINT TÁCTIL EN LUGAR DE BOTÓN DE PRESIONAR -->
-        <div class="w-full mb-3 py-3 px-3 bg-gradient-to-r from-amber-500/20 via-yellow-500/25 to-amber-500/20 border-2 border-amber-400/60 text-amber-200 font-black rounded-2xl text-center text-xs sm:text-sm tracking-wide shadow-lg shadow-amber-500/10 flex items-center justify-center gap-2 animate-pulse select-none">
+        <div id="roulette-touch-hint" class="w-full mb-3 py-3 px-3 bg-gradient-to-r from-amber-500/20 via-yellow-500/25 to-amber-500/20 border-2 border-amber-400/60 text-amber-200 font-black rounded-2xl text-center text-xs sm:text-sm tracking-wide shadow-lg shadow-amber-500/10 flex items-center justify-center gap-2 animate-pulse select-none">
           <span>👆</span>
           <span>¡Toca en cualquier parte para girar!</span>
+        </div>
+      </div>
+
+      <!-- MARCADOR ANIMADO DE MONEDAS DEL BONUS (VISIBLE EN LOS 3 MINIJUEGOS) -->
+      <div id="bonus-coins-scoreboard" class="w-full mb-3 p-2.5 sm:p-3 rounded-2xl bg-slate-950/90 border border-slate-700/80 shadow-inner flex flex-col gap-1.5 relative overflow-visible">
+        <!-- Fila 1: Monto Ganado en el Nivel (con animación de +ganado / -perdido) -->
+        <div class="flex items-center justify-between px-3 py-1.5 rounded-xl bg-slate-900/90 border border-slate-800/90 relative overflow-visible">
+          <span class="text-xs font-bold text-slate-300">Ganado en el nivel:</span>
+          <div class="relative flex items-center gap-1">
+            <span id="bonus-level-coins-val" class="text-base sm:text-lg font-black text-amber-300 font-mono tabular-nums transition-all duration-200">0</span>
+            <span class="text-sm">🪙</span>
+            <span id="bonus-floating-delta" class="bonus-delta-badge hidden"></span>
+          </div>
+        </div>
+        <!-- Fila 2: Total Acumulado del Usuario -->
+        <div class="flex items-center justify-between px-3 py-1.5 rounded-xl bg-slate-900/90 border border-slate-800/90">
+          <span class="text-xs font-bold text-slate-400">Total de monedas:</span>
+          <div class="flex items-center gap-1">
+            <span id="bonus-total-coins-val" class="text-base sm:text-lg font-black text-white font-mono tabular-nums transition-all duration-200">0</span>
+            <span class="text-sm">🪙</span>
+          </div>
         </div>
       </div>
 
@@ -2956,19 +2977,19 @@
   <input type="file" id="input-save-file" accept=".json" class="hidden">
 
   <!-- Scripts modulares -->
-  <script src="js/firebase-config.js?v=78"></script>
-  <script src="js/cloud-sync.js?v=78"></script>
-  <script src="js/audio.js?v=78"></script>
-  <script src="js/palette.js?v=78"></script>
-  <script src="js/levels.js?v=78"></script>
-  <script src="js/challenges.js?v=78"></script>
-  <script src="js/honor.js?v=78"></script>
-  <script src="js/state.js?v=78"></script>
-  <script src="js/achievements.js?v=78"></script>
-  <script src="js/leaderboard.js?v=78"></script>
-  <script src="js/roulette.js?v=78"></script>
-  <script src="js/story.js?v=78"></script>
-  <script src="js/game.js?v=78"></script>
+  <script src="js/firebase-config.js?v=79"></script>
+  <script src="js/cloud-sync.js?v=79"></script>
+  <script src="js/audio.js?v=79"></script>
+  <script src="js/palette.js?v=79"></script>
+  <script src="js/levels.js?v=79"></script>
+  <script src="js/challenges.js?v=79"></script>
+  <script src="js/honor.js?v=79"></script>
+  <script src="js/state.js?v=79"></script>
+  <script src="js/achievements.js?v=79"></script>
+  <script src="js/leaderboard.js?v=79"></script>
+  <script src="js/roulette.js?v=79"></script>
+  <script src="js/story.js?v=79"></script>
+  <script src="js/game.js?v=79"></script>
 
   <!-- Registro de Service Worker PWA -->
   <script>
@@ -2981,7 +3002,7 @@
         }
       });
       window.addEventListener('load', () => {
-        navigator.serviceWorker.register('./sw.js?v=78', { updateViaCache: 'none' }).then((reg) => {
+        navigator.serviceWorker.register('./sw.js?v=79', { updateViaCache: 'none' }).then((reg) => {
           reg.update();
           console.log('AquaSort PWA ServiceWorker activo:', reg.scope);
         }).catch((err) => {

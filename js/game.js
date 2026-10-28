@@ -3515,13 +3515,16 @@ class GameController {
 
   showVictoryModal(elapsedSecs, combo, stars, recordResult, scoreData = null) {
     try {
-      // Reajuste de economía alquímica aumentado x1.5 (o próximo entero): 3 a 6 monedas base
-      let baseCoins = 3;
-      if (this.moves <= this.levelData.optimalMoves) baseCoins = 6;
-      else if (this.moves <= this.levelData.optimalMoves * 1.5) baseCoins = 5;
+      // Guardar saldo previo a la recompensa de este nivel para la animación del bonus
+      this.lastLevelBaseWallet = this.getCoins();
 
-      // Bonificación de combo para monedas si combo >= 2 (aumentado x1.5)
-      let comboCoins = combo >= 2 ? (combo >= 4 ? 3 : 2) : 0;
+      // Recompensas de monedas multiplicadas x10: 30 a 60 monedas base por ganar la partida
+      let baseCoins = 30;
+      if (this.moves <= this.levelData.optimalMoves) baseCoins = 60;
+      else if (this.moves <= this.levelData.optimalMoves * 1.5) baseCoins = 50;
+
+      // Bonificación de combo para monedas si combo >= 2 (multiplicado x10: 20 o 30 monedas)
+      let comboCoins = combo >= 2 ? (combo >= 4 ? 30 : 20) : 0;
       let totalEarned = baseCoins + comboCoins;
 
       // Modos no-historia (casual infinito, taller/custom, etc.) NO otorgan monedas
@@ -3532,6 +3535,7 @@ class GameController {
       if (totalEarned > 0) {
         this.addCoins(totalEarned);
       }
+      this.lastLevelEarnedCoins = totalEarned;
 
       // Badge de advertencia si se usaron pistas
       const hintsBadge = document.getElementById('lbl-hints-warning-badge');
@@ -3913,6 +3917,13 @@ class GameController {
       ? window.ChallengeManager.calculateBonus(results)
       : { completedCount: 0, totalCount: results.length, totalCoins: 0, multiplier: 1 };
 
+    // Otorgar las monedas de desafíos inmediatamente para que el monto total del nivel
+    // esté contabilizado de inmediato si el usuario ingresa enseguida al bonus
+    if (bonusData.totalCoins > 0 && !this.isCasualSandbox && !this.customLevelTesting && this.isStoryLevel()) {
+      this.addCoins(bonusData.totalCoins);
+      this.lastLevelEarnedCoins = (this.lastLevelEarnedCoins || 0) + bonusData.totalCoins;
+    }
+
     // Guardar en la persistencia del jugador (acumulativo entre diferentes intentos)
     if (window.stateManager && typeof window.stateManager.recordLevelChallenges === 'function' && !this.customLevelTesting) {
       const completedIds = results.filter(r => r.completed).map(r => r.challenge.id);
@@ -3943,7 +3954,7 @@ class GameController {
           </div>
         </div>
         <div class="flex items-center gap-2">
-          <span class="chal-reward-badge text-amber-300/80 font-bold text-[11px]">+${c.coins || 3} 🪙</span>
+          <span class="chal-reward-badge text-amber-300/80 font-bold text-[11px]">+${c.coins || 50} 🪙</span>
         </div>
       `;
       list.appendChild(row);
@@ -4006,8 +4017,6 @@ class GameController {
           const multTag = bonusData.multiplier > 1.0 ? ` (${bonusData.multiplierLabel})` : '';
           bonusLbl.innerHTML = `<span class="text-amber-300 font-black animate-pulse">+${bonusData.totalCoins} 🪙 ${multTag}</span>`;
         }
-        // Otorgar las monedas al jugador
-        this.addCoins(bonusData.totalCoins);
 
         // Actualizar visualmente las monedas ganadas totales en el modal
         const finalTotal = baseCoinsEarned + bonusData.totalCoins;
@@ -4152,30 +4161,44 @@ class GameController {
   }
 
   multiplyCoins(mult) {
-    const current = this.getCoins();
-    let updated;
+    // El bonus opera exclusivamente sobre el monto ganado en el nivel actual
+    const levelEarned = Math.max(0, this.lastLevelEarnedCoins || 0);
+    const walletBefore = (typeof this.lastLevelBaseWallet === 'number')
+      ? this.lastLevelBaseWallet
+      : Math.max(0, this.getCoins() - levelEarned);
+
+    let finalLevelCoins;
     if (mult < 0) {
-      // Pérdida porcentual por sector negativo (ej. -0.5 pierde el 50%)
+      // Pérdida porcentual sobre el monto del nivel (ej. -0.5 resta un 50% del monto del nivel)
       const lossRatio = Math.min(1, Math.abs(mult));
-      updated = Math.max(0, Math.round(current * (1 - lossRatio)));
+      finalLevelCoins = -Math.round(levelEarned * lossRatio);
     } else {
-      updated = Math.round(current * mult);
+      finalLevelCoins = Math.round(levelEarned * mult);
     }
-    const diff = updated - current;
-    if (diff > 0) {
-      this.addCoins(diff);
-    } else if (diff < 0) {
+
+    // Como levelEarned ya fue sumado al saldo al ganar el nivel, ajustamos la diferencia (delta)
+    const delta = finalLevelCoins - levelEarned;
+    if (delta > 0) {
+      this.addCoins(delta);
+    } else if (delta < 0) {
+      const toRemove = Math.min(this.getCoins(), Math.abs(delta));
       if (window.stateManager) {
-        window.stateManager.spendCoins(Math.abs(diff));
+        window.stateManager.spendCoins(toRemove);
+        this.coins = window.stateManager.getCoins();
       } else {
-        this.coins = updated;
+        this.coins = Math.max(0, this.coins - toRemove);
       }
       this.updateCoinsUI();
     }
+
     return {
-      gained: diff,
+      baseLevelCoins: levelEarned,
+      finalLevelCoins: finalLevelCoins,
+      delta: delta,
+      gained: finalLevelCoins,
+      walletBefore: walletBefore,
       total: this.getCoins(),
-      prev: current,
+      prev: walletBefore,
       multiplier: mult
     };
   }
@@ -6129,7 +6152,7 @@ class GameController {
           this.navigationSource = 'game';
           this.isBonusFromVictory = true;
           if (window.rouletteEngine) {
-            window.rouletteEngine.openModal(75, true);
+            window.rouletteEngine.openModal(this.lastLevelEarnedCoins || 50, true);
           } else {
             this.showModal(this.modalRoulette);
           }
@@ -6169,7 +6192,7 @@ class GameController {
         this.isBonusFromVictory = true;
         this.hideModal(this.modalVictory);
         if (window.rouletteEngine) {
-          window.rouletteEngine.openModal(75, true);
+          window.rouletteEngine.openModal(this.lastLevelEarnedCoins || 50, true);
         } else {
           this.showModal(this.modalRoulette);
         }
@@ -6777,7 +6800,7 @@ class GameController {
             <div class="flex-1">
               <h5 class="text-xs font-bold text-white flex items-center gap-2">
                 <span>${c.name || c.title || 'Desafío Secundario'}</span>
-                ${c.rewardCoins ? `<span class="text-[10px] px-1.5 py-0.2 rounded bg-amber-500/20 text-amber-300 font-mono">+${c.rewardCoins} 🪙</span>` : ''}
+                ${(c.coins || c.rewardCoins) ? `<span class="text-[10px] px-1.5 py-0.2 rounded bg-amber-500/20 text-amber-300 font-mono">+${c.coins || c.rewardCoins} 🪙</span>` : ''}
               </h5>
               <p class="text-[11px] text-slate-300 mt-1 leading-relaxed">${c.description || c.desc || ''}</p>
             </div>

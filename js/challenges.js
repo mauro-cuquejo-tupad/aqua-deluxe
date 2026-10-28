@@ -58,7 +58,7 @@ class ChallengeManager {
       icon: 'zap',
       title: `Completar en ≤ ${maxMoves} movimientos`,
       shortTitle: `≤ ${maxMoves} movs`,
-      coins: 5,
+      coins: 50,
       targetValue: maxMoves,
       check: (game) => game.moves <= maxMoves,
       getCurrentText: (game) => `${game.moves}/${maxMoves} movs`,
@@ -75,7 +75,7 @@ class ChallengeManager {
       icon: 'clock',
       title: `Terminar en menos de ${timeLimitSecs}s`,
       shortTitle: `< ${timeLimitSecs}s`,
-      coins: 6,
+      coins: 60,
       targetValue: timeLimitSecs,
       check: (game, elapsedSecs) => (elapsedSecs || 0) <= timeLimitSecs,
       getCurrentText: (game, elapsedSecs) => `${elapsedSecs || 0}s / ${timeLimitSecs}s`,
@@ -102,7 +102,7 @@ class ChallengeManager {
         colorHex: chosenColor.hex,
         colorName: chosenColor.name,
         targetTubeIdx: chosenTubeIdx,
-        coins: 6,
+        coins: 60,
         check: (game) => {
           const t = game.tubes[chosenTubeIdx];
           if (!t || t.liquids.length !== t.capacity) return false;
@@ -130,7 +130,7 @@ class ChallengeManager {
         icon: 'hash',
         title: `Llenar todos los tubos pares (${evenStr})`,
         shortTitle: `Tubos pares llenos`,
-        coins: 8,
+        coins: 80,
         check: (game) => {
           return evenTubeIndices.every(idx => {
             const t = game.tubes[idx];
@@ -161,7 +161,7 @@ class ChallengeManager {
         icon: 'hash',
         title: `Llenar todos los tubos impares (${oddStr})`,
         shortTitle: `Tubos impares llenos`,
-        coins: 8,
+        coins: 80,
         check: (game) => {
           return oddTubeIndices.every(idx => {
             const t = game.tubes[idx];
@@ -188,7 +188,7 @@ class ChallengeManager {
       icon: 'zap',
       title: 'Completar en un número impar de movimientos',
       shortTitle: 'Movs impares',
-      coins: 6,
+      coins: 60,
       check: (game) => (game.moves || 0) % 2 !== 0 && (game.moves || 0) > 0,
       getCurrentText: (game) => `${game.moves || 0} movs (${(game.moves || 0) % 2 !== 0 ? 'Impar ✓' : 'Par ✕'})`,
       isFailedLive: () => false
@@ -203,7 +203,7 @@ class ChallengeManager {
       icon: 'rotate-ccw',
       title: 'Superar sin deshacer movimientos (precisión total)',
       shortTitle: 'Sin deshacer',
-      coins: 6,
+      coins: 60,
       check: (game) => (game.undoCountInLevel || 0) === 0,
       getCurrentText: (game) => ((game.undoCountInLevel || 0) === 0 ? 'Puro ✓' : `${game.undoCountInLevel} ✕`),
       isFailedLive: (game) => (game.undoCountInLevel || 0) > 0
@@ -223,7 +223,7 @@ class ChallengeManager {
         icon: 'flask-conical',
         title: `Preservar el ${humanReservePos}º tubo vacío (sin tocar)`,
         shortTitle: `Tubo ${humanReservePos} intacto`,
-        coins: 8,
+        coins: 80,
         targetTubeIdx: targetReserveIdx,
         check: (game) => {
           if (!game.touchedTubeIndices) return true;
@@ -246,7 +246,7 @@ class ChallengeManager {
       icon: 'shield',
       title: 'Completar sin botellas auxiliares',
       shortTitle: 'Sin botellas extra',
-      coins: 5,
+      coins: 50,
       check: (game) => (game.extraTubesUsed || 0) === 0,
       getCurrentText: (game) => ((game.extraTubesUsed || 0) > 0 ? 'Usada ✕' : 'Activo ✓'),
       isFailedLive: (game) => (game.extraTubesUsed || 0) > 0
@@ -261,7 +261,7 @@ class ChallengeManager {
       icon: 'sparkles',
       title: 'Superar sin usar ninguna pista',
       shortTitle: 'Sin pistas',
-      coins: 5,
+      coins: 50,
       check: (game) => (game.hintsUsedInLevel || 0) === 0,
       getCurrentText: (game) => ((game.hintsUsedInLevel || 0) > 0 ? 'Usada ✕' : 'Activo ✓'),
       isFailedLive: (game) => (game.hintsUsedInLevel || 0) > 0
@@ -277,7 +277,7 @@ class ChallengeManager {
         icon: 'gem',
         title: 'Pureza Cristalina: Sin fisuras en frasco de afinidad',
         shortTitle: 'Sin fisuras',
-        coins: 8,
+        coins: 80,
         check: (game) => game.tubes.every(t => !t.isAffinity || (t.cracks || 0) === 0),
         getCurrentText: (game) => {
           const aff = game.tubes.find(t => t.isAffinity && !t.isSuperFragile);
@@ -298,7 +298,7 @@ class ChallengeManager {
         icon: 'flame',
         title: 'Sobrecarga Volátil: Rompe el frasco súper frágil',
         shortTitle: 'Romper frasco volátil',
-        coins: 9,
+        coins: 90,
         check: (game) => game.tubes.some(t => t.isSuperFragile && t.isBroken),
         getCurrentText: (game) => {
           const sf = game.tubes.find(t => t.isSuperFragile);
@@ -389,7 +389,7 @@ class ChallengeManager {
 
     let baseBonus = 0;
     results.forEach(r => {
-      if (r.completed) baseBonus += (r.challenge.coins || 5);
+      if (r.completed) baseBonus += (r.challenge.coins || 50);
     });
 
     let multiplier = 1.0;

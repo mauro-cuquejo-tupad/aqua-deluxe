@@ -116,6 +116,9 @@ class MinigameEngine {
     this.updateCardsUI();
     this.updateRulesText();
     this.updateTrainingModeUI();
+    this.resetBonusScoreboardUI();
+    const touchHint = document.getElementById('roulette-touch-hint');
+    if (touchHint) touchHint.classList.remove('hidden');
     if (this.currentMode === 'roulette') {
       this.startTimingBar();
     }
@@ -601,6 +604,8 @@ class MinigameEngine {
 
   onSpinButtonClicked() {
     this.stopTimingBar();
+    const touchHint = document.getElementById('roulette-touch-hint');
+    if (touchHint) touchHint.classList.add('hidden');
     const pos = this.timingPos;
 
     const goldMin = this.goldCenter - (this.goldWidth / 2);
@@ -760,19 +765,10 @@ class MinigameEngine {
         confetti({ particleCount: 90, spread: 75, origin: { y: 0.6 } });
       }
 
-      let coinRes = null;
-      if (window.game && !this.isTrainingMode) {
-        coinRes = window.game.multiplyCoins(mult);
-      }
+      this.applyAndAnimateBonusCoins(mult, false);
 
       if (this.timingFeedbackLbl) {
-        if (coinRes && coinRes.gained > 0) {
-          this.timingFeedbackLbl.innerHTML = `🎉 ¡PREMIO ${landedSector.label}! Ganaste <strong class="text-amber-300 font-black">+${coinRes.gained} 🪙</strong> (${mult}x) • Total: ${coinRes.total} 🪙`;
-        } else if (coinRes && coinRes.gained === 0) {
-          this.timingFeedbackLbl.innerHTML = `🎉 ¡PREMIO ${landedSector.label}! Multiplicador ${mult}x • Total: ${coinRes.total} 🪙`;
-        } else {
-          this.timingFeedbackLbl.innerHTML = `🎉 ¡PREMIO ${landedSector.label}! MULTIPLICADOR ${mult}x 🪙 (Modo Práctica)`;
-        }
+        this.timingFeedbackLbl.innerHTML = `🎉 ¡PREMIO ${landedSector.label}!`;
         this.timingFeedbackLbl.className = 'text-center text-sm font-black text-emerald-400 mt-1';
       }
     } else {
@@ -780,24 +776,16 @@ class MinigameEngine {
       if (window.audio) window.audio.playDisappointedCrowd();
 
       const hasBoost = window.stateManager ? (typeof window.stateManager.hasRouletteBoost === 'function' ? window.stateManager.hasRouletteBoost() : window.stateManager.state.upgrades.rouletteBoost) : false;
-      let coinRes = null;
-      if (!hasBoost && window.game && !this.isTrainingMode) {
-        coinRes = window.game.multiplyCoins(mult); // Aplica pérdida de monedas si mult < 0 o reduce
-      }
+      this.applyAndAnimateBonusCoins(mult, hasBoost);
 
       if (this.timingFeedbackLbl) {
-        let msg = '';
         if (hasBoost) {
-          msg = `Cayó en ${landedSector.label}. ¡Seguro activo! Conservas tus monedas.`;
-        } else if (coinRes && coinRes.gained < 0) {
-          msg = `💀 Cayó en ${landedSector.label}. Perdiste ${Math.abs(coinRes.gained)} 🪙 • Total: ${coinRes.total} 🪙`;
-        } else if (landedSector.isNegative) {
-          msg = `💀 Cayó en ${landedSector.label}. ¡Penalización del 50% de monedas!`;
+          this.timingFeedbackLbl.innerHTML = `🛡️ Cayó en ${landedSector.label} • ¡Seguro activo!`;
+          this.timingFeedbackLbl.className = 'text-center text-xs font-black text-sky-300 mt-1';
         } else {
-          msg = `Cayó en ${landedSector.label}. Se reduce el bono.`;
+          this.timingFeedbackLbl.innerHTML = `❌ Cayó en ${landedSector.label}`;
+          this.timingFeedbackLbl.className = 'text-center text-xs font-black text-rose-400 mt-1';
         }
-        this.timingFeedbackLbl.innerHTML = `❌ ${msg}`;
-        this.timingFeedbackLbl.className = 'text-center text-xs font-black text-rose-400 mt-1';
       }
     }
 
@@ -1326,28 +1314,21 @@ class MinigameEngine {
       const modalBox = document.querySelector('#modal-roulette .modal-content');
       if (modalBox) modalBox.classList.add('roulette-lose-glow');
 
-      let coinRes = null;
-      if (!hasBoost && window.game && !this.isTrainingMode) {
-        coinRes = window.game.multiplyCoins(0.5); // reducción por tiro fallido
-      }
-
       setTimeout(() => {
         overlay.classList.add('fade-out');
         setTimeout(() => {
           overlay.remove();
           this.isDartFlying = false;
           this.isReverseShot = false;
+          this.applyAndAnimateBonusCoins(0.5, hasBoost);
           if (hintEl) {
-            let msg = '';
             if (hasBoost) {
-              msg = '¡Autogolpe! Seguro activo: sin pérdida.';
-            } else if (coinRes && coinRes.gained < 0) {
-              msg = `¡Autogolpe! Perdiste ${Math.abs(coinRes.gained)} 🪙 • Total: ${coinRes.total} 🪙`;
+              hintEl.innerHTML = '🛡️ ¡Autogolpe! • ¡Seguro activo!';
+              hintEl.className = 'text-center text-xs font-black text-sky-300 mt-1 mb-2';
             } else {
-              msg = '¡Autogolpe! Pierdes monedas.';
+              hintEl.innerHTML = '❌ "La próxima apuntá para el otro lado..." (÷2)';
+              hintEl.className = 'text-center text-xs font-black text-rose-400 mt-1 mb-2';
             }
-            hintEl.innerHTML = `❌ "La próxima apuntá para el otro lado..." • ${msg}`;
-            hintEl.className = 'text-center text-xs font-black text-rose-400 mt-1 mb-2';
           }
           this.finalizeRound(null, modalBox);
         }, 500);
@@ -1376,7 +1357,7 @@ class MinigameEngine {
       label = '🎯 ¡ANILLO DE BRONCE! (x1.2)';
     } else {
       multiplier = 0;
-      label = '❌ ¡TIRO FUERA DE LA DIANA!';
+      label = '❌ ¡TIRO FUERA DE LA DIANA! (÷2)';
     }
 
     if (this.extraShotAvailable && multiplier < 1.5) {
@@ -1413,19 +1394,10 @@ class MinigameEngine {
         }
       }
 
-      let coinRes = null;
-      if (window.game && !this.isTrainingMode) {
-        coinRes = window.game.multiplyCoins(multiplier);
-      }
+      this.applyAndAnimateBonusCoins(multiplier, false);
 
       if (hintEl) {
-        if (coinRes && coinRes.gained > 0) {
-          hintEl.innerHTML = `${label} • Ganaste <strong class="text-amber-300 font-black">+${coinRes.gained} 🪙</strong> (${multiplier}x) • Total: ${coinRes.total} 🪙`;
-        } else if (coinRes && coinRes.gained === 0) {
-          hintEl.innerHTML = `${label} • Multiplicador ${multiplier}x • Total: ${coinRes.total} 🪙`;
-        } else {
-          hintEl.innerHTML = `${label} • <strong class="text-amber-300 font-black">GANAS ${multiplier}x 🪙</strong> (Práctica)`;
-        }
+        hintEl.innerHTML = `${label}`;
         hintEl.className = 'text-center text-sm font-black text-emerald-400 mt-1 mb-2';
       }
     } else {
@@ -1433,22 +1405,16 @@ class MinigameEngine {
       if (window.audio) window.audio.playDisappointedCrowd();
 
       const hasBoost = window.stateManager ? (typeof window.stateManager.hasRouletteBoost === 'function' ? window.stateManager.hasRouletteBoost() : window.stateManager.state.upgrades.rouletteBoost) : false;
-      let coinRes = null;
-      if (!hasBoost && window.game && !this.isTrainingMode) {
-        coinRes = window.game.multiplyCoins(0.5);
-      }
+      this.applyAndAnimateBonusCoins(0.5, hasBoost);
 
       if (hintEl) {
-        let msg = '';
         if (hasBoost) {
-          msg = '¡Desviado! Seguro activo: sin pérdida.';
-        } else if (coinRes && coinRes.gained < 0) {
-          msg = `¡Desviado! Perdiste ${Math.abs(coinRes.gained)} 🪙 • Total: ${coinRes.total} 🪙`;
+          hintEl.textContent = '🛡️ ¡Desviado! • ¡Seguro activo!';
+          hintEl.className = 'text-center text-xs font-black text-sky-300 mt-1 mb-2';
         } else {
-          msg = '¡Desviado! Sin premio de monedas.';
+          hintEl.textContent = `${label}`;
+          hintEl.className = 'text-center text-xs font-black text-rose-400 mt-1 mb-2';
         }
-        hintEl.textContent = `${label} • ${msg}`;
-        hintEl.className = 'text-center text-xs font-black text-rose-400 mt-1 mb-2';
       }
     }
 
@@ -1741,37 +1707,28 @@ class MinigameEngine {
           confetti({ particleCount: 90, spread: 75, origin: { y: 0.6 } });
         }
       }
-      let coinRes = null;
-      if (window.game && !this.isTrainingMode) {
-        coinRes = window.game.multiplyCoins(mult);
-      }
+
+      this.applyAndAnimateBonusCoins(mult, false);
 
       if (hintEl) {
-        if (coinRes && coinRes.gained > 0) {
-          hintEl.innerHTML = `🏆 ¡PLENO ALQUÍMICO! ${this.movingHitsCount}/3 DIANAS • Ganaste <strong class="text-amber-300 font-black">+${coinRes.gained} 🪙</strong> (${mult}x) • Total: ${coinRes.total} 🪙`;
-        } else if (coinRes && coinRes.gained === 0) {
-          hintEl.innerHTML = `🏆 ¡PLENO ALQUÍMICO! ${this.movingHitsCount}/3 DIANAS • Multiplicador ${mult}x • Total: ${coinRes.total} 🪙`;
-        } else {
-          hintEl.innerHTML = `🏆 ¡PLENO ALQUÍMICO! ${this.movingHitsCount}/3 DIANAS • GANAS ${mult}x 🪙 (Práctica)`;
-        }
+        hintEl.innerHTML = `🏆 ¡${this.movingHitsCount}/3 DIANAS ACERTADAS! (x${mult})`;
         hintEl.className = 'text-center text-sm font-black text-emerald-400 mt-1 mb-2';
       }
     } else {
       if (modalBox) modalBox.classList.add('roulette-lose-glow');
       if (window.audio) window.audio.playDisappointedCrowd();
 
-      let coinRes = null;
-      if (window.game && !this.isTrainingMode) {
-        coinRes = window.game.multiplyCoins(mult);
-      }
+      const hasBoost = window.stateManager ? (typeof window.stateManager.hasRouletteBoost === 'function' ? window.stateManager.hasRouletteBoost() : window.stateManager.state.upgrades.rouletteBoost) : false;
+      this.applyAndAnimateBonusCoins(mult, hasBoost);
 
       if (hintEl) {
-        if (coinRes && coinRes.gained < 0) {
-          hintEl.textContent = `❌ ${this.movingHitsCount}/3 aciertos. Perdiste ${Math.abs(coinRes.gained)} 🪙 • Total: ${coinRes.total} 🪙`;
+        if (hasBoost) {
+          hintEl.textContent = `🛡️ ${this.movingHitsCount}/3 aciertos • ¡Seguro activo!`;
+          hintEl.className = 'text-center text-xs font-black text-sky-300 mt-1 mb-2';
         } else {
-          hintEl.textContent = `❌ ${this.movingHitsCount}/3 aciertos. Fin de dardos.`;
+          hintEl.textContent = `❌ ${this.movingHitsCount}/3 aciertos (÷2)`;
+          hintEl.className = 'text-center text-xs font-black text-rose-400 mt-1 mb-2';
         }
-        hintEl.className = 'text-center text-xs font-black text-rose-400 mt-1 mb-2';
       }
     }
 
@@ -1877,7 +1834,182 @@ class MinigameEngine {
     }
   }
 
+  // --- MARCADOR Y ANIMACIÓN DE MONEDAS DEL BONUS ---
+  cancelCoinAnimation() {
+    if (this._coinAnimFrame) {
+      cancelAnimationFrame(this._coinAnimFrame);
+      this._coinAnimFrame = null;
+    }
+    if (this._coinAnimTimer) {
+      clearTimeout(this._coinAnimTimer);
+      this._coinAnimTimer = null;
+    }
+  }
+
+  resetBonusScoreboardUI() {
+    this.cancelCoinAnimation();
+    const levelEl = document.getElementById('bonus-level-coins-val');
+    const totalEl = document.getElementById('bonus-total-coins-val');
+    const deltaEl = document.getElementById('bonus-floating-delta');
+
+    if (this.fromVictory) {
+      const earned = (window.game && window.game.lastLevelEarnedCoins > 0) ? window.game.lastLevelEarnedCoins : (this.levelCoinsAtStake || 50);
+      const walletBefore = (window.game && typeof window.game.lastLevelBaseWallet === 'number')
+        ? window.game.lastLevelBaseWallet
+        : Math.max(0, (window.game ? window.game.getCoins() : 0) - earned);
+      this.levelCoinsAtStake = earned;
+      this.walletBeforeBonus = walletBefore;
+    } else {
+      this.levelCoinsAtStake = 100;
+      this.walletBeforeBonus = window.game ? window.game.getCoins() : 0;
+    }
+
+    if (levelEl) {
+      levelEl.textContent = this.levelCoinsAtStake;
+      levelEl.className = 'text-base sm:text-lg font-black text-amber-300 font-mono tabular-nums transition-all duration-200';
+    }
+    if (totalEl) {
+      totalEl.textContent = this.walletBeforeBonus;
+      totalEl.className = 'text-base sm:text-lg font-black text-white font-mono tabular-nums transition-all duration-200';
+    }
+    if (deltaEl) {
+      deltaEl.textContent = '';
+      deltaEl.className = 'bonus-delta-badge hidden';
+    }
+  }
+
+  applyAndAnimateBonusCoins(mult, hasBoost = false) {
+    let coinRes = null;
+    const effectiveMult = (hasBoost && mult < 1) ? 1.0 : mult;
+
+    if (!this.isTrainingMode && window.game) {
+      coinRes = window.game.multiplyCoins(effectiveMult);
+    } else {
+      const base = this.levelCoinsAtStake || 100;
+      const finalLvl = effectiveMult >= 0
+        ? Math.round(base * effectiveMult)
+        : -Math.round(base * Math.abs(effectiveMult));
+      const delta = finalLvl - base;
+      const walletBefore = this.walletBeforeBonus || 0;
+      coinRes = {
+        baseLevelCoins: base,
+        finalLevelCoins: finalLvl,
+        delta: delta,
+        gained: finalLvl,
+        walletBefore: walletBefore,
+        total: Math.max(0, walletBefore + finalLvl),
+        multiplier: effectiveMult
+      };
+    }
+
+    this.animateBonusCoinResult(coinRes);
+    return coinRes;
+  }
+
+  animateBonusCoinResult(coinRes) {
+    if (!coinRes) return;
+    this.cancelCoinAnimation();
+
+    const levelEl = document.getElementById('bonus-level-coins-val');
+    const totalEl = document.getElementById('bonus-total-coins-val');
+    const deltaEl = document.getElementById('bonus-floating-delta');
+    if (!levelEl || !totalEl) return;
+
+    const startLevel = coinRes.baseLevelCoins ?? this.levelCoinsAtStake ?? 0;
+    const afterMultLevel = coinRes.finalLevelCoins ?? startLevel;
+    const delta = coinRes.delta ?? (afterMultLevel - startLevel);
+    const startTotal = coinRes.walletBefore ?? this.walletBeforeBonus ?? 0;
+    const finalTotal = coinRes.total ?? Math.max(0, startTotal + afterMultLevel);
+
+    levelEl.textContent = startLevel;
+    totalEl.textContent = startTotal;
+
+    // FASE 1: +(importe ganado) en verde hacia arriba o -(importe perdido) en rojo hacia abajo
+    if (deltaEl && delta !== 0) {
+      deltaEl.classList.remove('hidden', 'bonus-delta-up', 'bonus-delta-down');
+      void deltaEl.offsetWidth;
+      if (delta > 0) {
+        deltaEl.textContent = `+${delta} 🪙`;
+        deltaEl.classList.add('bonus-delta-up');
+        levelEl.className = 'text-base sm:text-lg font-black text-emerald-400 font-mono tabular-nums scale-110 transition-all duration-200';
+      } else {
+        deltaEl.textContent = `${delta} 🪙`;
+        deltaEl.classList.add('bonus-delta-down');
+        levelEl.className = 'text-base sm:text-lg font-black text-rose-400 font-mono tabular-nums scale-110 transition-all duration-200';
+      }
+    }
+
+    const phase1Duration = delta !== 0 ? 650 : 150;
+    const phase1Start = performance.now();
+
+    const stepPhase1 = (now) => {
+      const elapsed = now - phase1Start;
+      const t = Math.min(1, elapsed / phase1Duration);
+      const eased = 1 - Math.pow(1 - t, 3);
+      const currentLvl = Math.round(startLevel + (afterMultLevel - startLevel) * eased);
+      levelEl.textContent = currentLvl;
+
+      if (t < 1) {
+        this._coinAnimFrame = requestAnimationFrame(stepPhase1);
+      } else {
+        levelEl.textContent = afterMultLevel;
+        this._coinAnimTimer = setTimeout(() => {
+          if (deltaEl) {
+            deltaEl.classList.add('hidden');
+            deltaEl.classList.remove('bonus-delta-up', 'bonus-delta-down');
+          }
+          this.runPhase2Transfer(afterMultLevel, startTotal, finalTotal, levelEl, totalEl);
+        }, 450);
+      }
+    };
+
+    this._coinAnimFrame = requestAnimationFrame(stepPhase1);
+  }
+
+  runPhase2Transfer(afterMultLevel, startTotal, finalTotal, levelEl, totalEl) {
+    if (afterMultLevel === 0 && startTotal === finalTotal) {
+      levelEl.textContent = '0';
+      levelEl.className = 'text-base sm:text-lg font-black text-slate-500 font-mono tabular-nums transition-all duration-200';
+      totalEl.textContent = finalTotal;
+      return;
+    }
+
+    const duration = 850;
+    const startTime = performance.now();
+    const isPositiveTransfer = finalTotal >= startTotal;
+
+    totalEl.className = `text-base sm:text-lg font-black ${isPositiveTransfer ? 'text-emerald-400' : 'text-rose-400'} font-mono tabular-nums scale-110 transition-all duration-200`;
+
+    const stepTransfer = (now) => {
+      const elapsed = now - startTime;
+      const t = Math.min(1, elapsed / duration);
+      const eased = 1 - Math.pow(1 - t, 3);
+
+      const remLevel = Math.round(afterMultLevel * (1 - eased));
+      const curTotal = Math.round(startTotal + (finalTotal - startTotal) * eased);
+
+      levelEl.textContent = remLevel;
+      totalEl.textContent = curTotal;
+
+      if (t < 1) {
+        this._coinAnimFrame = requestAnimationFrame(stepTransfer);
+      } else {
+        levelEl.textContent = '0';
+        levelEl.className = 'text-base sm:text-lg font-black text-slate-500 font-mono tabular-nums transition-all duration-200';
+        totalEl.textContent = finalTotal;
+        this._coinAnimTimer = setTimeout(() => {
+          if (totalEl) {
+            totalEl.className = `text-base sm:text-lg font-black ${isPositiveTransfer ? 'text-emerald-300' : 'text-rose-300'} font-mono tabular-nums transition-all duration-200`;
+          }
+        }, 300);
+      }
+    };
+
+    this._coinAnimFrame = requestAnimationFrame(stepTransfer);
+  }
+
   cancelFinalizeTimer() {
+    this.cancelCoinAnimation();
     if (this.finalizeTimer) {
       clearTimeout(this.finalizeTimer);
       this.finalizeTimer = null;
@@ -1959,6 +2091,7 @@ class MinigameEngine {
     this.isTrainingMode = !this.fromVictory;
     this.roundCompleted = false;
     this.openTimestamp = Date.now();
+    this.levelCoinsAtStake = coins > 0 ? coins : 50;
     if (!this.wheelGroup) this.initDOM();
 
     // Configurar estado inicial del botón de acción inferior
