@@ -1849,9 +1849,10 @@ class GameController {
 
       tubeEl.appendChild(glassEl);
 
-      // Indicadores especiales (Tubo estrecho 1x1, Gigante, Pegado, Frágil)
+      // Indicadores especiales (Tubo estrecho 1x1, Mini normal, Mini 1x1, Gigante, Pegado, Frágil)
       if (tube.isNarrow) {
         tubeEl.classList.add('tube-narrow');
+        if (tube.isMini) tubeEl.classList.add('tube-mini');
         // Emisor de burbujitas mágicas continuas dentro del cristal
         const emitter = document.createElement('div');
         emitter.className = 'narrow-bubble-emitter';
@@ -1865,8 +1866,14 @@ class GameController {
 
         const narrowTag = document.createElement('span');
         narrowTag.className = 'absolute -bottom-5 left-1/2 -translate-x-1/2 text-[9.5px] text-purple-200 font-extrabold tracking-wider px-1.5 py-0.5 rounded-full bg-purple-950/90 border border-purple-400/60 shadow-md whitespace-nowrap flex items-center gap-0.5 z-30 pointer-events-none';
-        narrowTag.innerHTML = `<span>1x1</span><span class="text-[8px] text-purple-300">✨</span>`;
+        narrowTag.innerHTML = tube.isMini ? `<span>Mini 1x1</span><span class="text-[8px] text-purple-300">✨</span>` : `<span>1x1</span><span class="text-[8px] text-purple-300">✨</span>`;
         tubeEl.appendChild(narrowTag);
+      } else if (tube.isMini) {
+        tubeEl.classList.add('tube-mini');
+        const miniTag = document.createElement('span');
+        miniTag.className = 'absolute -bottom-5 left-1/2 -translate-x-1/2 text-[9.5px] text-sky-200 font-extrabold tracking-wider px-1.5 py-0.5 rounded-full bg-sky-950/90 border border-sky-400/60 shadow-md whitespace-nowrap flex items-center gap-0.5 z-30 pointer-events-none';
+        miniTag.innerHTML = `<span>Mini</span><span class="text-[8px] text-sky-300">🧪</span>`;
+        tubeEl.appendChild(miniTag);
       }
       if (tube.capacity === 8) {
         const superTag = document.createElement('span');
@@ -2534,8 +2541,8 @@ class GameController {
       }
     }
 
-    // Si algún tubo es estrecho, sólo se mueve 1 unidad
-    if (fromTube.isNarrow || toTube.isNarrow) {
+    // Si algún tubo es estrecho o mini, sólo se mueve 1 unidad
+    if (fromTube.isNarrow || toTube.isNarrow || fromTube.isMini || toTube.isMini) {
       count = 1;
     }
 
@@ -5436,10 +5443,10 @@ class GameController {
     const btnHomeTutorials = document.getElementById('btn-home-tutorials');
     if (btnHomeTutorials) {
       this.bindTapOrClick(btnHomeTutorials, () => {
-        this.navigationSource = 'home';
+        this.navigationSource = 'extras';
         this.hideModal(this.modalHome);
         if (this.modalExtras) this.hideModal(this.modalExtras);
-        this.openTutorialModal();
+        this.openTutorialsHelp('basic');
       });
     }
 
@@ -7321,9 +7328,15 @@ class GameController {
 
   closeTutorialModal() {
     this.hideModal(this.modalTutorial);
-    if (this.navigationSource === 'home') {
+    if (this.navigationSource === 'extras') {
+      this.openExtrasModal();
+    } else if (this.navigationSource === 'home') {
       this.openHomeModal();
     }
+  }
+
+  openTutorialModal(preferredId = 'basic') {
+    this.openTutorialsHelp(preferredId);
   }
 
   // --- TALLER DE CREACIÓN DE NIVELES (LEVEL EDITOR) ---
@@ -7439,11 +7452,18 @@ class GameController {
       // Header del tubo: Selector de mecánica
       const selectType = document.createElement('select');
       selectType.className = 'w-full bg-slate-900 border border-slate-700 text-[10px] text-sky-200 rounded-lg p-1 outline-none';
+      const isNormal = !tube.isGlued && !tube.isLocked && !tube.isNarrow && !tube.isMini && !tube.isAffinity && !tube.isFragile;
+      const isMiniNormal = tube.isMini && !tube.isNarrow;
+      const isNarrowNormal = tube.isNarrow && !tube.isMini;
+      const isMiniNarrow = tube.isNarrow && tube.isMini;
+
       selectType.innerHTML = `
-        <option value="normal" ${!tube.isGlued && !tube.isLocked && !tube.isNarrow && !tube.isAffinity && !tube.isFragile ? 'selected' : ''}>Normal</option>
+        <option value="normal" ${isNormal ? 'selected' : ''}>Normal (4, 6 u 8)</option>
+        <option value="mini_normal" ${isMiniNormal ? 'selected' : ''}>Mini Normal (1 Espacio) 🧪</option>
+        <option value="narrow" ${isNarrowNormal ? 'selected' : ''}>Estrecho 1x1 (Normal) ✨</option>
+        <option value="mini_narrow" ${isMiniNarrow ? 'selected' : ''}>Mini 1x1 (Estrecho) 🔬</option>
         <option value="glued" ${tube.isGlued ? 'selected' : ''}>Inamovible (Roca) 🪨</option>
         <option value="lock" ${tube.isLocked ? 'selected' : ''}>Candado 🔒</option>
-        <option value="narrow" ${tube.isNarrow ? 'selected' : ''}>Estrecho 1x1</option>
         <option value="affinity" ${tube.isAffinity && !tube.isSuperFragile ? 'selected' : ''}>Afinidad (3 Usos) 💎</option>
         <option value="super_fragile" ${tube.isAffinity && tube.isSuperFragile ? 'selected' : ''}>Volátil (1 Uso) ⚡</option>
       `;
@@ -7451,14 +7471,19 @@ class GameController {
         const val = e.target.value;
         tube.isGlued = (val === 'glued');
         tube.isLocked = (val === 'lock');
-        tube.isNarrow = (val === 'narrow');
+        tube.isNarrow = (val === 'narrow' || val === 'mini_narrow');
+        tube.isMini = (val === 'mini_normal' || val === 'mini_narrow');
         tube.isAffinity = (val === 'affinity' || val === 'super_fragile');
         tube.isFragile = tube.isAffinity;
         tube.isSuperFragile = (val === 'super_fragile');
         tube.maxCracks = tube.isAffinity ? (tube.isSuperFragile ? 1 : 3) : null;
         tube.cracks = 0;
         tube.isBroken = false;
-        if (tube.isNarrow) tube.capacity = 1;
+        if (tube.isNarrow || tube.isMini) {
+          tube.capacity = 1;
+        } else if (tube.capacity < 4) {
+          tube.capacity = 4;
+        }
         if (tube.isAffinity) {
           tube.liquids = []; // Los frascos de afinidad siempre inician vacíos
           if (!Array.isArray(tube.allowedColors) || tube.allowedColors.length === 0) {
@@ -7467,6 +7492,7 @@ class GameController {
             tube.allowedColorNames = [pal[0]?.name || 'Rojo', pal[1]?.name || 'Azul'];
           }
         }
+        while (tube.liquids.length > tube.capacity) tube.liquids.pop();
         this.editorLevel.hasBeenPassed = false;
         this.updateEditorValidation();
         this.renderEditorTubes();
@@ -7509,8 +7535,8 @@ class GameController {
         card.appendChild(affBox);
       }
 
-      // Selector de capacidad (4 Normal, 6 Gigante u 8 Súper Largo)
-      if (!tube.isNarrow) {
+      // Selector de capacidad (4 Normal, 6 Gigante u 8 Súper Largo) o Etiqueta fija
+      if (!tube.isNarrow && !tube.isMini) {
         const capBtn = document.createElement('button');
         capBtn.className = 'text-[10px] text-slate-400 hover:text-white font-mono underline';
         const capName = tube.capacity === 8 ? '8 (Súper Largo)' : (tube.capacity === 6 ? '6 (Gigante)' : '4 (Normal)');
@@ -7525,6 +7551,11 @@ class GameController {
           this.renderEditorTubes();
         };
         card.appendChild(capBtn);
+      } else {
+        const capTag = document.createElement('span');
+        capTag.className = 'text-[9.5px] text-purple-300/80 font-mono text-center';
+        capTag.textContent = tube.isMini ? (tube.isNarrow ? 'Capacidad: 1 (Mini 1x1)' : 'Capacidad: 1 (Mini Normal)') : 'Capacidad: 1 (1x1 Normal)';
+        card.appendChild(capTag);
       }
 
       // Columna de ranuras de líquido
@@ -7597,50 +7628,155 @@ class GameController {
     this.renderEditorTubes();
   }
 
+  validateCustomLevel(tubes = this.editorLevel.tubes) {
+    if (!Array.isArray(tubes) || tubes.length === 0) {
+      return {
+        valid: false,
+        message: 'El nivel debe contener frascos configurados.',
+        tubeCount: 0,
+        colorCount: 0,
+        minColors: 1,
+        maxColors: 2
+      };
+    }
+
+    const tubeCount = tubes.length;
+    let totalCap = 0;
+    let totalLiquids = 0;
+    const colorSet = new Set();
+    const colorCounts = {};
+
+    tubes.forEach(t => {
+      totalCap += t.capacity || 4;
+      (t.liquids || []).forEach(l => {
+        totalLiquids++;
+        if (l && l.color && !l.isChameleon && l.color !== 'chameleon') {
+          colorSet.add(l.color);
+          colorCounts[l.color] = (colorCounts[l.color] || 0) + 1;
+        }
+      });
+    });
+
+    const colorCount = colorSet.size;
+    const minColors = Math.max(1, tubeCount - 2);
+    const maxColors = tubeCount - 1;
+
+    // 1. Debe haber líquidos de colores en los frascos
+    if (totalLiquids === 0 || colorCount === 0) {
+      return {
+        valid: false,
+        message: `Debes añadir líquidos a los frascos (${minColors} a ${maxColors} colores requeridos).`,
+        tubeCount,
+        colorCount,
+        minColors,
+        maxColors
+      };
+    }
+
+    // 2. La cantidad de frascos siempre debe ser mayor que la de colores (Nunca más o igual colores que frascos)
+    if (colorCount >= tubeCount) {
+      return {
+        valid: false,
+        message: `Hay ${colorCount} colores para ${tubeCount} frascos. La cantidad de frascos debe ser siempre mayor que la de colores (máximo permitido: ${maxColors} colores).`,
+        tubeCount,
+        colorCount,
+        minColors,
+        maxColors
+      };
+    }
+
+    // 3. Como máximo dos colores menos que frascos (diferencia no mayor a 2)
+    if (colorCount < minColors) {
+      const diff = tubeCount - colorCount;
+      return {
+        valid: false,
+        message: `Hay ${colorCount} colores para ${tubeCount} frascos (diferencia de ${diff}). Como máximo puede haber 2 colores menos que frascos (se requieren ${minColors} o ${maxColors} colores).`,
+        tubeCount,
+        colorCount,
+        minColors,
+        maxColors
+      };
+    }
+
+    // 4. Debe haber al menos 1 espacio libre para poder mover fluidos
+    if (totalCap - totalLiquids < 1) {
+      return {
+        valid: false,
+        message: 'Tu nivel debe tener al menos 1 espacio libre o un frasco vacío para poder realizar trasvases.',
+        tubeCount,
+        colorCount,
+        minColors,
+        maxColors
+      };
+    }
+
+    // 5. Frasco en roca no puede tener un color que sume más unidades que su capacidad
+    for (const tube of tubes) {
+      if (tube.isGlued && tube.liquids && tube.liquids.length > 0) {
+        const gluedColor = tube.liquids[0].color;
+        const count = colorCounts[gluedColor] || 0;
+        if (count > tube.capacity) {
+          return {
+            valid: false,
+            message: `El frasco en roca tiene un color que suma ${count} unidades en el nivel, pero su capacidad es ${tube.capacity}. Como no puede verterse, el nivel sería imposible de ganar.`,
+            tubeCount,
+            colorCount,
+            minColors,
+            maxColors
+          };
+        }
+      }
+    }
+
+    return {
+      valid: true,
+      message: `Reglas válidas: ${colorCount} colores para ${tubeCount} frascos (permitido: ${minColors} a ${maxColors}).`,
+      tubeCount,
+      colorCount,
+      minColors,
+      maxColors
+    };
+  }
+
   updateEditorValidation() {
     const badge = document.getElementById('editor-validation-badge');
     const btnPub = document.getElementById('btn-editor-publish');
+    const lblCount = document.getElementById('editor-colors-count-lbl');
+
+    const validation = this.validateCustomLevel();
+
+    if (lblCount) {
+      lblCount.textContent = `${validation.colorCount} Colores / ${validation.tubeCount} Frascos (Válido: ${validation.minColors}-${validation.maxColors})`;
+      lblCount.className = validation.valid
+        ? 'text-[10px] font-mono font-bold text-emerald-300 bg-emerald-950/60 px-2 py-0.5 rounded-full border border-emerald-400/40'
+        : 'text-[10px] font-mono font-bold text-rose-300 bg-rose-950/60 px-2 py-0.5 rounded-full border border-rose-400/40';
+    }
+
     if (!badge || !btnPub) return;
 
+    if (!validation.valid) {
+      badge.className = 'px-2.5 py-1 rounded-xl bg-rose-500/20 text-rose-300 font-bold border border-rose-500/40 text-xs';
+      badge.innerHTML = `❌ ${validation.message}`;
+      btnPub.disabled = true;
+      return;
+    }
+
     if (this.editorLevel.hasBeenPassed) {
-      badge.className = 'px-2.5 py-1 rounded-xl bg-emerald-500/20 text-emerald-300 font-bold border border-emerald-500/40';
-      badge.innerHTML = '✓ ¡NIVEL VALIDADO Y SUPERADO! Listo para publicar.';
+      badge.className = 'px-2.5 py-1 rounded-xl bg-emerald-500/20 text-emerald-300 font-bold border border-emerald-500/40 text-xs';
+      badge.innerHTML = `✓ ¡NIVEL VALIDADO Y SUPERADO! (${validation.colorCount} colores / ${validation.tubeCount} frascos). Listo para publicar.`;
       btnPub.disabled = false;
     } else {
-      badge.className = 'px-2.5 py-1 rounded-xl bg-amber-500/20 text-amber-300 font-bold border border-amber-500/40';
-      badge.innerHTML = '⚠️ Sin validar (Debes ganar el nivel al menos una vez para publicarlo)';
+      badge.className = 'px-2.5 py-1 rounded-xl bg-amber-500/20 text-amber-300 font-bold border border-amber-500/40 text-xs';
+      badge.innerHTML = `⚠️ Reglas OK (${validation.colorCount} colores / ${validation.tubeCount} frascos). Pruébalo y gánalo para publicarlo.`;
       btnPub.disabled = true;
     }
   }
 
   testCustomLevel() {
-    let totalCap = 0;
-    let totalLiquids = 0;
-    this.editorLevel.tubes.forEach(t => {
-      totalCap += t.capacity;
-      totalLiquids += t.liquids.length;
-    });
-
-    if (totalCap - totalLiquids < 1) {
-      alert('Tu nivel debe tener al menos 1 espacio libre o un frasco vacío para poder realizar trasvases.');
+    const validation = this.validateCustomLevel();
+    if (!validation.valid) {
+      alert(`⚠️ Nivel no válido:\n\n${validation.message}`);
       return;
-    }
-
-    // Validación de resolubilidad: El frasco en roca jamás puede tener un color con más unidades que su capacidad
-    for (const tube of this.editorLevel.tubes) {
-      if (tube.isGlued && tube.liquids.length > 0) {
-        const gluedColor = tube.liquids[0].color;
-        let count = 0;
-        for (const t of this.editorLevel.tubes) {
-          for (const l of t.liquids) {
-            if (l.color === gluedColor) count++;
-          }
-        }
-        if (count > tube.capacity) {
-          alert(`⚠️ Regla de Roca Inamovible: El frasco en roca tiene un color que suma ${count} unidades en el nivel, pero el frasco solo tiene capacidad ${tube.capacity}. Como no puede verterse, este nivel sería imposible de ganar. Cambia el color o la capacidad.`);
-          return;
-        }
-      }
     }
 
     const nameInput = document.getElementById('editor-level-name');
@@ -8130,6 +8266,15 @@ class GameController {
   }
 
   publishCustomLevel() {
+    const validation = this.validateCustomLevel();
+    if (!validation.valid) {
+      alert(`⚠️ Nivel no válido:\n\n${validation.message}`);
+      return;
+    }
+    if (!this.editorLevel.hasBeenPassed) {
+      alert('⚠️ Debes probar y superar el nivel al menos una vez para poder publicarlo.');
+      return;
+    }
     this.openPublishLevelModal({
       tubes: this.editorLevel.tubes,
       moves: 12,

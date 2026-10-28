@@ -46,10 +46,10 @@
   <link rel="icon" type="image/svg+xml" href="icons/icon.svg">
 
   <!-- Modular Stylesheets -->
-  <link rel="stylesheet" href="css/main.css?v=74">
-  <link rel="stylesheet" href="css/tubes.css?v=74">
-  <link rel="stylesheet" href="css/roulette.css?v=74">
-  <link rel="stylesheet" href="css/accessibility.css?v=74">
+  <link rel="stylesheet" href="css/main.css?v=75">
+  <link rel="stylesheet" href="css/tubes.css?v=75">
+  <link rel="stylesheet" href="css/roulette.css?v=75">
+  <link rel="stylesheet" href="css/accessibility.css?v=75">
 </head>
 <body class="min-h-screen flex flex-col justify-between select-none relative">
 
@@ -1828,9 +1828,12 @@
 
         <!-- Paleta de Color y Efecto Activo para Pintar -->
         <div class="bg-slate-800/60 p-3.5 rounded-2xl border border-slate-700/60">
-          <div class="flex items-center justify-between mb-2">
+          <div class="flex flex-wrap items-center justify-between gap-1 mb-2">
             <span class="text-xs font-bold text-slate-300">Selecciona Color / Propiedad para Pincelar Frascos:</span>
-            <span id="editor-active-brush-lbl" class="text-xs font-black text-purple-300 bg-purple-500/20 px-2 py-0.5 rounded-full border border-purple-400/40">Pincel: Rojo</span>
+            <div class="flex items-center gap-2">
+              <span id="editor-colors-count-lbl" class="text-[10px] font-mono font-bold text-emerald-300 bg-emerald-950/60 px-2 py-0.5 rounded-full border border-emerald-400/40">3 Colores / 5 Frascos (Válido: 3-4)</span>
+              <span id="editor-active-brush-lbl" class="text-xs font-black text-purple-300 bg-purple-500/20 px-2 py-0.5 rounded-full border border-purple-400/40">Pincel: Rojo</span>
+            </div>
           </div>
           <div id="editor-palette-brushes" class="flex flex-wrap items-center gap-2">
             <!-- Generado dinámicamente -->
@@ -2953,19 +2956,19 @@
   <input type="file" id="input-save-file" accept=".json" class="hidden">
 
   <!-- Scripts modulares -->
-  <script src="js/firebase-config.js?v=74"></script>
-  <script src="js/cloud-sync.js?v=74"></script>
-  <script src="js/audio.js?v=74"></script>
-  <script src="js/palette.js?v=74"></script>
-  <script src="js/levels.js?v=74"></script>
-  <script src="js/challenges.js?v=74"></script>
-  <script src="js/honor.js?v=74"></script>
-  <script src="js/state.js?v=74"></script>
-  <script src="js/achievements.js?v=74"></script>
-  <script src="js/leaderboard.js?v=74"></script>
-  <script src="js/roulette.js?v=74"></script>
-  <script src="js/story.js?v=74"></script>
-  <script src="js/game.js?v=74"></script>
+  <script src="js/firebase-config.js?v=75"></script>
+  <script src="js/cloud-sync.js?v=75"></script>
+  <script src="js/audio.js?v=75"></script>
+  <script src="js/palette.js?v=75"></script>
+  <script src="js/levels.js?v=75"></script>
+  <script src="js/challenges.js?v=75"></script>
+  <script src="js/honor.js?v=75"></script>
+  <script src="js/state.js?v=75"></script>
+  <script src="js/achievements.js?v=75"></script>
+  <script src="js/leaderboard.js?v=75"></script>
+  <script src="js/roulette.js?v=75"></script>
+  <script src="js/story.js?v=75"></script>
+  <script src="js/game.js?v=75"></script>
 
   <!-- Registro de Service Worker PWA -->
   <script>

@@ -879,12 +879,17 @@
 }
 
 /* ==========================================================================
-   TUBO ESTRECHO DE PRECISIÓN (1x1) - DISEÑO DELGADO, ALQUÍMICO Y BURBUJEANTE
+   TUBO ESTRECHO DE PRECISIÓN (1x1) - TAMAÑO NORMAL ESTÁNDAR, ALQUÍMICO Y BURBUJEANTE
    ========================================================================== */
 .test-tube.tube-narrow {
+  filter: drop-shadow(0 0 10px rgba(192, 132, 252, 0.4));
+  transition: transform 0.28s cubic-bezier(0.34, 1.56, 0.64, 1), filter 0.25s ease;
+}
+
+/* Versión Mini Compacta (Permite versión mini para tubo normal o tubo estrecho) */
+.test-tube.tube-mini {
   width: 72% !important;
   max-width: 44px !important;
-  filter: drop-shadow(0 0 10px rgba(192, 132, 252, 0.4));
   transition: transform 0.28s cubic-bezier(0.34, 1.56, 0.64, 1), filter 0.25s ease, width 0.25s ease;
 }
 
