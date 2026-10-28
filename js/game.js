@@ -185,6 +185,11 @@ class GameController {
     this.modalExitModeConfirm = document.getElementById('modal-exit-mode-confirm');
     this.modalConfirmExitGame = document.getElementById('modal-confirm-exit-game');
     this.screenGameExited = document.getElementById('screen-game-exited');
+    this.modalPublishLevel = document.getElementById('modal-publish-level');
+    this.modalCommunityLevels = document.getElementById('modal-community-levels');
+    this.currentCommunityFilter = 'all';
+    this.pendingPublishLevel = null;
+    this.pendingPublishDifficulty = null;
     this.navigationSource = 'game';
     this.pendingExitDestination = 'home';
 
@@ -531,6 +536,12 @@ class GameController {
       if (this.selLevelQuick) this.selLevelQuick.value = '';
       if (this.lblOptimalMoves) this.lblOptimalMoves.textContent = this.levelData.optimalMoves;
       if (this.lblMechanicTag) this.lblMechanicTag.textContent = this.levelData.mechanicTag;
+      this.updateCoinsUI();
+      return;
+    }
+    if (this.customLevelTesting) {
+      if (this.lblLevel) this.lblLevel.textContent = '🧪 COMUNIDAD';
+      if (this.lblMechanicTag) this.lblMechanicTag.textContent = this.customLevelTesting.name || 'Personalizado';
       this.updateCoinsUI();
       return;
     }
@@ -3358,13 +3369,23 @@ class GameController {
   }
 
   triggerVictorySequence() {
-    // Si estamos en modo de prueba de nivel personalizado
+    // Si estamos en modo de juego o prueba de nivel personalizado
     if (this.customLevelTesting) {
+      if (this.customLevelTesting.isCommunityPlay) {
+        if (window.audio) window.audio.playWinFanfare();
+        alert(`¡Felicitaciones! Has completado el nivel de la comunidad '${this.customLevelTesting.name}' en ${this.moves} movimientos.`);
+        this.openCommunityLevelsModal();
+        return;
+      }
       this.customLevelTesting.hasBeenPassed = true;
       this.editorLevel.hasBeenPassed = true;
       if (window.audio) window.audio.playWinFanfare();
-      alert(`¡FELICITACIONES! Has superado con éxito tu nivel '${this.customLevelTesting.name}'. ¡Ya ha sido validado y puedes publicarlo en el Taller!`);
-      this.openEditorModal('design');
+      this.openPublishLevelModal({
+        tubes: this.customLevelTesting.tubes,
+        moves: this.moves,
+        name: this.customLevelTesting.name,
+        creator: this.customLevelTesting.creator
+      });
       return;
     }
 
@@ -3677,20 +3698,17 @@ class GameController {
             if (btnPublish) {
               btnPublish.onclick = () => {
                 this.hideModal(this.modalVictory);
-                // Cargar el nivel generado no resuelto en el editor
                 const savedTubes = this.initialSandboxTubes || this.levelData.tubes;
-                this.editorLevel.tubes = JSON.parse(JSON.stringify(savedTubes));
-                this.editorLevel.tubeCount = savedTubes.length;
-                this.editorLevel.name = levelName;
-                this.editorLevel.creator = window.stateManager?.state?.player?.nickname || 'Alquimista Viajero';
-                this.editorLevel.hasBeenPassed = true; // Ya validado con éxito en partida real
+                const movesUsed = this.moves;
+                const defaultName = levelName;
+                const creator = window.stateManager?.state?.player?.nickname || 'Alquimista Viajero';
 
-                const nameInput = document.getElementById('editor-level-name');
-                const creatorInput = document.getElementById('editor-creator-name');
-                if (nameInput) nameInput.value = this.editorLevel.name;
-                if (creatorInput) creatorInput.value = this.editorLevel.creator;
-
-                this.openEditorModal('design');
+                this.openPublishLevelModal({
+                  tubes: savedTubes,
+                  moves: movesUsed,
+                  name: defaultName,
+                  creator: creator
+                });
               };
             }
 
@@ -4798,6 +4816,7 @@ class GameController {
   openExtrasModal() {
     this.navigationSource = 'home';
     if (this.modalHome) this.hideModal(this.modalHome);
+    this.updateCommunityBadgeCount();
     this.showModal(this.modalExtras);
     if (window.lucide) lucide.createIcons();
   }
@@ -5595,26 +5614,47 @@ class GameController {
       this.setupBackdropClose(this.modalExtras, () => this.closeExtrasModal());
     }
 
-    // Guardado y Carga de Partida en Archivo (.json)
-    const btnExportFile = document.getElementById('btn-export-file');
-    if (btnExportFile) {
-      this.bindTapOrClick(btnExportFile, () => this.exportGameFile());
-    }
-
-    const btnImportFile = document.getElementById('btn-import-file');
-    if (btnImportFile) {
-      this.bindTapOrClick(btnImportFile, () => {
-        if (this.inputSaveFile) this.inputSaveFile.click();
+    // Acceso y navegación de Niveles de la Comunidad Alquímica
+    const btnOpenCommunity = document.getElementById('btn-open-community-levels');
+    if (btnOpenCommunity) {
+      this.bindTapOrClick(btnOpenCommunity, () => {
+        this.openCommunityLevelsModal('all');
       });
     }
 
-    if (this.inputSaveFile) {
-      this.inputSaveFile.addEventListener('change', (e) => {
-        if (e.target.files && e.target.files.length > 0) {
-          this.importGameFile(e.target.files[0]);
-          e.target.value = '';
-        }
+    const btnCloseCommunity = document.getElementById('btn-close-community-levels');
+    if (btnCloseCommunity) {
+      this.bindTapOrClick(btnCloseCommunity, () => {
+        this.closeCommunityLevelsModal();
       });
+    }
+
+    if (this.modalCommunityLevels) {
+      this.setupBackdropClose(this.modalCommunityLevels, () => this.closeCommunityLevelsModal());
+    }
+
+    // Filtros de dificultad en la Biblioteca de Niveles de la Comunidad
+    const filterBtns = document.querySelectorAll('#community-diff-filters-bar .btn-diff-filter');
+    filterBtns.forEach(btn => {
+      this.bindTapOrClick(btn, () => {
+        const diff = btn.getAttribute('data-diff-filter') || 'all';
+        this.openCommunityLevelsModal(diff);
+      });
+    });
+
+    // Modal de Publicación Rápida de Niveles (Solo Nombre y Publicar)
+    const btnSubmitPublish = document.getElementById('btn-submit-publish');
+    if (btnSubmitPublish) {
+      this.bindTapOrClick(btnSubmitPublish, () => this.executePublishLevel());
+    }
+
+    const btnCancelPublish = document.getElementById('btn-cancel-publish');
+    if (btnCancelPublish) {
+      this.bindTapOrClick(btnCancelPublish, () => this.hideModal(this.modalPublishLevel));
+    }
+
+    if (this.modalPublishLevel) {
+      this.setupBackdropClose(this.modalPublishLevel, () => this.hideModal(this.modalPublishLevel));
     }
 
     // Soporte e Instalación de App Móvil (PWA)
@@ -7556,66 +7596,361 @@ class GameController {
     this.loadLevel(1, 0, customLevelObj);
   }
 
-  publishCustomLevel() {
-    if (!this.editorLevel.hasBeenPassed) {
-      alert('Debes ganar el nivel al menos una vez en Modo Prueba antes de publicarlo.');
-      return;
+  // --- NIVELES DE LA COMUNIDAD Y SISTEMA DE DIFICULTAD PROCEDURAL ---
+  calculateCustomLevelDifficulty(levelData) {
+    const tubes = levelData.tubes || [];
+    const moves = levelData.moves || 15;
+
+    let score = 0;
+    const mechanics = [];
+
+    // 1. Frascos totales
+    const tubeCount = tubes.length;
+    if (tubeCount <= 5) {
+      score += 1;
+    } else if (tubeCount <= 7) {
+      score += 2;
+    } else if (tubeCount <= 9) {
+      score += 3;
+    } else {
+      score += 4.5;
     }
+    mechanics.push(`${tubeCount} Frascos`);
+
+    // 2. Colores distintos
+    const colorSet = new Set();
+    tubes.forEach(t => {
+      (t.liquids || []).forEach(l => {
+        if (!l.isChameleon && l.color) colorSet.add(l.color.toLowerCase());
+      });
+    });
+    const colorCount = colorSet.size;
+    if (colorCount >= 7) score += 3;
+    else if (colorCount >= 5) score += 2;
+    else score += 1;
+
+    // 3. Mecánicas especiales detectadas en los frascos
+    let hasGiant = false;
+    let hasSuperGiant = false;
+    let hasLock = false;
+    let hasNarrow = false;
+    let hasGlued = false;
+    let hasFragile = false;
+    let hasMystery = false;
+    let hasChameleon = false;
+
+    tubes.forEach(t => {
+      if (t.capacity >= 8) hasSuperGiant = true;
+      else if (t.capacity >= 6) hasGiant = true;
+      if (t.isLocked) hasLock = true;
+      if (t.isNarrow) hasNarrow = true;
+      if (t.isGlued) hasGlued = true;
+      if (t.isFragile || t.isAffinity) hasFragile = true;
+      (t.liquids || []).forEach(l => {
+        if (l.isMystery) hasMystery = true;
+        if (l.isChameleon) hasChameleon = true;
+      });
+    });
+
+    if (hasSuperGiant) { score += 2.5; mechanics.push('Max 8 (Titán)'); }
+    else if (hasGiant) { score += 1.5; mechanics.push('Max 6'); }
+    if (hasLock) { score += 2; mechanics.push('🔒 Candado'); }
+    if (hasNarrow) { score += 1.5; mechanics.push('1x1 ✨'); }
+    if (hasGlued) { score += 2; mechanics.push('🪨 En Roca'); }
+    if (hasFragile) { score += 2; mechanics.push('🛡️ Cristal'); }
+    if (hasMystery) { score += 1.5; mechanics.push('❓ Misterio'); }
+    if (hasChameleon) { score += 2; mechanics.push('🌈 Camaleón'); }
+
+    // 4. Métrica de movimientos requeridos para resolverlo
+    if (moves <= 12) score += 0.5;
+    else if (moves <= 20) score += 1.5;
+    else if (moves <= 32) score += 2.5;
+    else score += 4;
+
+    // 5. Clasificación de dificultad
+    let level = 'medium';
+    let label = 'Intermedio';
+    let stars = '⭐⭐';
+    let colorClass = 'text-amber-300 bg-amber-500/15 border-amber-400/30';
+
+    if (score < 4.5) {
+      level = 'easy';
+      label = 'Fácil';
+      stars = '⭐';
+      colorClass = 'text-emerald-300 bg-emerald-500/15 border-emerald-400/30';
+    } else if (score < 7.5) {
+      level = 'medium';
+      label = 'Intermedio';
+      stars = '⭐⭐';
+      colorClass = 'text-amber-300 bg-amber-500/15 border-amber-400/30';
+    } else if (score < 11) {
+      level = 'hard';
+      label = 'Desafiante';
+      stars = '⭐⭐⭐';
+      colorClass = 'text-rose-300 bg-rose-500/15 border-rose-400/30';
+    } else {
+      level = 'master';
+      label = 'Maestro Alquimista';
+      stars = '👑';
+      colorClass = 'text-purple-300 bg-purple-500/20 border-purple-400/40';
+    }
+
+    return {
+      score,
+      level,
+      label,
+      stars,
+      colorClass,
+      mechanicsSummary: mechanics.join(' • '),
+      mechanics
+    };
+  }
+
+  openPublishLevelModal(data) {
+    if (!data || !data.tubes) return;
+    this.pendingPublishLevel = data;
+    const diff = this.calculateCustomLevelDifficulty(data);
+    this.pendingPublishDifficulty = diff;
+
+    const inputName = document.getElementById('publish-input-name');
+    const inputCreator = document.getElementById('publish-input-creator');
+    const badgeDiff = document.getElementById('publish-difficulty-badge');
+    const metricMoves = document.getElementById('publish-moves-metric');
+    const summaryFeatures = document.getElementById('publish-features-summary');
+
+    if (inputName) inputName.value = data.name || 'Crisol Alquímico';
+    if (inputCreator) inputCreator.value = data.creator || window.stateManager?.state?.player?.nickname || 'Alquimista Viajero';
+
+    if (badgeDiff) {
+      badgeDiff.className = `px-2.5 py-0.5 rounded-full font-bold text-[11px] border ${diff.colorClass}`;
+      badgeDiff.textContent = `${diff.stars} ${diff.label}`;
+    }
+    if (metricMoves) {
+      metricMoves.textContent = `🎯 ${data.moves || 0} movimientos`;
+    }
+    if (summaryFeatures) {
+      summaryFeatures.textContent = diff.mechanicsSummary;
+    }
+
+    if (this.modalPublishLevel) {
+      this.showModal(this.modalPublishLevel);
+      if (window.lucide) lucide.createIcons();
+    }
+  }
+
+  executePublishLevel() {
+    if (!this.pendingPublishLevel) return;
+
+    const inputName = document.getElementById('publish-input-name');
+    const inputCreator = document.getElementById('publish-input-creator');
+
+    const name = inputName?.value?.trim() || this.pendingPublishLevel.name || 'Nivel de la Comunidad';
+    const creator = inputCreator?.value?.trim() || this.pendingPublishLevel.creator || 'Alquimista Anónimo';
+    const diff = this.pendingPublishDifficulty || this.calculateCustomLevelDifficulty(this.pendingPublishLevel);
 
     const levelObj = {
       id: `custom_${Date.now()}`,
-      name: this.editorLevel.name,
-      creator: this.editorLevel.creator,
-      tubes: JSON.parse(JSON.stringify(this.editorLevel.tubes)),
-      createdAt: new Date().toLocaleDateString(),
-      optimalMoves: 12
+      name: name,
+      creator: creator,
+      tubes: JSON.parse(JSON.stringify(this.pendingPublishLevel.tubes)),
+      moves: this.pendingPublishLevel.moves || 15,
+      createdAt: new Date().toLocaleDateString('es-ES', { day: '2-digit', month: 'short', year: 'numeric' }),
+      difficulty: diff.level,
+      difficultyLabel: diff.label,
+      difficultyColor: diff.colorClass,
+      stars: diff.stars,
+      mechanicsSummary: diff.mechanicsSummary
     };
 
     if (window.stateManager) {
       window.stateManager.saveCustomLevel(levelObj);
     }
 
+    this.hideModal(this.modalPublishLevel);
+    this.pendingPublishLevel = null;
+
     if (window.audio) window.audio.playWinFanfare();
-    alert(`¡Éxito! Tu nivel '${levelObj.name}' creado por '${levelObj.creator}' ha sido publicado.`);
-    this.switchEditorTab('saved');
+    this.updateCommunityBadgeCount();
+    alert(`🚀 ¡Éxito! Tu nivel '${name}' ha sido publicado en la Biblioteca de la Comunidad.`);
   }
 
-  renderSavedCustomLevels() {
-    const listCont = document.getElementById('editor-saved-list');
-    const countEl = document.getElementById('editor-saved-count');
+  openCommunityLevelsModal(filter = 'all') {
+    this.currentCommunityFilter = filter;
+    this.updateCommunityFilterButtons();
+    this.renderCommunityLevelsList();
+    if (this.modalCommunityLevels) {
+      this.showModal(this.modalCommunityLevels);
+      if (window.lucide) lucide.createIcons();
+    }
+  }
+
+  closeCommunityLevelsModal() {
+    if (this.modalCommunityLevels) {
+      this.hideModal(this.modalCommunityLevels);
+    }
+  }
+
+  updateCommunityFilterButtons() {
+    const buttons = document.querySelectorAll('#community-diff-filters-bar .btn-diff-filter');
+    buttons.forEach(btn => {
+      const f = btn.getAttribute('data-diff-filter');
+      if (f === this.currentCommunityFilter) {
+        btn.classList.add('bg-purple-600', 'text-white', 'shadow-sm');
+        btn.classList.remove('bg-slate-800');
+      } else {
+        btn.classList.remove('bg-purple-600', 'text-white', 'shadow-sm');
+        btn.classList.add('bg-slate-800');
+      }
+    });
+  }
+
+  renderCommunityLevelsList() {
+    const listCont = document.getElementById('community-levels-list');
     if (!listCont) return;
     listCont.innerHTML = '';
 
-    const levels = window.stateManager ? window.stateManager.getCustomLevels() : [];
-    if (countEl) countEl.textContent = levels.length;
+    const defaultCommunityLevels = [
+      {
+        id: 'comm_default_1',
+        name: 'Iniciación de Mercurio',
+        creator: 'Hermes Alquimista',
+        moves: 9,
+        isBuiltin: true,
+        difficulty: 'easy',
+        difficultyLabel: 'Fácil',
+        difficultyColor: 'text-emerald-300 bg-emerald-500/15 border-emerald-400/30',
+        stars: '⭐',
+        mechanicsSummary: '5 Frascos • Básico',
+        createdAt: 'Oficial',
+        tubes: [
+          { id: 0, capacity: 4, isLocked: false, isNarrow: false, liquids: [{ color: '#ef4444', name: 'Rojo', shape: '●' }, { color: '#3b82f6', name: 'Azul', shape: '▲' }, { color: '#10b981', name: 'Verde', shape: '■' }, { color: '#ef4444', name: 'Rojo', shape: '●' }] },
+          { id: 1, capacity: 4, isLocked: false, isNarrow: false, liquids: [{ color: '#3b82f6', name: 'Azul', shape: '▲' }, { color: '#10b981', name: 'Verde', shape: '■' }, { color: '#ef4444', name: 'Rojo', shape: '●' }, { color: '#3b82f6', name: 'Azul', shape: '▲' }] },
+          { id: 2, capacity: 4, isLocked: false, isNarrow: false, liquids: [{ color: '#10b981', name: 'Verde', shape: '■' }, { color: '#ef4444', name: 'Rojo', shape: '●' }, { color: '#3b82f6', name: 'Azul', shape: '▲' }, { color: '#10b981', name: 'Verde', shape: '■' }] },
+          { id: 3, capacity: 4, isLocked: false, isNarrow: false, liquids: [] },
+          { id: 4, capacity: 4, isLocked: false, isNarrow: false, liquids: [] }
+        ]
+      },
+      {
+        id: 'comm_default_2',
+        name: 'El Cerrojo del Zafiro',
+        creator: 'Adepto Zafiro',
+        moves: 21,
+        isBuiltin: true,
+        difficulty: 'medium',
+        difficultyLabel: 'Intermedio',
+        difficultyColor: 'text-amber-300 bg-amber-500/15 border-amber-400/30',
+        stars: '⭐⭐',
+        mechanicsSummary: '6 Frascos • 🔒 Candado • 1x1 ✨',
+        createdAt: 'Oficial',
+        tubes: [
+          { id: 0, capacity: 4, isLocked: false, isNarrow: false, liquids: [{ color: '#ef4444', name: 'Rojo', shape: '●' }, { color: '#3b82f6', name: 'Azul', shape: '▲' }, { color: '#10b981', name: 'Verde', shape: '■' }, { color: '#eab308', name: 'Amarillo', shape: '★' }] },
+          { id: 1, capacity: 4, isLocked: true, keyColor: '#3b82f6', keyColorName: 'Azul', isNarrow: false, liquids: [{ color: '#3b82f6', name: 'Azul', shape: '▲' }, { color: '#eab308', name: 'Amarillo', shape: '★' }, { color: '#10b981', name: 'Verde', shape: '■' }, { color: '#ef4444', name: 'Rojo', shape: '●' }] },
+          { id: 2, capacity: 4, isLocked: false, isNarrow: false, liquids: [{ color: '#10b981', name: 'Verde', shape: '■' }, { color: '#eab308', name: 'Amarillo', shape: '★' }, { color: '#ef4444', name: 'Rojo', shape: '●' }, { color: '#3b82f6', name: 'Azul', shape: '▲' }] },
+          { id: 3, capacity: 4, isLocked: false, isNarrow: false, liquids: [{ color: '#eab308', name: 'Amarillo', shape: '★' }, { color: '#10b981', name: 'Verde', shape: '■' }, { color: '#ef4444', name: 'Rojo', shape: '●' }, { color: '#3b82f6', name: 'Azul', shape: '▲' }] },
+          { id: 4, capacity: 1, isLocked: false, isNarrow: true, liquids: [] },
+          { id: 5, capacity: 4, isLocked: false, isNarrow: false, liquids: [] }
+        ]
+      },
+      {
+        id: 'comm_default_3',
+        name: 'La Fragua del Fénix',
+        creator: 'Gran Alquimista Flamel',
+        moves: 35,
+        isBuiltin: true,
+        difficulty: 'hard',
+        difficultyLabel: 'Desafiante',
+        difficultyColor: 'text-rose-300 bg-rose-500/15 border-rose-400/30',
+        stars: '⭐⭐⭐',
+        mechanicsSummary: '8 Frascos • Max 6 • 🔒 Candado • 🪨 En Roca',
+        createdAt: 'Oficial',
+        tubes: [
+          { id: 0, capacity: 6, isLocked: false, isNarrow: false, liquids: [{ color: '#ef4444', name: 'Rojo', shape: '●' }, { color: '#ef4444', name: 'Rojo', shape: '●' }, { color: '#3b82f6', name: 'Azul', shape: '▲' }, { color: '#10b981', name: 'Verde', shape: '■' }, { color: '#eab308', name: 'Amarillo', shape: '★' }, { color: '#a855f7', name: 'Morado', shape: '◆' }] },
+          { id: 1, capacity: 4, isLocked: true, keyColor: '#ef4444', keyColorName: 'Rojo', isNarrow: false, liquids: [{ color: '#a855f7', name: 'Morado', shape: '◆' }, { color: '#3b82f6', name: 'Azul', shape: '▲' }, { color: '#10b981', name: 'Verde', shape: '■' }, { color: '#eab308', name: 'Amarillo', shape: '★' }] },
+          { id: 2, capacity: 4, isLocked: false, isNarrow: false, liquids: [{ color: '#a855f7', name: 'Morado', shape: '◆', isMystery: true }, { color: '#10b981', name: 'Verde', shape: '■', isMystery: true }, { color: '#eab308', name: 'Amarillo', shape: '★' }, { color: '#3b82f6', name: 'Azul', shape: '▲' }] },
+          { id: 3, capacity: 4, isLocked: false, isNarrow: false, liquids: [{ color: '#3b82f6', name: 'Azul', shape: '▲' }, { color: '#eab308', name: 'Amarillo', shape: '★' }, { color: '#a855f7', name: 'Morado', shape: '◆' }, { color: '#10b981', name: 'Verde', shape: '■' }] },
+          { id: 4, capacity: 4, isLocked: false, isNarrow: false, isGlued: true, liquids: [{ color: '#06b6d4', name: 'Cian', shape: '✚' }] },
+          { id: 5, capacity: 4, isLocked: false, isNarrow: false, liquids: [{ color: '#06b6d4', name: 'Cian', shape: '✚' }, { color: '#06b6d4', name: 'Cian', shape: '✚' }, { color: '#06b6d4', name: 'Cian', shape: '✚' }, { color: '#ef4444', name: 'Rojo', shape: '●' }] },
+          { id: 6, capacity: 4, isLocked: false, isNarrow: false, liquids: [] },
+          { id: 7, capacity: 4, isLocked: false, isNarrow: false, liquids: [] }
+        ]
+      }
+    ];
 
-    if (levels.length === 0) {
+    const userLevels = window.stateManager ? window.stateManager.getCustomLevels() : [];
+    
+    // Integrar niveles del usuario con los niveles predeterminados de la comunidad
+    const allLevels = [
+      ...userLevels.map(l => ({ ...l, isUser: true })),
+      ...defaultCommunityLevels.filter(def => !userLevels.some(u => u.id === def.id))
+    ];
+
+    // Asegurar métricas de dificultad para cada nivel
+    allLevels.forEach(lvl => {
+      if (!lvl.difficulty || !lvl.difficultyLabel) {
+        const diff = this.calculateCustomLevelDifficulty(lvl);
+        lvl.difficulty = diff.level;
+        lvl.difficultyLabel = diff.label;
+        lvl.difficultyColor = diff.colorClass;
+        lvl.stars = diff.stars;
+        lvl.mechanicsSummary = diff.mechanicsSummary;
+      }
+    });
+
+    // Filtrar según la pestaña seleccionada
+    let filtered = allLevels;
+    if (this.currentCommunityFilter !== 'all') {
+      filtered = allLevels.filter(l => l.difficulty === this.currentCommunityFilter);
+    }
+
+    this.updateCommunityBadgeCount(userLevels.length);
+
+    if (filtered.length === 0) {
       listCont.innerHTML = `
         <div class="text-center py-8 text-slate-400 text-xs">
-          Aún no has publicado ningún nivel. ¡Diseña uno, supéralo y publícalo!
+          No hay niveles en esta categoría de dificultad aún.
         </div>
       `;
       return;
     }
 
-    levels.forEach(lvl => {
+    filtered.forEach(lvl => {
       const card = document.createElement('div');
-      card.className = 'bg-slate-800/80 border border-slate-700/80 rounded-2xl p-3.5 flex items-center justify-between gap-3';
+      card.className = 'bg-slate-800/80 border border-slate-700/80 rounded-2xl p-3.5 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 shadow-md hover:border-purple-500/50 transition-all';
+      
+      const badgeClass = lvl.difficultyColor || 'text-amber-300 bg-amber-500/15 border-amber-400/30';
+      const badgeStars = lvl.stars || '⭐';
+      const badgeLabel = lvl.difficultyLabel || 'Intermedio';
+      const movesText = lvl.moves ? `🎯 Récord: ${lvl.moves} movs` : '🎯 Sin récord';
+      const featuresText = lvl.mechanicsSummary || `${lvl.tubes?.length || 5} Frascos`;
+
       card.innerHTML = `
-        <div>
-          <h4 class="text-sm font-black text-white flex items-center gap-2">
-            ${lvl.name}
-            <span class="text-[10px] px-2 py-0.5 rounded-full bg-purple-500/20 text-purple-300 font-mono">${lvl.tubes.length} Frascos</span>
-          </h4>
-          <p class="text-xs text-slate-400">Por: <strong class="text-sky-300">${lvl.creator}</strong> • Publicado: ${lvl.createdAt || 'Reciente'}</p>
+        <div class="flex-1 min-w-0">
+          <div class="flex items-center gap-2 flex-wrap mb-1">
+            <h4 class="text-sm font-black text-white truncate max-w-[200px]">${lvl.name}</h4>
+            <span class="px-2 py-0.5 rounded-full text-[10px] font-bold border ${badgeClass}">
+              ${badgeStars} ${badgeLabel}
+            </span>
+            ${lvl.isUser ? '<span class="px-1.5 py-0.5 rounded-full text-[9px] font-bold bg-sky-500/20 text-sky-300 border border-sky-400/30">Tu Creación</span>' : '<span class="px-1.5 py-0.5 rounded-full text-[9px] font-bold bg-purple-500/20 text-purple-300 border border-purple-400/30">Oficial</span>'}
+          </div>
+          <p class="text-[11px] text-slate-400 flex items-center gap-2 flex-wrap">
+            <span>Por: <strong class="text-slate-200">${lvl.creator}</strong></span>
+            <span>•</span>
+            <span class="font-mono text-sky-300 font-bold">${movesText}</span>
+          </p>
+          <p class="text-[10px] text-purple-300/90 font-medium mt-0.5 truncate">
+            ${featuresText}
+          </p>
         </div>
-        <div class="flex items-center gap-2">
-          <button class="btn-interactive px-3 py-1.5 bg-sky-500 hover:bg-sky-400 text-white font-bold rounded-xl text-xs" onclick="window.game.playPublishedCustomLevel('${lvl.id}')">
-            Jugar
+        <div class="flex items-center gap-2 self-end sm:self-center flex-shrink-0">
+          <button class="btn-interactive px-3.5 py-1.5 bg-gradient-to-r from-sky-500 to-indigo-600 hover:from-sky-400 hover:to-indigo-500 text-white font-black rounded-xl text-xs flex items-center gap-1.5 shadow-md" onclick="window.game.playPublishedCustomLevel('${lvl.id}')">
+            <i data-lucide="play" class="w-3.5 h-3.5 fill-white"></i>
+            <span>Jugar</span>
           </button>
-          <button class="btn-interactive px-2 py-1.5 bg-rose-500/20 hover:bg-rose-500/40 text-rose-300 rounded-xl text-xs" onclick="window.game.deletePublishedCustomLevel('${lvl.id}')">
-            <i data-lucide="trash-2" class="w-4 h-4"></i>
-          </button>
+          ${lvl.isUser ? `
+            <button class="btn-interactive p-1.5 bg-rose-500/15 hover:bg-rose-500/30 text-rose-300 rounded-xl text-xs transition-colors" title="Eliminar nivel" onclick="window.game.deletePublishedCustomLevel('${lvl.id}')">
+              <i data-lucide="trash-2" class="w-4 h-4"></i>
+            </button>
+          ` : ''}
         </div>
       `;
       listCont.appendChild(card);
@@ -7624,16 +7959,75 @@ class GameController {
     if (window.lucide) lucide.createIcons();
   }
 
+  updateCommunityBadgeCount(count = null) {
+    const badge = document.getElementById('lbl-community-levels-badge');
+    if (!badge) return;
+    const total = count !== null ? count : (window.stateManager ? window.stateManager.getCustomLevels().length : 0);
+    badge.textContent = `${total} Creado${total === 1 ? '' : 's'}`;
+  }
+
   playPublishedCustomLevel(id) {
-    const levels = window.stateManager ? window.stateManager.getCustomLevels() : [];
-    const found = levels.find(l => l.id === id);
+    const userLevels = window.stateManager ? window.stateManager.getCustomLevels() : [];
+    let found = userLevels.find(l => l.id === id);
+    if (!found) {
+      const defaultCommunityLevels = [
+        {
+          id: 'comm_default_1',
+          name: 'Iniciación de Mercurio',
+          creator: 'Hermes Alquimista',
+          moves: 9,
+          tubes: [
+            { id: 0, capacity: 4, isLocked: false, isNarrow: false, liquids: [{ color: '#ef4444', name: 'Rojo', shape: '●' }, { color: '#3b82f6', name: 'Azul', shape: '▲' }, { color: '#10b981', name: 'Verde', shape: '■' }, { color: '#ef4444', name: 'Rojo', shape: '●' }] },
+            { id: 1, capacity: 4, isLocked: false, isNarrow: false, liquids: [{ color: '#3b82f6', name: 'Azul', shape: '▲' }, { color: '#10b981', name: 'Verde', shape: '■' }, { color: '#ef4444', name: 'Rojo', shape: '●' }, { color: '#3b82f6', name: 'Azul', shape: '▲' }] },
+            { id: 2, capacity: 4, isLocked: false, isNarrow: false, liquids: [{ color: '#10b981', name: 'Verde', shape: '■' }, { color: '#ef4444', name: 'Rojo', shape: '●' }, { color: '#3b82f6', name: 'Azul', shape: '▲' }, { color: '#10b981', name: 'Verde', shape: '■' }] },
+            { id: 3, capacity: 4, isLocked: false, isNarrow: false, liquids: [] },
+            { id: 4, capacity: 4, isLocked: false, isNarrow: false, liquids: [] }
+          ]
+        },
+        {
+          id: 'comm_default_2',
+          name: 'El Cerrojo del Zafiro',
+          creator: 'Adepto Zafiro',
+          moves: 21,
+          tubes: [
+            { id: 0, capacity: 4, isLocked: false, isNarrow: false, liquids: [{ color: '#ef4444', name: 'Rojo', shape: '●' }, { color: '#3b82f6', name: 'Azul', shape: '▲' }, { color: '#10b981', name: 'Verde', shape: '■' }, { color: '#eab308', name: 'Amarillo', shape: '★' }] },
+            { id: 1, capacity: 4, isLocked: true, keyColor: '#3b82f6', keyColorName: 'Azul', isNarrow: false, liquids: [{ color: '#3b82f6', name: 'Azul', shape: '▲' }, { color: '#eab308', name: 'Amarillo', shape: '★' }, { color: '#10b981', name: 'Verde', shape: '■' }, { color: '#ef4444', name: 'Rojo', shape: '●' }] },
+            { id: 2, capacity: 4, isLocked: false, isNarrow: false, liquids: [{ color: '#10b981', name: 'Verde', shape: '■' }, { color: '#eab308', name: 'Amarillo', shape: '★' }, { color: '#ef4444', name: 'Rojo', shape: '●' }, { color: '#3b82f6', name: 'Azul', shape: '▲' }] },
+            { id: 3, capacity: 4, isLocked: false, isNarrow: false, liquids: [{ color: '#eab308', name: 'Amarillo', shape: '★' }, { color: '#10b981', name: 'Verde', shape: '■' }, { color: '#ef4444', name: 'Rojo', shape: '●' }, { color: '#3b82f6', name: 'Azul', shape: '▲' }] },
+            { id: 4, capacity: 1, isLocked: false, isNarrow: true, liquids: [] },
+            { id: 5, capacity: 4, isLocked: false, isNarrow: false, liquids: [] }
+          ]
+        },
+        {
+          id: 'comm_default_3',
+          name: 'La Fragua del Fénix',
+          creator: 'Gran Alquimista Flamel',
+          moves: 35,
+          tubes: [
+            { id: 0, capacity: 6, isLocked: false, isNarrow: false, liquids: [{ color: '#ef4444', name: 'Rojo', shape: '●' }, { color: '#ef4444', name: 'Rojo', shape: '●' }, { color: '#3b82f6', name: 'Azul', shape: '▲' }, { color: '#10b981', name: 'Verde', shape: '■' }, { color: '#eab308', name: 'Amarillo', shape: '★' }, { color: '#a855f7', name: 'Morado', shape: '◆' }] },
+            { id: 1, capacity: 4, isLocked: true, keyColor: '#ef4444', keyColorName: 'Rojo', isNarrow: false, liquids: [{ color: '#a855f7', name: 'Morado', shape: '◆' }, { color: '#3b82f6', name: 'Azul', shape: '▲' }, { color: '#10b981', name: 'Verde', shape: '■' }, { color: '#eab308', name: 'Amarillo', shape: '★' }] },
+            { id: 2, capacity: 4, isLocked: false, isNarrow: false, liquids: [{ color: '#a855f7', name: 'Morado', shape: '◆', isMystery: true }, { color: '#10b981', name: 'Verde', shape: '■', isMystery: true }, { color: '#eab308', name: 'Amarillo', shape: '★' }, { color: '#3b82f6', name: 'Azul', shape: '▲' }] },
+            { id: 3, capacity: 4, isLocked: false, isNarrow: false, liquids: [{ color: '#3b82f6', name: 'Azul', shape: '▲' }, { color: '#eab308', name: 'Amarillo', shape: '★' }, { color: '#a855f7', name: 'Morado', shape: '◆' }, { color: '#10b981', name: 'Verde', shape: '■' }] },
+            { id: 4, capacity: 4, isLocked: false, isNarrow: false, isGlued: true, liquids: [{ color: '#06b6d4', name: 'Cian', shape: '✚' }] },
+            { id: 5, capacity: 4, isLocked: false, isNarrow: false, liquids: [{ color: '#06b6d4', name: 'Cian', shape: '✚' }, { color: '#06b6d4', name: 'Cian', shape: '✚' }, { color: '#06b6d4', name: 'Cian', shape: '✚' }, { color: '#ef4444', name: 'Rojo', shape: '●' }] },
+            { id: 6, capacity: 4, isLocked: false, isNarrow: false, liquids: [] },
+            { id: 7, capacity: 4, isLocked: false, isNarrow: false, liquids: [] }
+          ]
+        }
+      ];
+      found = defaultCommunityLevels.find(l => l.id === id);
+    }
     if (!found) return;
 
-    this.closeEditorModal();
+    this.closeCommunityLevelsModal();
+    this.closeExtrasModal();
+    if (this.modalEditor) this.closeEditorModal();
+
     const customData = {
       level: 999,
+      isCommunityPlay: true,
       tubes: JSON.parse(JSON.stringify(found.tubes)),
-      optimalMoves: found.optimalMoves || 14,
+      optimalMoves: found.moves || 15,
       mechanicTag: `Comunidad • ${found.creator}`,
       name: found.name,
       creator: found.creator
@@ -7642,12 +8036,27 @@ class GameController {
   }
 
   deletePublishedCustomLevel(id) {
-    if (confirm('¿Deseas eliminar este nivel personalizado?')) {
+    if (confirm('¿Deseas eliminar este nivel personalizado de tu biblioteca?')) {
       if (window.stateManager) {
         window.stateManager.deleteCustomLevel(id);
+        this.renderCommunityLevelsList();
         this.renderSavedCustomLevels();
+        this.updateCommunityBadgeCount();
       }
     }
+  }
+
+  publishCustomLevel() {
+    this.openPublishLevelModal({
+      tubes: this.editorLevel.tubes,
+      moves: 12,
+      name: this.editorLevel.name,
+      creator: this.editorLevel.creator
+    });
+  }
+
+  renderSavedCustomLevels() {
+    this.renderCommunityLevelsList();
   }
 
   // --- DESAFÍOS DE HONOR DE SECCIÓN Y MEDALLAS DE MAESTRÍA ---

@@ -46,10 +46,10 @@
   <link rel="icon" type="image/svg+xml" href="icons/icon.svg">
 
   <!-- Modular Stylesheets -->
-  <link rel="stylesheet" href="css/main.css?v=71">
-  <link rel="stylesheet" href="css/tubes.css?v=71">
-  <link rel="stylesheet" href="css/roulette.css?v=71">
-  <link rel="stylesheet" href="css/accessibility.css?v=71">
+  <link rel="stylesheet" href="css/main.css?v=72">
+  <link rel="stylesheet" href="css/tubes.css?v=72">
+  <link rel="stylesheet" href="css/roulette.css?v=72">
+  <link rel="stylesheet" href="css/accessibility.css?v=72">
 </head>
 <body class="min-h-screen flex flex-col justify-between select-none relative">
 
@@ -1254,35 +1254,128 @@
               <span class="text-xs">📖</span>
             </button>
 
-            <!-- Taller de Creación (GRISADO / DESHABILITADO) -->
-            <button id="btn-home-editor" disabled class="w-full py-2.5 px-3.5 bg-slate-800/40 border border-slate-700/50 text-slate-500 font-bold text-xs rounded-xl flex items-center justify-between cursor-not-allowed opacity-50" title="En desarrollo. Próximamente disponible.">
+            <!-- Niveles de la Comunidad y Personalizados -->
+            <button id="btn-open-community-levels" class="btn-interactive w-full py-2.5 px-3.5 bg-gradient-to-r from-purple-600/30 via-indigo-600/30 to-purple-600/30 hover:from-purple-600/45 hover:to-indigo-600/45 border border-purple-400/40 text-purple-200 font-bold text-xs rounded-xl flex items-center justify-between shadow-sm">
               <div class="flex items-center gap-2">
-                <i data-lucide="pen-tool" class="w-4 h-4 text-slate-500"></i>
-                <span>Taller de Creación de Niveles</span>
+                <i data-lucide="sparkles" class="w-4 h-4 text-purple-400"></i>
+                <span>Niveles de la Comunidad</span>
               </div>
-              <span class="text-[10px] px-2 py-0.5 rounded-full bg-slate-700/60 text-slate-400 font-mono">Próximamente</span>
+              <span id="lbl-community-levels-badge" class="text-[10px] bg-purple-500/25 text-purple-300 px-2 py-0.5 rounded-full font-mono border border-purple-400/30">0 Niveles</span>
             </button>
           </div>
         </div>
 
-        <!-- Gestión de Partida y PWA -->
+        <!-- Gestión de Partida y PWA (Guardado en la Nube activo) -->
         <div class="pt-2 border-t border-slate-800">
-          <button id="btn-install-app" class="btn-interactive w-full py-2.5 bg-slate-800 hover:bg-slate-700 border border-slate-700 text-sky-200 font-bold text-xs rounded-xl flex items-center justify-center gap-2 mb-2">
+          <button id="btn-install-app" class="btn-interactive w-full py-2.5 bg-slate-800 hover:bg-slate-700 border border-slate-700 text-sky-200 font-bold text-xs rounded-xl flex items-center justify-center gap-2">
             <i data-lucide="smartphone" class="w-4 h-4 text-sky-300"></i>
             <span id="btn-install-app-text">📲 Instalar como App Móvil</span>
           </button>
+        </div>
+      </div>
+    </div>
+  </div>
 
-          <div class="flex items-center justify-between gap-2">
-            <button id="btn-export-file" class="btn-interactive flex-1 py-2 bg-emerald-500/15 hover:bg-emerald-500/25 border border-emerald-500/40 text-emerald-300 font-bold text-[11px] rounded-xl flex items-center justify-center gap-1.5">
-              <i data-lucide="download" class="w-3.5 h-3.5"></i>
-              <span>Guardar Archivo</span>
-            </button>
-            <button id="btn-import-file" class="btn-interactive flex-1 py-2 bg-indigo-500/15 hover:bg-indigo-500/25 border border-indigo-500/40 text-indigo-300 font-bold text-[11px] rounded-xl flex items-center justify-center gap-1.5">
-              <i data-lucide="upload" class="w-3.5 h-3.5"></i>
-              <span>Cargar Archivo</span>
-            </button>
+  <!-- ==========================================================================
+       MODAL 6.c: PUBLICAR NIVEL EN LA COMUNIDAD (DIRECTO, SIN EDITOR NI PROBAR)
+       ========================================================================== -->
+  <div id="modal-publish-level" class="fixed inset-0 bg-slate-950/85 backdrop-blur-md z-50 hidden flex items-center justify-center p-3 sm:p-5 modal-overlay">
+    <div class="bg-slate-900 border border-purple-500/40 rounded-3xl max-w-sm sm:max-w-md w-full p-5 sm:p-6 shadow-2xl relative flex flex-col modal-content">
+      <div class="w-12 h-12 rounded-2xl bg-gradient-to-tr from-purple-500 to-indigo-600 flex items-center justify-center mx-auto mb-3 text-white shadow-lg shadow-purple-500/25">
+        <i data-lucide="share-2" class="w-6 h-6"></i>
+      </div>
+      <h3 class="text-lg font-black text-white text-center mb-1">Publicar en la Comunidad</h3>
+      <p class="text-xs text-slate-300 text-center mb-4 leading-relaxed">
+        ¡Nivel superado y validado! Asígnalo a tu autoría para que quede guardado en tu biblioteca comunitaria.
+      </p>
+
+      <!-- Resumen del Nivel Validado -->
+      <div class="bg-slate-800/70 border border-slate-700/60 rounded-2xl p-3.5 mb-4 text-xs space-y-2">
+        <div class="flex items-center justify-between">
+          <span class="text-slate-400 font-bold">Dificultad Estimada:</span>
+          <span id="publish-difficulty-badge" class="px-2.5 py-0.5 rounded-full font-bold text-[11px] bg-amber-500/15 text-amber-300 border border-amber-400/30">
+            🟡 Intermedio
+          </span>
+        </div>
+        <div class="flex items-center justify-between">
+          <span class="text-slate-400 font-bold">Métrica de Solución:</span>
+          <span id="publish-moves-metric" class="font-mono font-bold text-sky-300">🎯 18 movimientos</span>
+        </div>
+        <div class="flex items-center justify-between">
+          <span class="text-slate-400 font-bold">Características:</span>
+          <span id="publish-features-summary" class="text-purple-300 font-bold truncate max-w-[180px]">7 Frascos • Candado • 1x1</span>
+        </div>
+      </div>
+
+      <!-- Formulario simple (Solo Nombre del nivel y Creador) -->
+      <div class="space-y-3 mb-5">
+        <div>
+          <label class="block text-slate-300 font-bold text-xs mb-1 text-left">Nombre del Nivel:</label>
+          <input type="text" id="publish-input-name" maxlength="40" class="w-full bg-slate-950 border border-slate-700 rounded-xl px-3.5 py-2.5 text-white font-bold text-xs focus:border-purple-400 outline-none transition-colors" placeholder="Ej: Crisol de Amatista">
+        </div>
+        <div>
+          <label class="block text-slate-300 font-bold text-xs mb-1 text-left">Nombre del Alquimista (Autor):</label>
+          <input type="text" id="publish-input-creator" maxlength="25" class="w-full bg-slate-950 border border-slate-700 rounded-xl px-3.5 py-2.5 text-white font-bold text-xs focus:border-purple-400 outline-none transition-colors" placeholder="Tu apodo alquimista">
+        </div>
+      </div>
+
+      <!-- Botones de Acción -->
+      <div class="flex flex-col gap-2">
+        <button id="btn-submit-publish" type="button" class="btn-interactive w-full py-3 bg-gradient-to-r from-purple-600 to-indigo-600 hover:from-purple-500 hover:to-indigo-500 text-white font-black text-xs rounded-xl shadow-lg shadow-purple-500/30 flex items-center justify-center gap-2">
+          <i data-lucide="check" class="w-4 h-4"></i>
+          <span>Publicar Nivel</span>
+        </button>
+        <button id="btn-cancel-publish" type="button" class="btn-interactive w-full py-2 bg-slate-800 hover:bg-slate-700 text-slate-300 font-bold text-xs rounded-xl">
+          Cancelar
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ==========================================================================
+       MODAL 6.d: BIBLIOTECA DE NIVELES DE LA COMUNIDAD (DESDE EXTRAS)
+       ========================================================================== -->
+  <div id="modal-community-levels" class="fixed inset-0 bg-slate-950/90 backdrop-blur-md z-50 hidden flex items-center justify-center p-3 sm:p-5 modal-overlay">
+    <div class="bg-slate-900 border border-purple-500/40 rounded-3xl max-w-lg w-full p-4 sm:p-6 shadow-2xl relative flex flex-col max-h-[88vh] modal-content">
+      
+      <!-- Cabecera -->
+      <div class="flex items-center justify-between pb-3 mb-3 border-b border-slate-800">
+        <div class="flex items-center gap-2.5">
+          <div class="w-10 h-10 rounded-2xl bg-gradient-to-tr from-purple-500 to-indigo-600 flex items-center justify-center text-white shadow-md">
+            <i data-lucide="sparkles" class="w-5 h-5"></i>
+          </div>
+          <div class="text-left">
+            <h3 class="text-base sm:text-lg font-black text-white">Niveles de la Comunidad</h3>
+            <p class="text-[11px] text-slate-400">Desafíos clasificados por dificultad y métricas de resolución</p>
           </div>
         </div>
+        <button id="btn-close-community-levels" class="p-1.5 text-slate-400 hover:text-white rounded-xl bg-slate-800">
+          <i data-lucide="x" class="w-4 h-4"></i>
+        </button>
+      </div>
+
+      <!-- Filtros de Dificultad -->
+      <div class="flex items-center gap-1.5 overflow-x-auto pb-2 mb-3 scrollbar-none text-[11px]" id="community-diff-filters-bar">
+        <button data-diff-filter="all" class="btn-diff-filter active px-3 py-1.5 rounded-xl font-bold bg-purple-600 text-white shadow-sm flex-shrink-0">
+          Todos
+        </button>
+        <button data-diff-filter="easy" class="btn-diff-filter px-3 py-1.5 rounded-xl font-bold bg-slate-800 text-emerald-300 hover:bg-slate-700 flex-shrink-0">
+          🟢 Fácil
+        </button>
+        <button data-diff-filter="medium" class="btn-diff-filter px-3 py-1.5 rounded-xl font-bold bg-slate-800 text-amber-300 hover:bg-slate-700 flex-shrink-0">
+          🟡 Intermedio
+        </button>
+        <button data-diff-filter="hard" class="btn-diff-filter px-3 py-1.5 rounded-xl font-bold bg-slate-800 text-rose-300 hover:bg-slate-700 flex-shrink-0">
+          🔴 Desafiante
+        </button>
+        <button data-diff-filter="master" class="btn-diff-filter px-3 py-1.5 rounded-xl font-bold bg-slate-800 text-purple-300 hover:bg-slate-700 flex-shrink-0">
+          🟣 Maestro
+        </button>
+      </div>
+
+      <!-- Lista de Niveles -->
+      <div id="community-levels-list" class="flex-1 overflow-y-auto space-y-2.5 pr-1">
+        <!-- Renderizado dinámico de tarjetas -->
       </div>
     </div>
   </div>
@@ -2859,19 +2952,19 @@
   <input type="file" id="input-save-file" accept=".json" class="hidden">
 
   <!-- Scripts modulares -->
-  <script src="js/firebase-config.js?v=71"></script>
-  <script src="js/cloud-sync.js?v=71"></script>
-  <script src="js/audio.js?v=71"></script>
-  <script src="js/palette.js?v=71"></script>
-  <script src="js/levels.js?v=71"></script>
-  <script src="js/challenges.js?v=71"></script>
-  <script src="js/honor.js?v=71"></script>
-  <script src="js/state.js?v=71"></script>
-  <script src="js/achievements.js?v=71"></script>
-  <script src="js/leaderboard.js?v=71"></script>
-  <script src="js/roulette.js?v=71"></script>
-  <script src="js/story.js?v=71"></script>
-  <script src="js/game.js?v=71"></script>
+  <script src="js/firebase-config.js?v=72"></script>
+  <script src="js/cloud-sync.js?v=72"></script>
+  <script src="js/audio.js?v=72"></script>
+  <script src="js/palette.js?v=72"></script>
+  <script src="js/levels.js?v=72"></script>
+  <script src="js/challenges.js?v=72"></script>
+  <script src="js/honor.js?v=72"></script>
+  <script src="js/state.js?v=72"></script>
+  <script src="js/achievements.js?v=72"></script>
+  <script src="js/leaderboard.js?v=72"></script>
+  <script src="js/roulette.js?v=72"></script>
+  <script src="js/story.js?v=72"></script>
+  <script src="js/game.js?v=72"></script>
 
   <!-- Registro de Service Worker PWA -->
   <script>
