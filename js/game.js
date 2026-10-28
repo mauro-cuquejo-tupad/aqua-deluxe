@@ -179,6 +179,7 @@ class GameController {
     this.modalChallengeIntro = document.getElementById('modal-challenge-intro');
     this.modalPause = document.getElementById('modal-pause');
     this.modalOutOfLives = document.getElementById('modal-out-of-lives');
+    this.modalShieldTutorial = document.getElementById('modal-shield-tutorial');
 
     // Catálogo de Mecánicas y Guía de Tutoriales (Espaciadas cada 10 niveles)
     this.mechanicsCatalog = [
@@ -1547,6 +1548,8 @@ class GameController {
     if (shopBal) shopBal.textContent = formatted;
     const homeCoins = document.getElementById('home-stat-coins');
     if (homeCoins) homeCoins.textContent = `${formatted} 🪙`;
+    const pauseCoins = document.getElementById('pause-lbl-coins');
+    if (pauseCoins) pauseCoins.textContent = formatted;
   }
 
   // --- RENDERIZADO VISUAL DE FRASCOS Y LÍQUIDOS (OPTIMIZADO PARA MÓVILES Y PWA) ---
@@ -1565,22 +1568,22 @@ class GameController {
 
     if (totalTubes > 14) {
       widthClass = 'tube-size-tiny';
-      gapClass = isNarrow ? 'gap-1' : 'gap-1.5 sm:gap-2.5';
+      gapClass = isNarrow ? 'gap-x-1 gap-y-8' : 'gap-x-1.5 sm:gap-x-2.5 gap-y-9';
       maxWidthClass = 'max-w-[98vw]';
       heightMultiplier = isMobile ? 0.72 : 0.80;
     } else if (totalTubes > 9) {
       widthClass = 'tube-size-compact';
-      gapClass = isNarrow ? 'gap-1.5' : 'gap-2 sm:gap-3.5';
+      gapClass = isNarrow ? 'gap-x-1.5 gap-y-8' : 'gap-x-2 sm:gap-x-3.5 gap-y-9';
       maxWidthClass = 'max-w-5xl';
       heightMultiplier = isMobile ? 0.78 : 0.88;
     } else if (totalTubes > 6) {
       widthClass = 'tube-size-medium';
-      gapClass = isNarrow ? 'gap-2' : 'gap-2.5 sm:gap-4';
+      gapClass = isNarrow ? 'gap-x-2 gap-y-8' : 'gap-x-2.5 sm:gap-x-4 gap-y-10';
       maxWidthClass = 'max-w-4xl';
       heightMultiplier = isMobile ? 0.84 : 0.94;
     } else {
       widthClass = 'tube-size-normal';
-      gapClass = isNarrow ? 'gap-2.5' : 'gap-3 sm:gap-6';
+      gapClass = isNarrow ? 'gap-x-2.5 gap-y-8' : 'gap-x-3 sm:gap-x-6 gap-y-10';
       maxWidthClass = 'max-w-3xl';
       heightMultiplier = isMobile ? 0.88 : 1;
     }
@@ -1738,18 +1741,18 @@ class GameController {
         glassEl.appendChild(emitter);
 
         const narrowTag = document.createElement('span');
-        narrowTag.className = 'absolute -bottom-5 text-[9.5px] text-purple-200 font-extrabold tracking-wider px-1.5 py-0.5 rounded-full bg-purple-950/80 border border-purple-400/50 shadow-sm whitespace-nowrap flex items-center gap-0.5';
+        narrowTag.className = 'absolute -bottom-5 left-1/2 -translate-x-1/2 text-[9.5px] text-purple-200 font-extrabold tracking-wider px-1.5 py-0.5 rounded-full bg-purple-950/90 border border-purple-400/60 shadow-md whitespace-nowrap flex items-center gap-0.5 z-30 pointer-events-none';
         narrowTag.innerHTML = `<span>1x1</span><span class="text-[8px] text-purple-300">✨</span>`;
         tubeEl.appendChild(narrowTag);
       }
       if (tube.capacity === 8) {
         const superTag = document.createElement('span');
-        superTag.className = 'absolute -bottom-5 text-[9px] text-amber-300 font-black tracking-wider whitespace-nowrap bg-amber-500/20 px-1.5 py-0.2 rounded-full border border-amber-400/40';
+        superTag.className = 'absolute -bottom-5 left-1/2 -translate-x-1/2 text-[9px] text-amber-300 font-black tracking-wider whitespace-nowrap bg-amber-500/20 px-1.5 py-0.5 rounded-full border border-amber-400/40 z-30 pointer-events-none shadow-sm';
         superTag.textContent = 'Max 8 (Titán)';
         tubeEl.appendChild(superTag);
       } else if (tube.capacity === 6) {
         const giantTag = document.createElement('span');
-        giantTag.className = 'absolute -bottom-5 text-[10px] text-sky-300 font-bold tracking-wider whitespace-nowrap';
+        giantTag.className = 'absolute -bottom-5 left-1/2 -translate-x-1/2 text-[10px] text-sky-300 font-bold tracking-wider whitespace-nowrap bg-sky-950/80 px-1.5 py-0.5 rounded-full border border-sky-400/40 z-30 pointer-events-none shadow-sm';
         giantTag.textContent = 'Max 6';
         tubeEl.appendChild(giantTag);
       }
@@ -1810,7 +1813,7 @@ class GameController {
 
         // Etiqueta de durabilidad / estado
         const durabilityTag = document.createElement('span');
-        durabilityTag.className = 'durability-tag absolute -bottom-5 text-[10px] font-bold tracking-wider whitespace-nowrap';
+        durabilityTag.className = 'durability-tag absolute -bottom-5 left-1/2 -translate-x-1/2 text-[10px] font-bold tracking-wider whitespace-nowrap z-30 pointer-events-none shadow-sm px-1.5 py-0.5 rounded-full bg-slate-900/90 border border-slate-700/80';
         if (tube.isBroken) {
           durabilityTag.className += ' text-red-400';
           durabilityTag.textContent = '💥 ROTO';
@@ -3780,6 +3783,18 @@ class GameController {
           bonusLbl.innerHTML = `<span class="text-slate-400 font-semibold text-[11px]">0 🪙 (0/${bonusData.totalCount})</span>`;
         }
       }
+
+      // Si el jugador completa el 100% de los desafíos del nivel, regenerar +1 escudo automáticamente (si compró escudos y le falta)
+      const allCompleted = results.length > 0 && results.every(r => r.completed);
+      if (allCompleted && window.stateManager && typeof window.stateManager.restoreShieldOnAllChallenges === 'function') {
+        const shieldRestored = window.stateManager.restoreShieldOnAllChallenges();
+        if (shieldRestored) {
+          this.updateLivesHUD();
+          if (bonusLbl) {
+            bonusLbl.innerHTML += `<div class="mt-1.5 text-sky-300 font-black text-xs animate-bounce flex items-center justify-center gap-1 bg-sky-500/20 border border-sky-400/40 rounded-xl py-1 px-2.5"><span>+1 🛡️ ¡Escudo Restaurado!</span></div>`;
+          }
+        }
+      }
     }, totalDelay);
     this.victoryAnimationTimers.push(finalTimer);
   }
@@ -3817,7 +3832,7 @@ class GameController {
     // El HUD principal mantiene únicamente el botón badge compacto
     if (badgeBtn) {
       badgeBtn.classList.remove('hidden');
-      if (badgeCount) badgeCount.textContent = `0/${this.levelChallenges.length} Desafíos`;
+      if (badgeCount) badgeCount.textContent = `0/${this.levelChallenges.length}`;
     }
     this.challengesHud.classList.add('hidden'); // Ocultar chips duplicados para despejar el tablero
 
@@ -3837,7 +3852,7 @@ class GameController {
 
     const badgeCount = document.getElementById('lbl-challenges-badge-count');
     if (badgeCount) {
-      badgeCount.textContent = `${achievedCount}/${this.levelChallenges.length} Desafíos`;
+      badgeCount.textContent = `${achievedCount}/${this.levelChallenges.length}`;
     }
   }
 
@@ -4230,6 +4245,10 @@ class GameController {
     const coins = window.stateManager.getCoins();
     const lives = window.stateManager.getLives();
     const maxLives = window.stateManager.getMaxLives();
+    const maxShields = window.stateManager.getMaxShields ? window.stateManager.getMaxShields() : 0;
+    const shields = window.stateManager.getShields ? window.stateManager.getShields() : 0;
+    const shieldCosts = { 0: 300, 1: 500, 2: 750 };
+    const shieldCost = shieldCosts[maxShields] || 750;
 
     const cdLvl = state.upgrades.cooldownReductionLevel || 1;
     const cdMs = { 1: 100, 2: 75, 3: 50, 4: 25 }[cdLvl] || 25;
@@ -4285,6 +4304,33 @@ class GameController {
           <button class="btn-interactive px-4 py-2 rounded-xl text-xs font-black bg-gradient-to-r from-rose-600 to-red-600 hover:from-rose-500 hover:to-red-500 text-white shadow-md shadow-rose-600/20 disabled:opacity-40" ${lives >= maxLives || coins < 600 || !canBuyDailyLives ? 'disabled' : ''} onclick="window.game.buyUpgrade('recharge_all_lives')">
             ${!canBuyDailyLives ? 'Agotado hoy (1 por día)' : 'Restaurar Todo (600 🪙)'}
           </button>
+        </div>
+      </div>
+
+      <!-- 0.c Escudo Alquímico de Vida (🛡️) -->
+      <div class="bg-slate-800/80 border border-sky-500/30 rounded-2xl p-4 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 shadow-md">
+        <div class="flex items-center gap-3">
+          <div class="w-12 h-12 rounded-2xl bg-sky-500/15 border border-sky-400/40 flex items-center justify-center text-sky-300 shadow-inner">
+            <i data-lucide="shield-check" class="w-6 h-6"></i>
+          </div>
+          <div>
+            <h4 class="text-sm font-bold text-white flex items-center gap-2">
+              Carta: Escudo de Vida (🛡️)
+              <span class="text-[10px] px-2 py-0.5 rounded-full ${maxShields >= 3 ? 'bg-emerald-500/20 text-emerald-300' : 'bg-sky-500/20 text-sky-300'} font-mono">${maxShields}/3 Ranuras (${shields} Activo${shields === 1 ? '' : 's'})</span>
+            </h4>
+            <p class="text-xs text-slate-400">Convierte corazones en metal plateado protector. Absorbe el daño antes que las vidas rojas (hasta 6 vidas totales). Se recarga con tiempo o completando el 100% de desafíos.</p>
+          </div>
+        </div>
+        <div>
+          ${maxShields < 3 ? `
+            <button class="btn-interactive px-4 py-2 rounded-xl text-xs font-black bg-gradient-to-r from-sky-500 via-cyan-500 to-indigo-600 hover:from-sky-400 hover:to-indigo-500 text-white shadow-md shadow-sky-500/20 disabled:opacity-40" ${coins < shieldCost ? 'disabled' : ''} onclick="window.game.buyUpgrade('buy_shield')">
+              Comprar (${shieldCost} 🪙)
+            </button>
+          ` : `
+            <span class="px-3 py-1.5 rounded-xl bg-emerald-500/20 border border-emerald-500/40 text-emerald-300 font-bold text-xs">
+              ✓ Nivel Máx (3/3 🛡️)
+            </span>
+          `}
         </div>
       </div>
 
@@ -4487,6 +4533,12 @@ class GameController {
         this.hintsRemaining += 3;
         if (this.lblHintsLeft) this.lblHintsLeft.textContent = this.hintsRemaining;
       }
+      if (type === 'buy_shield') {
+        this.updateLivesHUD();
+        if (res.isFirstTime) {
+          this.openShieldTutorialModal();
+        }
+      }
       if (type === 'buy_life' || type === 'recharge_all_lives') {
         this.updateLivesHUD();
         if (this.modalOutOfLives && !this.modalOutOfLives.classList.contains('hidden')) {
@@ -4600,6 +4652,31 @@ class GameController {
     const cb = document.getElementById('toggle-accessibility-patterns');
     if (cb) cb.checked = this.showAccessibilityPatterns;
     this.renderTubes();
+  }
+
+  openSettingsModal() {
+    if (window.paletteManager) {
+      window.paletteManager.renderColorSettingsUI('color-pickers-list', () => {
+        this.renderTubes();
+      });
+    }
+    const cbComfort = document.getElementById('toggle-visual-comfort-mode');
+    if (cbComfort) cbComfort.checked = window.stateManager ? window.stateManager.isVisualComfortMode() : false;
+    const cbPat = document.getElementById('toggle-accessibility-patterns');
+    if (cbPat) cbPat.checked = this.showAccessibilityPatterns;
+    const cbLet = document.getElementById('toggle-accessibility-letters');
+    if (cbLet) cbLet.checked = window.stateManager ? window.stateManager.isAccessibilityLettersMode() : false;
+    const cbSandboxPrompt = document.getElementById('toggle-sandbox-publish-prompt');
+    if (cbSandboxPrompt) cbSandboxPrompt.checked = window.stateManager ? window.stateManager.isSandboxPublishPromptEnabled() : true;
+
+    this.renderDifficultyMechanicsSettings();
+    this.renderMusicSettingsUI();
+    this.showModal(this.modalSettings);
+  }
+
+  openShieldTutorialModal() {
+    const m = document.getElementById('modal-shield-tutorial');
+    if (m) this.showModal(m);
   }
 
   // --- GESTIÓN DE DIFICULTAD PERSONALIZADA / MECÁNICAS DESHABILITADAS ---
@@ -4846,7 +4923,7 @@ class GameController {
       this.modalMap, this.modalVictory, this.modalRoulette, this.modalLeaderboard,
       this.modalSettings, this.modalHome, this.modalShop, this.modalRestartConfirm,
       this.modalTutorial, this.modalEditor, this.modalChallengeIntro, this.modalPause,
-      this.modalOutOfLives
+      this.modalOutOfLives, this.modalShieldTutorial
     ];
     return modals.some(m => m && !m.classList.contains('hidden'));
   }
@@ -5393,23 +5470,7 @@ class GameController {
     const btnOpenSettings = document.getElementById('btn-open-settings');
     const btnCloseSettings = document.getElementById('btn-close-settings');
     const openSettingsAction = () => {
-      if (window.paletteManager) {
-        window.paletteManager.renderColorSettingsUI('color-pickers-list', () => {
-          this.renderTubes();
-        });
-      }
-      const cbComfort = document.getElementById('toggle-visual-comfort-mode');
-      if (cbComfort) cbComfort.checked = window.stateManager ? window.stateManager.isVisualComfortMode() : false;
-      const cbPat = document.getElementById('toggle-accessibility-patterns');
-      if (cbPat) cbPat.checked = this.showAccessibilityPatterns;
-      const cbLet = document.getElementById('toggle-accessibility-letters');
-      if (cbLet) cbLet.checked = window.stateManager ? window.stateManager.isAccessibilityLettersMode() : false;
-      const cbSandboxPrompt = document.getElementById('toggle-sandbox-publish-prompt');
-      if (cbSandboxPrompt) cbSandboxPrompt.checked = window.stateManager ? window.stateManager.isSandboxPublishPromptEnabled() : true;
-
-      this.renderDifficultyMechanicsSettings();
-      this.renderMusicSettingsUI();
-      this.showModal(this.modalSettings);
+      this.openSettingsModal();
     };
     if (btnOpenSettings) this.bindTapOrClick(btnOpenSettings, openSettingsAction);
     if (btnCloseSettings) {
@@ -5869,6 +5930,14 @@ class GameController {
       });
     }
 
+    const btnPauseSettings = document.getElementById('btn-pause-settings');
+    if (btnPauseSettings) {
+      this.bindTapOrClick(btnPauseSettings, () => {
+        this.closePauseModal();
+        this.openSettingsModal();
+      });
+    }
+
     const btnPauseExitMap = document.getElementById('btn-pause-exit-map');
     if (btnPauseExitMap) {
       this.bindTapOrClick(btnPauseExitMap, () => {
@@ -5877,6 +5946,19 @@ class GameController {
       });
     }
     this.setupBackdropClose(this.modalPause, () => this.closePauseModal());
+
+    // Modal Tutorial del Escudo de Vida Alquímico (🛡️)
+    const btnCloseShieldTutorial = document.getElementById('btn-close-shield-tutorial');
+    if (btnCloseShieldTutorial) {
+      this.bindTapOrClick(btnCloseShieldTutorial, () => {
+        const m = document.getElementById('modal-shield-tutorial');
+        if (m) this.hideModal(m);
+      });
+    }
+    const modalShieldTut = document.getElementById('modal-shield-tutorial');
+    if (modalShieldTut) {
+      this.setupBackdropClose(modalShieldTut, () => this.hideModal(modalShieldTut));
+    }
 
     // Modal Introductorio de Desafíos
     const btnCloseChalIntro = document.getElementById('btn-close-challenge-intro');
@@ -5999,22 +6081,41 @@ class GameController {
     window.stateManager.regenerateLives();
     const lives = window.stateManager.getLives();
     const maxLives = window.stateManager.getMaxLives();
+    const shields = window.stateManager.getShields ? window.stateManager.getShields() : 0;
+    const maxShields = window.stateManager.getMaxShields ? window.stateManager.getMaxShields() : 0;
     const timer = window.stateManager.getTimeToNextLife();
 
+    // Eliminar el número (3/3) del HUD: se entiende visualmente con los corazones
     if (this.livesCountText) {
       this.livesCountText.textContent = `${lives}/${maxLives}`;
+      this.livesCountText.classList.add('hidden');
+    }
+
+    if (this.livesHud) {
+      if (shields > 0) {
+        this.livesHud.classList.add('has-shields');
+        this.livesHud.title = `Vidas: ${lives}/${maxLives} • Escudos Protectores: ${shields}/${maxShields}`;
+      } else {
+        this.livesHud.classList.remove('has-shields');
+        this.livesHud.title = `Vidas: ${lives}/${maxLives}`;
+      }
     }
 
     if (this.livesHeartsDisplay) {
       this.livesHeartsDisplay.innerHTML = '';
       for (let i = 0; i < maxLives; i++) {
-        if (i < lives) {
+        // Pintar metálico de izquierda a derecha por cada escudo activo
+        if (i < shields) {
           this.livesHeartsDisplay.innerHTML += `
-            <i data-lucide="heart" class="w-3.5 h-3.5 fill-rose-500 text-rose-500 heart-icon-full"></i>
+            <i data-lucide="heart" class="w-3.5 h-3.5 heart-icon-metallic" title="Escudo de Vida Activo"></i>
+          `;
+        } else if (i < lives) {
+          this.livesHeartsDisplay.innerHTML += `
+            <i data-lucide="heart" class="w-3.5 h-3.5 fill-rose-500 text-rose-500 heart-icon-full" title="Vida Activa"></i>
           `;
         } else {
           this.livesHeartsDisplay.innerHTML += `
-            <i data-lucide="heart" class="w-3.5 h-3.5 text-slate-600 heart-icon-empty"></i>
+            <i data-lucide="heart" class="w-3.5 h-3.5 text-slate-600 heart-icon-empty" title="Vida Perdida"></i>
           `;
         }
       }
@@ -6022,7 +6123,7 @@ class GameController {
     }
 
     if (this.livesTimerText) {
-      if (timer && lives < maxLives) {
+      if (timer && (lives < maxLives || (maxShields > 0 && shields < maxShields))) {
         this.livesTimerText.textContent = timer;
         this.livesTimerText.classList.remove('hidden');
       } else {
@@ -6036,6 +6137,11 @@ class GameController {
     if (!this.modalPause) return;
     if (window.leaderboardManager) {
       window.leaderboardManager.pauseTimer();
+    }
+    this.updateCoinsUI();
+    const pauseInfo = document.getElementById('pause-level-info');
+    if (pauseInfo) {
+      pauseInfo.textContent = `Nivel ${this.currentLevel}`;
     }
     const list = document.getElementById('pause-challenges-list');
     if (list) {

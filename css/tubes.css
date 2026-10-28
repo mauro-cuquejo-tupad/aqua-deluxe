@@ -27,6 +27,7 @@
 }
 
 #tubes-grid {
+  row-gap: 2.25rem; /* Separación vertical garantizada de 36px para evitar solapamiento de etiquetas 1x1, Max 8, etc. */
   touch-action: manipulation;
   -webkit-tap-highlight-color: transparent;
   user-select: none;

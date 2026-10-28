@@ -13,6 +13,9 @@ const DEFAULT_STATE = {
     coins: 0,
     lives: 3,
     maxLives: 3,
+    shields: 0,
+    maxShields: 0,
+    hasSeenShieldTutorial: false,
     lastLifeLostTimestamp: null,
     totalCoinsSpent: 0
   },
@@ -144,6 +147,9 @@ class StateManager {
           player: {
             ...DEFAULT_STATE.player,
             ...parsed.player,
+            shields: typeof parsed.player?.shields === 'number' ? Math.max(0, Math.min(3, parsed.player.shields)) : 0,
+            maxShields: typeof parsed.player?.maxShields === 'number' ? Math.max(0, Math.min(3, parsed.player.maxShields)) : 0,
+            hasSeenShieldTutorial: !!parsed.player?.hasSeenShieldTutorial,
             totalCoinsSpent: typeof parsed.player?.totalCoinsSpent === 'number' ? parsed.player.totalCoinsSpent : 0
           },
           upgrades: { ...DEFAULT_STATE.upgrades, ...parsed.upgrades },
@@ -560,7 +566,7 @@ class StateManager {
     return false;
   }
 
-  // --- SISTEMA DE VIDAS (3 VIDAS / REGENERACIÓN DE 10 MINUTOS) ---
+  // --- SISTEMA DE VIDAS (3 VIDAS / REGENERACIÓN DE 10 MINUTOS) Y ESCUDOS ALQUÍMICOS ---
   getLives() {
     this.regenerateLives();
     return this.state.player.lives;
@@ -570,22 +576,63 @@ class StateManager {
     return this.state.player.maxLives || 3;
   }
 
-  consumeLife() {
+  getShields() {
     this.regenerateLives();
-    if (this.state.player.lives > 0) {
-      if (this.state.player.lives === this.getMaxLives()) {
-        this.state.player.lastLifeLostTimestamp = Date.now();
+    return Math.max(0, Math.min(this.getMaxShields(), this.state.player.shields || 0));
+  }
+
+  getMaxShields() {
+    return Math.max(0, Math.min(3, this.state.player.maxShields || 0));
+  }
+
+  // Restaura +1 escudo al completar el 100% de desafíos del nivel (solo si se adquirió la mejora de escudo)
+  restoreShieldOnAllChallenges() {
+    const maxShields = this.getMaxShields();
+    if (maxShields <= 0) return false;
+    const currentShields = this.getShields();
+    if (currentShields < maxShields) {
+      this.state.player.shields = currentShields + 1;
+      if (this.state.player.shields >= maxShields && this.state.player.lives >= this.getMaxLives()) {
+        this.state.player.lastLifeLostTimestamp = null;
       }
-      this.state.player.lives--;
       this.saveState();
       return true;
     }
     return false;
   }
 
+  // Consume primero escudos metálicos protectores; si no hay escudos, consume vidas rojas estándar
+  consumeLife() {
+    this.regenerateLives();
+    const currentShields = this.getShields();
+    if (currentShields > 0) {
+      this.state.player.shields = currentShields - 1;
+      if (!this.state.player.lastLifeLostTimestamp) {
+        this.state.player.lastLifeLostTimestamp = Date.now();
+      }
+      this.saveState();
+      return { success: true, consumed: 'shield', remainingShields: this.state.player.shields, remainingLives: this.state.player.lives };
+    }
+
+    if (this.state.player.lives > 0) {
+      if (this.state.player.lives === this.getMaxLives() && !this.state.player.lastLifeLostTimestamp) {
+        this.state.player.lastLifeLostTimestamp = Date.now();
+      }
+      this.state.player.lives--;
+      this.saveState();
+      return { success: true, consumed: 'life', remainingShields: 0, remainingLives: this.state.player.lives };
+    }
+    return false;
+  }
+
   regenerateLives() {
-    const max = this.getMaxLives();
-    if (this.state.player.lives >= max) {
+    const maxLives = this.getMaxLives();
+    const maxShields = this.getMaxShields();
+    const currentLives = this.state.player.lives;
+    const currentShields = this.state.player.shields || 0;
+
+    // Si tanto vidas como escudos comprados están llenos, no hay regeneración pendiente
+    if (currentLives >= maxLives && currentShields >= maxShields) {
       this.state.player.lastLifeLostTimestamp = null;
       return;
     }
@@ -598,20 +645,32 @@ class StateManager {
 
     const elapsed = Date.now() - this.state.player.lastLifeLostTimestamp;
     if (elapsed >= LIFE_REGEN_TIME_MS) {
-      const recovered = Math.floor(elapsed / LIFE_REGEN_TIME_MS);
-      this.state.player.lives = Math.min(max, this.state.player.lives + recovered);
+      const ticks = Math.floor(elapsed / LIFE_REGEN_TIME_MS);
+      let livesToRecover = Math.min(ticks, maxLives - currentLives);
+      this.state.player.lives = currentLives + livesToRecover;
 
-      if (this.state.player.lives >= max) {
+      let remainingTicks = ticks - livesToRecover;
+      if (remainingTicks > 0 && maxShields > 0 && this.state.player.shields < maxShields) {
+        const shieldsToRecover = Math.min(remainingTicks, maxShields - this.state.player.shields);
+        this.state.player.shields += shieldsToRecover;
+      }
+
+      if (this.state.player.lives >= maxLives && (this.state.player.shields || 0) >= maxShields) {
         this.state.player.lastLifeLostTimestamp = null;
       } else {
-        this.state.player.lastLifeLostTimestamp += recovered * LIFE_REGEN_TIME_MS;
+        this.state.player.lastLifeLostTimestamp += ticks * LIFE_REGEN_TIME_MS;
       }
       this.saveState();
     }
   }
 
   getTimeToNextLife() {
-    if (this.state.player.lives >= this.getMaxLives()) return null;
+    const maxLives = this.getMaxLives();
+    const maxShields = this.getMaxShields();
+    const currentLives = this.state.player.lives;
+    const currentShields = this.state.player.shields || 0;
+
+    if (currentLives >= maxLives && currentShields >= maxShields) return null;
     if (!this.state.player.lastLifeLostTimestamp) return null;
 
     const elapsed = Date.now() - this.state.player.lastLifeLostTimestamp;
@@ -624,7 +683,7 @@ class StateManager {
 
   addLifeInstant(count = 1) {
     this.state.player.lives = Math.min(this.getMaxLives(), this.state.player.lives + count);
-    if (this.state.player.lives >= this.getMaxLives()) {
+    if (this.state.player.lives >= this.getMaxLives() && (this.state.player.shields || 0) >= this.getMaxShields()) {
       this.state.player.lastLifeLostTimestamp = null;
     }
     this.saveState();
@@ -1096,6 +1155,26 @@ class StateManager {
         return { success: true, newLives: this.getMaxLives() };
       }
       return { success: false, msg: 'Monedas insuficientes (Costo: 600🪙)' };
+    }
+
+    if (upgradeType === 'buy_shield') {
+      const currentMax = this.getMaxShields();
+      if (currentMax >= 3) {
+        return { success: false, msg: 'Ya tienes la capacidad máxima de escudos de vida (3/3 🛡️)' };
+      }
+      const shieldCosts = { 0: 300, 1: 500, 2: 750 };
+      const cost = shieldCosts[currentMax] || 500;
+      if (this.spendCoins(cost)) {
+        this.state.player.maxShields = currentMax + 1;
+        this.state.player.shields = Math.min(this.state.player.maxShields, (this.state.player.shields || 0) + 1);
+        const isFirstTime = !this.state.player.hasSeenShieldTutorial;
+        if (isFirstTime) {
+          this.state.player.hasSeenShieldTutorial = true;
+        }
+        this.saveState();
+        return { success: true, newMax: this.state.player.maxShields, shields: this.state.player.shields, isFirstTime };
+      }
+      return { success: false, msg: `Monedas insuficientes (Costo: ${cost}🪙)` };
     }
 
     return { success: false, msg: 'Mejora desconocida' };

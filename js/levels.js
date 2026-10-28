@@ -14,16 +14,19 @@ class LevelGenerator {
     const emptyCount = 2;
     const capacity = 4;
 
-    // Activación progresiva y espaciada de mecánicas cada 10 niveles
-    const rawHasMystery = (level >= 11 && level <= 20) || (level >= 81 && level % 3 === 0) || (level >= 91 && level % 2 === 1);
-    const rawHasGiant = (level >= 21 && level <= 30) || (level >= 81 && level % 3 === 1) || (level >= 91 && level % 3 === 0);
-    const rawHasSuperGiant = (level >= 85 && level % 4 === 0) || (level >= 98); // Frasco Súper Largo (Max 8)
-    const rawHasLock = (level >= 31 && level <= 40) || (level >= 81 && level % 3 === 2) || (level >= 92 && level % 2 === 0);
-    const rawHasNarrow = (level >= 41 && level <= 50) || (level >= 93 && level % 3 === 1);
-    const rawHasGlued = (level >= 51 && level <= 60) || (level >= 94 && level % 4 === 2);
-    const rawHasChameleon = (level >= 61 && level <= 70) || (level >= 85 && level % 4 === 1) || (level >= 95);
-    const rawHasFragile = (level >= 71 && level <= 80) || (level >= 88 && level % 4 === 3) || (level >= 96);
-    const rawIsSuperFragile = (level >= 88 && level % 4 === 3) || (level >= 97); // Súper Frágil / Volátil (1 Uso)
+    // Activación progresiva y escalonada de mecánicas:
+    // Los primeros 3 niveles de cada sección tienen ÚNICAMENTE la mecánica nueva introducida.
+    // A partir del nivel 4, van sumando las mecánicas anteriores progresivamente.
+    const rawMechanics = LevelGenerator.getMechanicsForLevel(level);
+    const rawHasMystery = rawMechanics.rawHasMystery;
+    const rawHasGiant = rawMechanics.rawHasGiant;
+    const rawHasSuperGiant = rawMechanics.rawHasSuperGiant;
+    const rawHasLock = rawMechanics.rawHasLock;
+    const rawHasNarrow = rawMechanics.rawHasNarrow;
+    const rawHasGlued = rawMechanics.rawHasGlued;
+    const rawHasChameleon = rawMechanics.rawHasChameleon;
+    const rawHasFragile = rawMechanics.rawHasFragile;
+    const rawIsSuperFragile = rawMechanics.rawIsSuperFragile;
 
     // Filtro por configuración de dificultad personalizada del usuario
     const sm = window.stateManager;
@@ -37,41 +40,46 @@ class LevelGenerator {
     const hasFragile = rawHasFragile && !(sm && sm.isMechanicDisabled('fragile'));
     const isSuperFragile = rawIsSuperFragile && !(sm && sm.isMechanicDisabled('fragile'));
 
+    const activeNames = [];
+    if (hasSuperGiant) activeNames.push('Súper Tubo (Max 8)');
+    else if (hasGiant) activeNames.push('Tubo Gigante (Max 6)');
+    if (hasLock) activeNames.push('Candado');
+    if (hasNarrow) activeNames.push('Tubo 1x1');
+    if (hasGlued) activeNames.push('En Roca');
+    if (hasChameleon) activeNames.push('Camaleón');
+    if (hasFragile) activeNames.push(isSuperFragile ? 'Volátil (1)' : 'Afinidad');
+    if (hasMystery) activeNames.push("Misterio '?'");
+
     let mechanicTag = 'Básico';
     let primaryMechanicId = 'basic';
 
-    if (level >= 91 && (hasMystery || hasGiant || hasLock || hasNarrow || hasGlued || hasChameleon || hasFragile)) {
-      mechanicTag = 'La Gran Obra Magna';
+    if (level >= 91) {
+      mechanicTag = activeNames.length > 0 ? `Obra Magna: ${activeNames.slice(0, 2).join(' + ')}` : 'La Gran Obra Magna';
       primaryMechanicId = 'magna';
-    } else if (level >= 81 && (hasSuperGiant || hasMystery || hasGiant || hasLock || hasNarrow || hasGlued || hasChameleon || hasFragile)) {
-      mechanicTag = hasSuperGiant ? 'Frasco Súper Largo (Max 8)' : 'Conjunción Híbrida';
+    } else if (level >= 81) {
+      mechanicTag = hasSuperGiant && activeNames.length === 1 ? 'Frasco Súper Largo (Max 8)' : `Híbrido: ${activeNames.slice(0, 2).join(' + ')}`;
       primaryMechanicId = 'hybrid';
-    } else if (hasFragile) {
-      if (isSuperFragile) {
-        mechanicTag = 'Cristal Volátil (1 Uso)';
-        primaryMechanicId = 'super_fragile';
-      } else {
-        mechanicTag = 'Cristal de Afinidad (3 Usos)';
-        primaryMechanicId = 'fragile';
-      }
-    } else if (hasChameleon) {
-      mechanicTag = 'Líquido Camaleón';
-      primaryMechanicId = 'chameleon';
-    } else if (hasGlued) {
-      mechanicTag = 'Frasco en Roca (Solo Recibe)';
-      primaryMechanicId = 'glued';
-    } else if (hasNarrow) {
-      mechanicTag = 'Tubo Estrecho (1x1)';
-      primaryMechanicId = 'narrow';
-    } else if (hasLock) {
-      mechanicTag = 'Candado con Llave Oculta';
-      primaryMechanicId = 'lock';
-    } else if (hasGiant) {
-      mechanicTag = 'Frasco Gigante (Max 6)';
-      primaryMechanicId = 'giant';
-    } else if (hasMystery) {
-      mechanicTag = "Líquidos Misterio '?'";
-      primaryMechanicId = 'mystery';
+    } else if (activeNames.length === 0) {
+      mechanicTag = 'Básico';
+      primaryMechanicId = 'basic';
+    } else if (activeNames.length === 1) {
+      mechanicTag = activeNames[0];
+      if (hasFragile) primaryMechanicId = isSuperFragile ? 'super_fragile' : 'fragile';
+      else if (hasChameleon) primaryMechanicId = 'chameleon';
+      else if (hasGlued) primaryMechanicId = 'glued';
+      else if (hasNarrow) primaryMechanicId = 'narrow';
+      else if (hasLock) primaryMechanicId = 'lock';
+      else if (hasGiant) primaryMechanicId = 'giant';
+      else if (hasMystery) primaryMechanicId = 'mystery';
+    } else {
+      mechanicTag = activeNames.length <= 2 ? activeNames.join(' + ') : `${activeNames[0]} + ${activeNames[1]} (+${activeNames.length - 2})`;
+      if (hasFragile) primaryMechanicId = 'fragile';
+      else if (hasChameleon) primaryMechanicId = 'chameleon';
+      else if (hasGlued) primaryMechanicId = 'glued';
+      else if (hasNarrow) primaryMechanicId = 'narrow';
+      else if (hasLock) primaryMechanicId = 'lock';
+      else if (hasGiant) primaryMechanicId = 'giant';
+      else if (hasMystery) primaryMechanicId = 'mystery';
     }
 
     // Obtener paleta actual (personalizable por el usuario)
@@ -634,6 +642,136 @@ class LevelGenerator {
       totalColors: numColors,
       tubes: tubes,
       config: { tubeCount: totalTubes, colorCount: numColors, mechanics, seed: actualSeed }
+    };
+  }
+
+  // --- ASIGNACIÓN ESCALONADA DE MECÁNICAS (PRIMEROS 3 NIVELES PUROS, DESPUÉS COMBINACIONES) ---
+  static getMechanicsForLevel(levelNum) {
+    const level = Math.max(1, Math.min(100, levelNum));
+    const section = Math.floor((level - 1) / 10) + 1; // 1 a 10
+    const step = ((level - 1) % 10) + 1; // 1 a 10 (primeros 3 puros de la nueva mecánica)
+
+    let rawHasMystery = false;
+    let rawHasGiant = false;
+    let rawHasSuperGiant = false;
+    let rawHasLock = false;
+    let rawHasNarrow = false;
+    let rawHasGlued = false;
+    let rawHasChameleon = false;
+    let rawHasFragile = false;
+    let rawIsSuperFragile = false;
+
+    if (section === 1) {
+      // 1-10: Fundamentos (Básico)
+    } else if (section === 2) {
+      // 11-20: Líquidos Misterio '?'
+      rawHasMystery = true;
+    } else if (section === 3) {
+      // 21-30: Frasco Gigante (Max 6)
+      rawHasGiant = true;
+      if (step >= 4) {
+        // Sumar mecánica anterior: Misterio
+        if (step === 5 || step === 7 || step === 8 || step === 10) {
+          rawHasMystery = true;
+        }
+      }
+    } else if (section === 4) {
+      // 31-40: Candado con Llave Oculta
+      rawHasLock = true;
+      if (step >= 4) {
+        // Sumar mecánicas anteriores: Misterio y Gigante
+        if (step === 4 || step === 7 || step === 9 || step === 10) rawHasMystery = true;
+        if (step === 5 || step === 8 || step === 9 || step === 10) rawHasGiant = true;
+      }
+    } else if (section === 5) {
+      // 41-50: Tubo Estrecho (1x1)
+      rawHasNarrow = true;
+      if (step >= 4) {
+        // Sumar mecánicas anteriores: Candado, Gigante, Misterio
+        if (step === 4 || step === 7 || step === 8 || step === 10) rawHasMystery = true;
+        if (step === 5 || step === 7 || step === 9 || step === 10) rawHasGiant = true;
+        if (step === 6 || step === 8 || step === 9 || step === 10) rawHasLock = true;
+      }
+    } else if (section === 6) {
+      // 51-60: Frasco en Roca (Inamovible)
+      rawHasGlued = true;
+      if (step >= 4) {
+        // Sumar mecánicas anteriores: Estrecho, Candado, Gigante, Misterio
+        if (step === 4 || step === 8 || step === 10) rawHasMystery = true;
+        if (step === 5 || step === 8 || step === 10) rawHasGiant = true;
+        if (step === 6 || step === 9) rawHasLock = true;
+        if (step === 7 || step === 9 || step === 10) rawHasNarrow = true;
+      }
+    } else if (section === 7) {
+      // 61-70: Líquido Camaleón
+      rawHasChameleon = true;
+      if (step >= 4) {
+        // Sumar mecánicas anteriores: Roca, Estrecho, Candado, Gigante, Misterio
+        if (step === 4 || step === 9 || step === 10) rawHasMystery = true;
+        if (step === 5 || step === 9) rawHasGiant = true;
+        if (step === 6 || step === 9) rawHasLock = true;
+        if (step === 7 || step === 10) rawHasNarrow = true;
+        if (step === 8 || step === 10) rawHasGlued = true;
+      }
+    } else if (section === 8) {
+      // 71-80: Cristal de Afinidad / Frágil
+      rawHasFragile = true;
+      if (step >= 4) {
+        // Sumar mecánicas anteriores: Camaleón, Roca, Estrecho, Candado, Gigante, Misterio
+        if (step === 4 || step === 9) rawHasMystery = true;
+        if (step === 5 || step === 10) rawHasGiant = true;
+        if (step === 6 || step === 10) rawHasLock = true;
+        if (step === 7) rawHasNarrow = true;
+        if (step === 8 || step === 10) rawHasChameleon = true;
+        if (step === 9) rawHasGlued = true;
+      }
+    } else if (section === 9) {
+      // 81-90: Conjunción Híbrida / Súper Gigante (Max 8)
+      if (step <= 3) {
+        rawHasSuperGiant = true;
+        if (step === 2) rawHasMystery = true;
+        if (step === 3) rawHasLock = true;
+      } else {
+        if (step === 4) { rawHasSuperGiant = true; rawHasGlued = true; rawHasMystery = true; }
+        else if (step === 5) { rawHasChameleon = true; rawHasNarrow = true; rawHasLock = true; }
+        else if (step === 6) { rawHasSuperGiant = true; rawHasChameleon = true; rawHasLock = true; }
+        else if (step === 7) { rawHasGlued = true; rawHasNarrow = true; rawHasFragile = true; rawIsSuperFragile = true; }
+        else if (step === 8) { rawHasSuperGiant = true; rawHasNarrow = true; rawHasFragile = true; rawIsSuperFragile = true; }
+        else if (step === 9) { rawHasSuperGiant = true; rawHasGlued = true; rawHasLock = true; rawHasChameleon = true; }
+        else if (step === 10) { rawHasSuperGiant = true; rawHasNarrow = true; rawHasLock = true; rawHasChameleon = true; rawHasMystery = true; }
+      }
+    } else if (section === 10) {
+      // 91-100: La Gran Obra Magna
+      if (step === 1) { rawHasGiant = true; rawHasMystery = true; rawHasLock = true; }
+      else if (step === 2) { rawHasNarrow = true; rawHasGlued = true; rawHasChameleon = true; }
+      else if (step === 3) { rawHasSuperGiant = true; rawHasFragile = true; rawHasMystery = true; }
+      else if (step === 4) { rawHasGlued = true; rawHasNarrow = true; rawHasLock = true; rawHasMystery = true; }
+      else if (step === 5) { rawHasGiant = true; rawHasChameleon = true; rawHasFragile = true; rawHasLock = true; }
+      else if (step === 6) { rawHasSuperGiant = true; rawHasGlued = true; rawHasNarrow = true; rawHasMystery = true; }
+      else if (step === 7) { rawHasFragile = true; rawIsSuperFragile = true; rawHasChameleon = true; rawHasLock = true; rawHasGiant = true; }
+      else if (step === 8) { rawHasSuperGiant = true; rawHasGlued = true; rawHasLock = true; rawHasMystery = true; rawHasChameleon = true; }
+      else if (step === 9) { rawHasSuperGiant = true; rawHasFragile = true; rawIsSuperFragile = true; rawHasNarrow = true; rawHasGlued = true; rawHasLock = true; }
+      else if (step === 10) {
+        // Nivel 100 final supremo
+        rawHasSuperGiant = true;
+        rawHasChameleon = true;
+        rawHasLock = true;
+        rawHasNarrow = true;
+        rawHasGlued = true;
+        rawHasMystery = true;
+      }
+    }
+
+    return {
+      rawHasMystery,
+      rawHasGiant,
+      rawHasSuperGiant,
+      rawHasLock,
+      rawHasNarrow,
+      rawHasGlued,
+      rawHasChameleon,
+      rawHasFragile,
+      rawIsSuperFragile
     };
   }
 }
