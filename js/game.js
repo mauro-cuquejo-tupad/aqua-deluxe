@@ -7764,6 +7764,16 @@ class GameController {
 
     if (window.stateManager) {
       window.stateManager.saveCustomLevel(levelObj);
+
+      // Recompensa al usuario: +50 Monedas por cada nivel publicado
+      window.stateManager.addCoins(50);
+      this.updateCoinsUI();
+
+      // Logro: Publicar 50 niveles (Recompensa: 1000 monedas)
+      const totalPublished = window.stateManager.getCustomLevels().length;
+      if (window.achievementManager) {
+        window.achievementManager.check('community_architect_50', totalPublished);
+      }
     }
 
     this.hideModal(this.modalPublishLevel);
@@ -7771,7 +7781,7 @@ class GameController {
 
     if (window.audio) window.audio.playWinFanfare();
     this.updateCommunityBadgeCount();
-    alert(`🚀 ¡Éxito! Tu nivel '${name}' ha sido publicado en la Biblioteca de la Comunidad.`);
+    alert(`🚀 ¡Éxito! Tu nivel '${name}' ha sido publicado en la Biblioteca de la Comunidad.\n\n🪙 ¡Recompensa obtenida: +50 Monedas!`);
   }
 
   openCommunityLevelsModal(filter = 'all') {

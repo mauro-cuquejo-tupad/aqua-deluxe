@@ -106,6 +106,16 @@ const ACHIEVEMENTS_CATALOG = [
     reward: 200
   },
   {
+    id: 'community_architect_50',
+    title: 'Arquitecto Alquímico',
+    description: 'Publica 50 niveles en la Biblioteca de la Comunidad.',
+    category: 'Comunidad',
+    icon: 'sparkles',
+    badge: '🏛️',
+    max: 50,
+    reward: 1000
+  },
+  {
     id: 'no_undo_master',
     title: 'Decisión Firme',
     description: 'Supera 5 niveles seguidos sin usar Deshacer ni Botellas Extra.',
