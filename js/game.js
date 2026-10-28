@@ -2228,10 +2228,15 @@ class GameController {
     // Desbloqueo de candado si se vierte la llave correcta
     if (toTube.isLocked) {
       const topFrom = fromTube.liquids[fromTube.liquids.length - 1];
-      if (topFrom && topFrom.color === toTube.keyColor) {
+      const isKeyMatch = topFrom && toTube.keyColor && (
+        topFrom.color.toLowerCase() === toTube.keyColor.toLowerCase() ||
+        (topFrom.isChameleon && topFrom.revealed)
+      );
+      if (isKeyMatch) {
         this.saveStateForUndo();
         toTube.isLocked = false;
         if (window.audio) window.audio.playUnlock();
+        this.triggerUnlockSuccess(toIdx, '🔓 ¡Candado Desbloqueado!');
         this.selectedTubeIndex = null;
         this.lastInvalidTargetIdx = null;
         this.moves++;
@@ -2362,6 +2367,54 @@ class GameController {
       tubeEl.classList.remove('tube-invalid-shake');
       if (badge.parentNode) badge.remove();
     }, 1100);
+  }
+
+  // Feedback visual y sonoro ante desbloqueo exitoso de candados
+  triggerUnlockSuccess(tubeIdx, reasonText = '🔓 ¡Desbloqueado!') {
+    const tubeEl = this.tubesGrid?.querySelector(`[data-index="${tubeIdx}"]`);
+    if (!tubeEl) return;
+
+    tubeEl.classList.remove('tube-unlock-pulse');
+    void tubeEl.offsetWidth;
+    tubeEl.classList.add('tube-unlock-pulse');
+
+    const oldBadge = tubeEl.querySelector('.tube-success-badge');
+    if (oldBadge) oldBadge.remove();
+
+    const badge = document.createElement('div');
+    badge.className = 'tube-success-badge';
+    badge.textContent = reasonText;
+    tubeEl.appendChild(badge);
+
+    setTimeout(() => {
+      tubeEl.classList.remove('tube-unlock-pulse');
+      if (badge.parentNode) badge.remove();
+    }, 1200);
+  }
+
+  // Comprobar y auto-desbloquear candados si se completa cualquier frasco con el color de la llave
+  checkAutoUnlockLockedTubes() {
+    let unlockedAny = false;
+    this.tubes.forEach((tube, idx) => {
+      if (tube.isLocked && tube.keyColor) {
+        const isKeyColorComplete = this.tubes.some(t => {
+          if (t === tube || t.liquids.length === 0) return false;
+          if (!this.isTubeComplete(t, { allowChameleon: true })) return false;
+          return t.liquids[0].color.toLowerCase() === tube.keyColor.toLowerCase();
+        });
+
+        if (isKeyColorComplete) {
+          tube.isLocked = false;
+          unlockedAny = true;
+          this.triggerUnlockSuccess(idx, '🔓 ¡Color Completado!');
+          if (window.audio) window.audio.playUnlock();
+        }
+      }
+    });
+    if (unlockedAny) {
+      this.renderTubes();
+      this.updateButtonsUI();
+    }
   }
 
   canPour(fromIdx, toIdx) {
@@ -2742,6 +2795,9 @@ class GameController {
                 this.renderTubes();
                 this.updateButtonsUI();
                 this.updateChallengesHUD();
+
+                // Auto-desbloqueo de candados si se completó el frasco del color de la llave
+                this.checkAutoUnlockLockedTubes();
 
                 // Comprobar victoria
                 this.checkVictory();
@@ -3140,6 +3196,7 @@ class GameController {
         this.isPouringAnimation = false;
         this.renderTubes();
         this.updateButtonsUI();
+        this.checkAutoUnlockLockedTubes();
         this.checkVictory();
         if (this.isTimeAttack) {
           this.checkTimeAttackDeadlock();

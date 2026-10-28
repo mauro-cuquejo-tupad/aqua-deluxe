@@ -598,7 +598,9 @@ class LevelGenerator {
         capacity: cap,
         liquids: tubeLiquids,
         isGlued: (hasGlued && i === numColors - 1),
-        isLocked: (hasLock && i === 0),
+        isLocked: false,
+        keyColor: null,
+        keyColorName: null,
         fragileUses: (hasFragile && i === 2) ? 3 : null,
         isNarrow: false
       });
@@ -614,6 +616,8 @@ class LevelGenerator {
         liquids: [],
         isGlued: false,
         isLocked: false,
+        keyColor: null,
+        keyColorName: null,
         fragileUses: null,
         isNarrow: isNarrow
       });
@@ -621,6 +625,60 @@ class LevelGenerator {
 
     const actualSeed = (seed !== null && seed !== undefined) ? seed : Math.floor(Math.random() * 9999999);
     this.distributeAndShuffle(tubes, actualSeed);
+
+    // Aplicar candado con llave correctamente si hasLock está activo en Sandbox
+    if (hasLock && tubes.length > 0) {
+      // Candidato a candado: con líquidos, no inamovible (glued), no estrecho (narrow), preferentemente frasco estándar de 4 si hay
+      let lockCandidates = tubes.filter(t => !t.isGlued && !t.isNarrow && t.capacity === 4 && t.liquids.length >= 2);
+      if (lockCandidates.length === 0) {
+        lockCandidates = tubes.filter(t => !t.isGlued && !t.isNarrow && t.liquids.length >= 2);
+      }
+      if (lockCandidates.length > 0) {
+        const lockIndex = Math.abs(actualSeed) % lockCandidates.length;
+        const lockTube = lockCandidates[lockIndex];
+        lockTube.isLocked = true;
+
+        // Seleccionar color de la llave entre los colores activos
+        const keyColorObj = activeColors[Math.abs(actualSeed + 3) % activeColors.length];
+        lockTube.keyColor = keyColorObj.hex;
+        lockTube.keyColorName = keyColorObj.name;
+
+        // Garantizar que la llave esté en un tubo accesible (no bloqueado, no inamovible)
+        const sourceCandidates = tubes.filter(t => !t.isLocked && !t.isGlued && !t.isNarrow && t.liquids.length >= 2);
+        if (sourceCandidates.length > 0) {
+          const keySourceTube = sourceCandidates[Math.abs(actualSeed + 7) % sourceCandidates.length];
+          const coverCount = keySourceTube.liquids.length >= 3 ? 2 : 1;
+          const keyPos = keySourceTube.liquids.length - 1 - coverCount;
+
+          let foundKey = false;
+          for (let ti = 0; ti < tubes.length; ti++) {
+            if (tubes[ti] === lockTube) continue;
+            for (let li = 0; li < tubes[ti].liquids.length; li++) {
+              if (tubes[ti].liquids[li].color === lockTube.keyColor) {
+                const temp = keySourceTube.liquids[keyPos];
+                keySourceTube.liquids[keyPos] = tubes[ti].liquids[li];
+                tubes[ti].liquids[li] = temp;
+                foundKey = true;
+                break;
+              }
+            }
+            if (foundKey) break;
+          }
+
+          if (!foundKey) {
+            for (let li = 0; li < lockTube.liquids.length; li++) {
+              if (lockTube.liquids[li].color === lockTube.keyColor) {
+                const temp = keySourceTube.liquids[keyPos];
+                keySourceTube.liquids[keyPos] = lockTube.liquids[li];
+                lockTube.liquids[li] = temp;
+                foundKey = true;
+                break;
+              }
+            }
+          }
+        }
+      }
+    }
 
     const activeMechanicNames = [];
     if (hasMystery) activeMechanicNames.push('Misterio');
@@ -777,4 +835,7 @@ class LevelGenerator {
 }
 
 window.LevelGenerator = LevelGenerator;
+if (typeof module !== 'undefined' && module.exports) {
+  module.exports = LevelGenerator;
+}
 
