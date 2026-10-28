@@ -13,6 +13,7 @@ class MinigameEngine {
     this.currentMode = 'diana'; // 'diana' | 'moving_targets' | 'roulette'
     this.fromVictory = false;
     this.isTrainingMode = true;
+    this.finalizeTimer = null;
 
     // --- CARTAS ALQUÍMICAS ---
     this.activeCard = null; // 'dianaFavor' | 'rouletteFavor' | 'doubleOrNothing' | 'calmAtmosphere'
@@ -1867,11 +1868,33 @@ class MinigameEngine {
     }
   }
 
+  cancelFinalizeTimer() {
+    if (this.finalizeTimer) {
+      clearTimeout(this.finalizeTimer);
+      this.finalizeTimer = null;
+    }
+    const modalBox = document.querySelector('#modal-roulette .modal-content');
+    if (modalBox) modalBox.classList.remove('roulette-lose-glow');
+    document.querySelectorAll('.roulette-slice.winner-slice').forEach(el => el.classList.remove('winner-slice'));
+    if (this.btnSpin) this.btnSpin.disabled = false;
+    this.stopTimingBar();
+    this.stopMovingTargetsAnim();
+    this.activeCard = null;
+    this.calmAtmosphereBenefit = null;
+    this.extraShotAvailable = false;
+  }
+
   // --- CIERRE DE RONDA Y RETORNO AL JUEGO ---
   finalizeRound(winningSlice, modalBox) {
+    if (this.finalizeTimer) {
+      clearTimeout(this.finalizeTimer);
+      this.finalizeTimer = null;
+    }
+
     if (this.isTrainingMode) {
       // En Modo Entrenamiento / Libre: Dejar que disfrute el premio y permitir seguir jugando
-      setTimeout(() => {
+      this.finalizeTimer = setTimeout(() => {
+        this.finalizeTimer = null;
         if (modalBox) modalBox.classList.remove('roulette-lose-glow');
         if (winningSlice) winningSlice.classList.remove('winner-slice');
         if (this.btnSpin) this.btnSpin.disabled = false;
@@ -1893,8 +1916,22 @@ class MinigameEngine {
       return;
     }
 
+    // Actualizar botón para indicar avance directo al siguiente nivel
+    const btnCashout = document.getElementById('btn-cashout-roulette');
+    if (btnCashout) {
+      const nextLvlNum = window.game ? Math.min(window.game.maxLevels || 100, (window.game.currentLevel || 1) + 1) : '';
+      btnCashout.innerHTML = `
+        <i data-lucide="arrow-right" class="w-4 h-4 text-emerald-200"></i>
+        <span>Avanzar al Siguiente Nivel${nextLvlNum ? ' (Nivel ' + nextLvlNum + ')' : ''}</span>
+      `;
+      if (window.lucide && typeof window.lucide.createIcons === 'function') {
+        window.lucide.createIcons();
+      }
+    }
+
     // Modo Victoria: Aumento de tiempo de visualización para ver claramente el premio ganado (~4.2s)
-    setTimeout(() => {
+    this.finalizeTimer = setTimeout(() => {
+      this.finalizeTimer = null;
       const modal = document.getElementById('modal-roulette');
       if (modal) {
         if (window.game && typeof window.game.hideModal === 'function') {
@@ -1922,6 +1959,7 @@ class MinigameEngine {
   }
 
   openModal(coins = 75, fromVictory = false) {
+    this.cancelFinalizeTimer();
     this.fromVictory = Boolean(fromVictory);
     this.isTrainingMode = !this.fromVictory;
     if (!this.wheelGroup) this.initDOM();

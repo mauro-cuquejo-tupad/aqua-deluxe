@@ -192,6 +192,9 @@ class GameController {
     this.pendingPublishDifficulty = null;
     this.navigationSource = 'game';
     this.pendingExitDestination = 'home';
+    this.isLevelCompleted = false;
+    this.isBonusFromVictory = false;
+    this.isVictoryModalOpen = false;
 
     // Catálogo de Mecánicas y Guía de Tutoriales (Espaciadas cada 10 niveles)
     this.mechanicsCatalog = [
@@ -372,6 +375,9 @@ class GameController {
   // --- CARGA Y GENERACIÓN DE NIVELES ---
   loadLevel(lvl, seedVariation = 0, customLevelData = null) {
     this.navigationSource = 'game';
+    this.isLevelCompleted = false;
+    this.isBonusFromVictory = false;
+    this.isVictoryModalOpen = false;
     if (lvl !== 'daily' && lvl !== 'casual_sandbox' && lvl !== 'time_attack' && !customLevelData && !this.isHonorMode) {
       const targetLvl = Math.max(1, Math.min(lvl, this.maxLevels));
       if (!this.isLevelUnlocked(targetLvl)) {
@@ -3453,6 +3459,9 @@ class GameController {
     }
 
     // Desbloquear siguiente nivel y persistir estado de niveles completados
+    if (!this.customLevelTesting && !this.isDailyChallenge && !this.isHonorMode && !this.isCasualSandbox && !this.isTimeAttack) {
+      this.isLevelCompleted = true;
+    }
     if (window.stateManager && !this.customLevelTesting && !this.isDailyChallenge && !this.isHonorMode) {
       const nextLevel = Math.min(this.maxLevels, this.currentLevel + 1);
       if (nextLevel > (window.stateManager.state.progress.unlockedLevel || 1)) {
@@ -4172,24 +4181,32 @@ class GameController {
   }
 
   onRouletteClosed() {
+    if (window.rouletteEngine && typeof window.rouletteEngine.cancelFinalizeTimer === 'function') {
+      window.rouletteEngine.cancelFinalizeTimer();
+    }
     this.resumeGameMusic();
     if (this.modalRoulette) {
       this.hideModal(this.modalRoulette);
     }
 
-    // 1. Si venía de una victoria de nivel (Modo Historia / Campaña), avanzar siempre al siguiente nivel
-    if (window.rouletteEngine && window.rouletteEngine.fromVictory) {
-      window.rouletteEngine.fromVictory = false;
+    // 1. Si venía de una victoria de nivel (Modo Historia / Campaña) o el nivel actual en pantalla fue completado,
+    // avanzar siempre al siguiente nivel desde donde está parado en el Modo Historia
+    const cameFromVictory = this.isBonusFromVictory || (window.rouletteEngine && window.rouletteEngine.fromVictory) || this.isLevelCompleted;
+    if (cameFromVictory) {
+      this.isBonusFromVictory = false;
+      if (window.rouletteEngine) {
+        window.rouletteEngine.fromVictory = false;
+      }
       this.navigationSource = 'game';
       if (this.currentLevel >= 100) {
         this.showGameCompletionModal();
       } else {
-        const nextLvl = this.currentLevel + 1;
-        if (this.isLevelUnlocked(nextLvl)) {
-          this.loadLevel(nextLvl);
-        } else {
-          this.openMapModal();
+        const nextLvl = Math.min(this.maxLevels, this.currentLevel + 1);
+        if (window.stateManager && nextLvl > (window.stateManager.state?.progress?.unlockedLevel || 1)) {
+          window.stateManager.state.progress.unlockedLevel = nextLvl;
+          window.stateManager.saveState();
         }
+        this.loadLevel(nextLvl);
       }
       return;
     }
@@ -4824,8 +4841,8 @@ class GameController {
     const statCd = document.getElementById('home-stat-cooldown');
     const playText = document.getElementById('btn-home-play-text');
 
-    const nextPlayableLevel = (window.stateManager && window.stateManager.state?.progress?.unlockedLevel)
-      ? Math.max(this.currentLevel, window.stateManager.state.progress.unlockedLevel)
+    const nextPlayableLevel = this.isLevelCompleted
+      ? Math.min(this.maxLevels, this.currentLevel + 1)
       : this.currentLevel;
 
     if (statLvl) statLvl.textContent = nextPlayableLevel;
@@ -5575,14 +5592,14 @@ class GameController {
             }, 1000);
           } else {
             this.isTimeAttack = false;
-            const targetLvl = (window.stateManager && window.stateManager.state?.progress?.unlockedLevel)
-              ? Math.max(this.currentLevel, window.stateManager.state.progress.unlockedLevel)
+            const targetLvl = this.isLevelCompleted
+              ? Math.min(this.maxLevels, this.currentLevel + 1)
               : this.currentLevel;
             this.loadLevel(targetLvl);
           }
         } else {
-          const targetLvl = (window.stateManager && window.stateManager.state?.progress?.unlockedLevel)
-            ? Math.max(this.currentLevel, window.stateManager.state.progress.unlockedLevel)
+          const targetLvl = this.isLevelCompleted
+            ? Math.min(this.maxLevels, this.currentLevel + 1)
             : this.currentLevel;
 
           // Si entra al Modo Historia por primera vez en su perfil, mostrar solo la animación inicial
@@ -5593,7 +5610,7 @@ class GameController {
             }
           }
 
-          if (this.currentLevel !== targetLvl || !this.tubes || this.tubes.length === 0 || this.isVictoryModalOpen) {
+          if (this.currentLevel !== targetLvl || !this.tubes || this.tubes.length === 0 || this.isLevelCompleted || this.isVictoryModalOpen) {
             this.loadLevel(targetLvl);
           }
         }
@@ -6144,6 +6161,7 @@ class GameController {
     if (btnVicRoulette) {
       this.bindTapOrClick(btnVicRoulette, () => {
         this.navigationSource = 'game';
+        this.isBonusFromVictory = true;
         this.hideModal(this.modalVictory);
         if (window.rouletteEngine) {
           window.rouletteEngine.openModal(75, true);
