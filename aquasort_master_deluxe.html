@@ -46,10 +46,10 @@
   <link rel="icon" type="image/svg+xml" href="icons/icon.svg">
 
   <!-- Modular Stylesheets -->
-  <link rel="stylesheet" href="css/main.css?v=69">
-  <link rel="stylesheet" href="css/tubes.css?v=69">
-  <link rel="stylesheet" href="css/roulette.css?v=69">
-  <link rel="stylesheet" href="css/accessibility.css?v=69">
+  <link rel="stylesheet" href="css/main.css?v=70">
+  <link rel="stylesheet" href="css/tubes.css?v=70">
+  <link rel="stylesheet" href="css/roulette.css?v=70">
+  <link rel="stylesheet" href="css/accessibility.css?v=70">
 </head>
 <body class="min-h-screen flex flex-col justify-between select-none relative">
 
@@ -131,11 +131,6 @@
       <!-- Botón Menú de Pausa (Margen superior derecho del HUD) -->
       <button id="btn-pause" class="btn-interactive p-2 bg-slate-800/90 hover:bg-slate-700 active:scale-95 border border-slate-700/90 rounded-xl text-slate-300 hover:text-white transition-colors" title="Pausar juego">
         <i data-lucide="pause" class="w-4 h-4 sm:w-5 sm:h-5"></i>
-      </button>
-
-      <!-- Botón Pantalla de Inicio / Menú (Siempre visible a la derecha) -->
-      <button id="btn-open-home" class="p-2 bg-slate-800/90 hover:bg-slate-700 active:scale-95 border border-slate-700 rounded-xl text-sky-300 transition-all shadow-sm" title="Pantalla de Inicio / Menú Principal">
-        <i data-lucide="home" class="w-4 h-4 sm:w-5 sm:h-5"></i>
       </button>
     </div>
   </header>
@@ -1064,8 +1059,8 @@
       <div class="w-32 h-32 bg-sky-500/15 rounded-full blur-3xl absolute -top-12 -left-12 pointer-events-none"></div>
       <div class="w-32 h-32 bg-amber-500/15 rounded-full blur-3xl absolute -bottom-12 -right-12 pointer-events-none"></div>
 
-      <!-- Botón cerrar si ya hay partida en curso -->
-      <button id="btn-close-home" class="absolute top-4 right-4 p-2 text-slate-400 hover:text-white rounded-xl bg-slate-800/80 transition-colors">
+      <!-- Botón salir del juego con confirmación -->
+      <button id="btn-close-home" class="btn-interactive absolute top-4 right-4 p-2 text-slate-400 hover:text-rose-400 rounded-xl bg-slate-800/80 hover:bg-slate-800 transition-colors" title="Salir del juego">
         <i data-lucide="x" class="w-5 h-5"></i>
       </button>
 
@@ -1552,6 +1547,48 @@
         </button>
       </div>
     </div>
+  </div>
+
+  <!-- ==========================================================================
+       MODAL 9.c3: CONFIRMAR SALIDA DEL JUEGO (DESDE MENÚ PRINCIPAL)
+       ========================================================================== -->
+  <div id="modal-confirm-exit-game" class="fixed inset-0 bg-slate-950/85 backdrop-blur-md z-50 hidden flex items-center justify-center p-4 modal-overlay">
+    <div class="bg-slate-900 border border-slate-700 rounded-3xl max-w-sm w-full p-5 sm:p-6 shadow-2xl text-center relative modal-content">
+      <div class="w-14 h-14 rounded-2xl bg-rose-500/20 border border-rose-500/40 flex items-center justify-center mx-auto mb-3 text-rose-400 shadow-lg shadow-rose-500/20">
+        <i data-lucide="log-out" class="w-7 h-7"></i>
+      </div>
+      <h3 class="text-lg font-black text-white mb-1.5">¿Salir de AquaSort Deluxe?</h3>
+      <p class="text-xs text-slate-300 mb-4 leading-relaxed">
+        Se guardará todo tu progreso (nivel actual, monedas, vidas y escudos) de forma segura antes de salir.
+      </p>
+      
+      <div class="flex flex-col gap-2">
+        <button id="btn-confirm-exit-game" class="btn-interactive w-full py-2.5 bg-gradient-to-r from-rose-500 to-red-600 hover:from-rose-400 hover:to-red-500 text-white font-black rounded-xl shadow-lg shadow-rose-500/30 text-xs flex items-center justify-center gap-2">
+          <i data-lucide="check" class="w-4 h-4"></i>
+          <span>Guardar y Salir</span>
+        </button>
+        <button id="btn-cancel-exit-game" class="btn-interactive w-full py-2 bg-slate-800 hover:bg-slate-700 text-slate-300 font-bold rounded-xl text-xs">
+          Cancelar
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ==========================================================================
+       PANTALLA DE SALIDA SEGURA (PWA / IPHONE / NAVEGADOR)
+       ========================================================================== -->
+  <div id="screen-game-exited" class="fixed inset-0 bg-slate-950/98 z-[999] hidden flex flex-col items-center justify-center p-6 text-center select-none">
+    <div class="w-20 h-20 rounded-3xl bg-emerald-500/20 border-2 border-emerald-400/50 flex items-center justify-center mb-5 shadow-2xl shadow-emerald-500/30 animate-pulse">
+      <i data-lucide="shield-check" class="w-10 h-10 text-emerald-300"></i>
+    </div>
+    <h2 class="text-2xl font-black text-white mb-2 brand-font">Partida Guardada con Éxito ✨</h2>
+    <p class="text-xs sm:text-sm text-slate-300 max-w-sm mb-6 leading-relaxed">
+      Todos tus datos han sido guardados de forma segura. Ya puedes cerrar la aplicación deslizando hacia arriba en tu iPhone o cerrando la pestaña.
+    </p>
+    <button id="btn-resume-from-exit" class="btn-interactive px-6 py-3 bg-gradient-to-r from-sky-500 via-cyan-500 to-indigo-600 hover:from-sky-400 hover:to-indigo-500 rounded-2xl text-white font-black text-xs sm:text-sm flex items-center gap-2 shadow-lg shadow-sky-500/30 active:scale-95 transition-all">
+      <i data-lucide="play" class="w-4 h-4 fill-white"></i>
+      <span>Volver a Jugar</span>
+    </button>
   </div>
 
   <!-- ==========================================================================
@@ -2822,19 +2859,19 @@
   <input type="file" id="input-save-file" accept=".json" class="hidden">
 
   <!-- Scripts modulares -->
-  <script src="js/firebase-config.js?v=69"></script>
-  <script src="js/cloud-sync.js?v=69"></script>
-  <script src="js/audio.js?v=69"></script>
-  <script src="js/palette.js?v=69"></script>
-  <script src="js/levels.js?v=69"></script>
-  <script src="js/challenges.js?v=69"></script>
-  <script src="js/honor.js?v=69"></script>
-  <script src="js/state.js?v=69"></script>
-  <script src="js/achievements.js?v=69"></script>
-  <script src="js/leaderboard.js?v=69"></script>
-  <script src="js/roulette.js?v=69"></script>
-  <script src="js/story.js?v=69"></script>
-  <script src="js/game.js?v=69"></script>
+  <script src="js/firebase-config.js?v=70"></script>
+  <script src="js/cloud-sync.js?v=70"></script>
+  <script src="js/audio.js?v=70"></script>
+  <script src="js/palette.js?v=70"></script>
+  <script src="js/levels.js?v=70"></script>
+  <script src="js/challenges.js?v=70"></script>
+  <script src="js/honor.js?v=70"></script>
+  <script src="js/state.js?v=70"></script>
+  <script src="js/achievements.js?v=70"></script>
+  <script src="js/leaderboard.js?v=70"></script>
+  <script src="js/roulette.js?v=70"></script>
+  <script src="js/story.js?v=70"></script>
+  <script src="js/game.js?v=70"></script>
 
   <!-- Registro de Service Worker PWA -->
   <script>

@@ -183,6 +183,8 @@ class GameController {
     this.modalShieldTutorial = document.getElementById('modal-shield-tutorial');
     this.modalExtras = document.getElementById('modal-extras');
     this.modalExitModeConfirm = document.getElementById('modal-exit-mode-confirm');
+    this.modalConfirmExitGame = document.getElementById('modal-confirm-exit-game');
+    this.screenGameExited = document.getElementById('screen-game-exited');
     this.navigationSource = 'game';
     this.pendingExitDestination = 'home';
 
@@ -4806,6 +4808,58 @@ class GameController {
     }
   }
 
+  // --- SALIDA CONTROLADA DEL JUEGO CON GUARDADO (DESDE MENÚ PRINCIPAL) ---
+  openConfirmExitGameModal() {
+    if (this.modalConfirmExitGame) {
+      this.showModal(this.modalConfirmExitGame);
+      if (window.lucide) lucide.createIcons();
+    }
+  }
+
+  closeConfirmExitGameModal() {
+    if (this.modalConfirmExitGame) {
+      this.hideModal(this.modalConfirmExitGame);
+    }
+  }
+
+  executeExitGame() {
+    this.closeConfirmExitGameModal();
+
+    // 1. Guardar estado de forma segura (nivel, vidas, monedas, escudos)
+    if (window.stateManager) {
+      window.stateManager.saveState();
+    }
+    if (window.audio) {
+      window.audio.stopMusic();
+      if (typeof window.audio.playClick === 'function') {
+        window.audio.playClick();
+      }
+    }
+
+    // 2. Intentar cerrar ventana/pestaña nativamente (si el navegador o PWA de escritorio lo permite)
+    try {
+      window.close();
+    } catch (e) {
+      console.warn('window.close() no soportado directamente en este entorno:', e);
+    }
+
+    // 3. En iOS PWA / WebClip o navegadores móviles (donde la política de seguridad
+    // de Apple impide que JavaScript cierre la app), mostrar pantalla de salida segura
+    setTimeout(() => {
+      if (this.screenGameExited) {
+        this.screenGameExited.classList.remove('hidden');
+        if (window.lucide) lucide.createIcons();
+      }
+    }, 120);
+  }
+
+  resumeGameFromExitScreen() {
+    if (this.screenGameExited) {
+      this.screenGameExited.classList.add('hidden');
+    }
+    this.openHomeModal();
+  }
+
   // --- GUARDADO Y CARGA EN ARCHIVO (.JSON) ---
   exportGameFile() {
     if (window.stateManager) {
@@ -5353,25 +5407,23 @@ class GameController {
     const btnCloseHome = document.getElementById('btn-close-home');
     if (btnCloseHome) {
       this.bindTapOrClick(btnCloseHome, () => {
-        this.closeHomeModal();
-        if (this.isTimeAttack) {
-          if (this.timeAttackSecondsRemaining > 0 && !this.timeAttackInterval) {
-            this.timeAttackInterval = setInterval(() => {
-              if (!this.isTimeAttack) {
-                if (this.timeAttackInterval) {
-                  clearInterval(this.timeAttackInterval);
-                  this.timeAttackInterval = null;
-                }
-                return;
-              }
-              this.tickTimeAttack();
-            }, 1000);
-          } else {
-            this.isTimeAttack = false;
-            this.loadLevel(this.currentLevel);
-          }
-        }
+        this.openConfirmExitGameModal();
       });
+    }
+
+    const btnConfirmExitGame = document.getElementById('btn-confirm-exit-game');
+    if (btnConfirmExitGame) {
+      this.bindTapOrClick(btnConfirmExitGame, () => this.executeExitGame());
+    }
+
+    const btnCancelExitGame = document.getElementById('btn-cancel-exit-game');
+    if (btnCancelExitGame) {
+      this.bindTapOrClick(btnCancelExitGame, () => this.closeConfirmExitGameModal());
+    }
+
+    const btnResumeFromExit = document.getElementById('btn-resume-from-exit');
+    if (btnResumeFromExit) {
+      this.bindTapOrClick(btnResumeFromExit, () => this.resumeGameFromExitScreen());
     }
 
     const btnHomePlay = document.getElementById('btn-home-play');
@@ -6010,7 +6062,10 @@ class GameController {
     }
 
     // Configurar cierre instantáneo tocando el fondo oscuro exterior (Backdrop)
-    this.setupBackdropClose(this.modalHome, () => this.closeHomeModal());
+    this.setupBackdropClose(this.modalHome, () => this.openConfirmExitGameModal());
+    if (this.modalConfirmExitGame) {
+      this.setupBackdropClose(this.modalConfirmExitGame, () => this.closeConfirmExitGameModal());
+    }
     this.setupBackdropClose(this.modalShop, () => this.closeShopModal());
     this.setupBackdropClose(this.modalMap, () => {
       this.hideModal(this.modalMap);
