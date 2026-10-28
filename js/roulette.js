@@ -751,24 +751,38 @@ class MinigameEngine {
       if (typeof confetti === 'function') {
         confetti({ particleCount: 90, spread: 75, origin: { y: 0.6 } });
       }
+
+      let coinRes = null;
+      if (window.game && !this.isTrainingMode) {
+        coinRes = window.game.multiplyCoins(mult);
+      }
+
       if (this.timingFeedbackLbl) {
-        this.timingFeedbackLbl.innerHTML = `🎉 ¡PREMIO ${landedSector.label}! GANAS MULTIPLICADOR ${mult}x 🪙`;
+        if (coinRes && coinRes.gained > 0) {
+          this.timingFeedbackLbl.innerHTML = `🎉 ¡PREMIO ${landedSector.label}! Ganaste <strong class="text-amber-300 font-black">+${coinRes.gained} 🪙</strong> (${mult}x) • Total: ${coinRes.total} 🪙`;
+        } else if (coinRes && coinRes.gained === 0) {
+          this.timingFeedbackLbl.innerHTML = `🎉 ¡PREMIO ${landedSector.label}! Multiplicador ${mult}x • Total: ${coinRes.total} 🪙`;
+        } else {
+          this.timingFeedbackLbl.innerHTML = `🎉 ¡PREMIO ${landedSector.label}! MULTIPLICADOR ${mult}x 🪙 (Modo Práctica)`;
+        }
         this.timingFeedbackLbl.className = 'text-center text-sm font-black text-emerald-400 mt-1';
       }
-      if (window.game && !this.isTrainingMode) window.game.multiplyCoins(mult);
     } else {
       if (modalBox) modalBox.classList.add('roulette-lose-glow');
       if (window.audio) window.audio.playDisappointedCrowd();
 
       const hasBoost = window.stateManager ? (typeof window.stateManager.hasRouletteBoost === 'function' ? window.stateManager.hasRouletteBoost() : window.stateManager.state.upgrades.rouletteBoost) : false;
+      let coinRes = null;
       if (!hasBoost && window.game && !this.isTrainingMode) {
-        window.game.multiplyCoins(mult); // Aplica pérdida de monedas si mult < 0 o reduce
+        coinRes = window.game.multiplyCoins(mult); // Aplica pérdida de monedas si mult < 0 o reduce
       }
 
       if (this.timingFeedbackLbl) {
         let msg = '';
         if (hasBoost) {
           msg = `Cayó en ${landedSector.label}. ¡Seguro activo! Conservas tus monedas.`;
+        } else if (coinRes && coinRes.gained < 0) {
+          msg = `💀 Cayó en ${landedSector.label}. Perdiste ${Math.abs(coinRes.gained)} 🪙 • Total: ${coinRes.total} 🪙`;
         } else if (landedSector.isNegative) {
           msg = `💀 Cayó en ${landedSector.label}. ¡Penalización del 50% de monedas!`;
         } else {
@@ -1303,9 +1317,9 @@ class MinigameEngine {
       const modalBox = document.querySelector('#modal-roulette .modal-content');
       if (modalBox) modalBox.classList.add('roulette-lose-glow');
 
-      const hasBoost = window.stateManager ? (typeof window.stateManager.hasRouletteBoost === 'function' ? window.stateManager.hasRouletteBoost() : window.stateManager.state.upgrades.rouletteBoost) : false;
+      let coinRes = null;
       if (!hasBoost && window.game && !this.isTrainingMode) {
-        window.game.multiplyCoins(0.5); // reducción por tiro fallido
+        coinRes = window.game.multiplyCoins(0.5); // reducción por tiro fallido
       }
 
       setTimeout(() => {
@@ -1315,7 +1329,14 @@ class MinigameEngine {
           this.isDartFlying = false;
           this.isReverseShot = false;
           if (hintEl) {
-            const msg = hasBoost ? '¡Autogolpe! Seguro activo: sin pérdida.' : '¡Autogolpe! Pierdes el 50% de las monedas.';
+            let msg = '';
+            if (hasBoost) {
+              msg = '¡Autogolpe! Seguro activo: sin pérdida.';
+            } else if (coinRes && coinRes.gained < 0) {
+              msg = `¡Autogolpe! Perdiste ${Math.abs(coinRes.gained)} 🪙 • Total: ${coinRes.total} 🪙`;
+            } else {
+              msg = '¡Autogolpe! Pierdes monedas.';
+            }
             hintEl.innerHTML = `❌ "La próxima apuntá para el otro lado..." • ${msg}`;
             hintEl.className = 'text-center text-xs font-black text-rose-400 mt-1 mb-2';
           }
@@ -1382,22 +1403,41 @@ class MinigameEngine {
           confetti({ particleCount: 80, spread: 70, origin: { y: 0.6 } });
         }
       }
+
+      let coinRes = null;
+      if (window.game && !this.isTrainingMode) {
+        coinRes = window.game.multiplyCoins(multiplier);
+      }
+
       if (hintEl) {
-        hintEl.innerHTML = `${label} • <strong class="text-amber-300">GANAS ${multiplier}x 🪙</strong>`;
+        if (coinRes && coinRes.gained > 0) {
+          hintEl.innerHTML = `${label} • Ganaste <strong class="text-amber-300 font-black">+${coinRes.gained} 🪙</strong> (${multiplier}x) • Total: ${coinRes.total} 🪙`;
+        } else if (coinRes && coinRes.gained === 0) {
+          hintEl.innerHTML = `${label} • Multiplicador ${multiplier}x • Total: ${coinRes.total} 🪙`;
+        } else {
+          hintEl.innerHTML = `${label} • <strong class="text-amber-300 font-black">GANAS ${multiplier}x 🪙</strong> (Práctica)`;
+        }
         hintEl.className = 'text-center text-sm font-black text-emerald-400 mt-1 mb-2';
       }
-      if (window.game && !this.isTrainingMode) window.game.multiplyCoins(multiplier);
     } else {
       if (modalBox) modalBox.classList.add('roulette-lose-glow');
       if (window.audio) window.audio.playDisappointedCrowd();
 
       const hasBoost = window.stateManager ? (typeof window.stateManager.hasRouletteBoost === 'function' ? window.stateManager.hasRouletteBoost() : window.stateManager.state.upgrades.rouletteBoost) : false;
+      let coinRes = null;
       if (!hasBoost && window.game && !this.isTrainingMode) {
-        window.game.multiplyCoins(0.5);
+        coinRes = window.game.multiplyCoins(0.5);
       }
 
       if (hintEl) {
-        const msg = hasBoost ? '¡Desviado! Seguro activo: sin pérdida.' : '¡Desviado! Pierdes el 50% de las monedas.';
+        let msg = '';
+        if (hasBoost) {
+          msg = '¡Desviado! Seguro activo: sin pérdida.';
+        } else if (coinRes && coinRes.gained < 0) {
+          msg = `¡Desviado! Perdiste ${Math.abs(coinRes.gained)} 🪙 • Total: ${coinRes.total} 🪙`;
+        } else {
+          msg = '¡Desviado! Sin premio de monedas.';
+        }
         hintEl.textContent = `${label} • ${msg}`;
         hintEl.className = 'text-center text-xs font-black text-rose-400 mt-1 mb-2';
       }
@@ -1691,19 +1731,38 @@ class MinigameEngine {
           confetti({ particleCount: 90, spread: 75, origin: { y: 0.6 } });
         }
       }
+      let coinRes = null;
+      if (window.game && !this.isTrainingMode) {
+        coinRes = window.game.multiplyCoins(mult);
+      }
+
       if (hintEl) {
-        hintEl.innerHTML = `🏆 ¡PLENO ALQUÍMICO! ${this.movingHitsCount}/3 DIANAS • GANAS ${mult}x 🪙`;
+        if (coinRes && coinRes.gained > 0) {
+          hintEl.innerHTML = `🏆 ¡PLENO ALQUÍMICO! ${this.movingHitsCount}/3 DIANAS • Ganaste <strong class="text-amber-300 font-black">+${coinRes.gained} 🪙</strong> (${mult}x) • Total: ${coinRes.total} 🪙`;
+        } else if (coinRes && coinRes.gained === 0) {
+          hintEl.innerHTML = `🏆 ¡PLENO ALQUÍMICO! ${this.movingHitsCount}/3 DIANAS • Multiplicador ${mult}x • Total: ${coinRes.total} 🪙`;
+        } else {
+          hintEl.innerHTML = `🏆 ¡PLENO ALQUÍMICO! ${this.movingHitsCount}/3 DIANAS • GANAS ${mult}x 🪙 (Práctica)`;
+        }
         hintEl.className = 'text-center text-sm font-black text-emerald-400 mt-1 mb-2';
       }
-      if (window.game && !this.isTrainingMode) window.game.multiplyCoins(mult);
     } else {
       if (modalBox) modalBox.classList.add('roulette-lose-glow');
       if (window.audio) window.audio.playDisappointedCrowd();
+
+      let coinRes = null;
+      if (window.game && !this.isTrainingMode) {
+        coinRes = window.game.multiplyCoins(mult);
+      }
+
       if (hintEl) {
-        hintEl.textContent = `❌ ${this.movingHitsCount}/3 aciertos. Fin de dardos.`;
+        if (coinRes && coinRes.gained < 0) {
+          hintEl.textContent = `❌ ${this.movingHitsCount}/3 aciertos. Perdiste ${Math.abs(coinRes.gained)} 🪙 • Total: ${coinRes.total} 🪙`;
+        } else {
+          hintEl.textContent = `❌ ${this.movingHitsCount}/3 aciertos. Fin de dardos.`;
+        }
         hintEl.className = 'text-center text-xs font-black text-rose-400 mt-1 mb-2';
       }
-      if (window.game && !this.isTrainingMode) window.game.multiplyCoins(mult);
     }
 
     this.finalizeRound(null, modalBox);

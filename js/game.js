@@ -371,6 +371,7 @@ class GameController {
 
   // --- CARGA Y GENERACIÓN DE NIVELES ---
   loadLevel(lvl, seedVariation = 0, customLevelData = null) {
+    this.navigationSource = 'game';
     if (lvl !== 'daily' && lvl !== 'casual_sandbox' && lvl !== 'time_attack' && !customLevelData && !this.isHonorMode) {
       const targetLvl = Math.max(1, Math.min(lvl, this.maxLevels));
       if (!this.isLevelUnlocked(targetLvl)) {
@@ -4162,6 +4163,12 @@ class GameController {
       }
       this.updateCoinsUI();
     }
+    return {
+      gained: diff,
+      total: this.getCoins(),
+      prev: current,
+      multiplier: mult
+    };
   }
 
   onRouletteClosed() {
@@ -4169,21 +4176,11 @@ class GameController {
     if (this.modalRoulette) {
       this.hideModal(this.modalRoulette);
     }
-    if (this.navigationSource === 'home') {
-      this.openHomeModal();
-      return;
-    }
-    // Si había un cartel de desafíos pausado mientras corría el bonus, mostrarlo al cerrar
-    if (this.pendingChallengeIntro) {
-      this.pendingChallengeIntro = false;
-      setTimeout(() => {
-        if (!this.isModalOpen() && this.levelChallenges && this.levelChallenges.length > 0) {
-          this.showChallengeIntroModal();
-        }
-      }, 400);
-    }
+
+    // 1. Si venía de una victoria de nivel (Modo Historia / Campaña), avanzar siempre al siguiente nivel
     if (window.rouletteEngine && window.rouletteEngine.fromVictory) {
       window.rouletteEngine.fromVictory = false;
+      this.navigationSource = 'game';
       if (this.currentLevel >= 100) {
         this.showGameCompletionModal();
       } else {
@@ -4194,8 +4191,24 @@ class GameController {
           this.openMapModal();
         }
       }
+      return;
     }
-    // Modo Entrenamiento / Libre: No se realiza ninguna validación de nivel ni se avanza el nivel.
+
+    // 2. Si venía del menú de inicio (Modo Libre / Entrenamiento)
+    if (this.navigationSource === 'home') {
+      this.openHomeModal();
+      return;
+    }
+
+    // Si había un cartel de desafíos pausado mientras corría el bonus, mostrarlo al cerrar
+    if (this.pendingChallengeIntro) {
+      this.pendingChallengeIntro = false;
+      setTimeout(() => {
+        if (!this.isModalOpen() && this.levelChallenges && this.levelChallenges.length > 0) {
+          this.showChallengeIntroModal();
+        }
+      }, 400);
+    }
   }
 
   // --- DESHACER (UNDO) Y PISTAS (HINTS) ---
@@ -4811,7 +4824,11 @@ class GameController {
     const statCd = document.getElementById('home-stat-cooldown');
     const playText = document.getElementById('btn-home-play-text');
 
-    if (statLvl) statLvl.textContent = this.currentLevel;
+    const nextPlayableLevel = (window.stateManager && window.stateManager.state?.progress?.unlockedLevel)
+      ? Math.max(this.currentLevel, window.stateManager.state.progress.unlockedLevel)
+      : this.currentLevel;
+
+    if (statLvl) statLvl.textContent = nextPlayableLevel;
     if (statCoins) statCoins.textContent = `${this.getCoins()} 🪙`;
     if (statCd) {
       const cd = window.stateManager ? window.stateManager.getCooldownRemaining() : 0;
@@ -4822,7 +4839,7 @@ class GameController {
       if (this.isTimeAttack && this.timeAttackSecondsRemaining > 0) {
         playText.textContent = `Continuar Contrarreloj (⏳ ${this.timeAttackSecondsRemaining}s)`;
       } else {
-        playText.textContent = `Continuar Nivel ${this.currentLevel}`;
+        playText.textContent = `Continuar Nivel ${nextPlayableLevel}`;
       }
     }
 
@@ -5542,6 +5559,7 @@ class GameController {
     const btnHomePlay = document.getElementById('btn-home-play');
     if (btnHomePlay) {
       this.bindTapOrClick(btnHomePlay, () => {
+        this.navigationSource = 'game';
         this.closeHomeModal();
         if (this.isTimeAttack) {
           if (this.timeAttackSecondsRemaining > 0 && !this.timeAttackInterval) {
@@ -5557,22 +5575,26 @@ class GameController {
             }, 1000);
           } else {
             this.isTimeAttack = false;
-            // Si entra al Modo Historia por primera vez en su perfil, mostrar solo la animación inicial
-            if (this.currentLevel === 1 && window.stateManager && !window.stateManager.hasSeenStoryPrologue()) {
-              window.stateManager.markStoryPrologueSeen();
-              if (window.storyManager) {
-                window.storyManager.openStoryModal(0, false);
-              }
-            }
-            this.loadLevel(this.currentLevel);
+            const targetLvl = (window.stateManager && window.stateManager.state?.progress?.unlockedLevel)
+              ? Math.max(this.currentLevel, window.stateManager.state.progress.unlockedLevel)
+              : this.currentLevel;
+            this.loadLevel(targetLvl);
           }
         } else {
+          const targetLvl = (window.stateManager && window.stateManager.state?.progress?.unlockedLevel)
+            ? Math.max(this.currentLevel, window.stateManager.state.progress.unlockedLevel)
+            : this.currentLevel;
+
           // Si entra al Modo Historia por primera vez en su perfil, mostrar solo la animación inicial
-          if (this.currentLevel === 1 && window.stateManager && !window.stateManager.hasSeenStoryPrologue()) {
+          if (targetLvl === 1 && window.stateManager && !window.stateManager.hasSeenStoryPrologue()) {
             window.stateManager.markStoryPrologueSeen();
             if (window.storyManager) {
               window.storyManager.openStoryModal(0, false);
             }
+          }
+
+          if (this.currentLevel !== targetLvl || !this.tubes || this.tubes.length === 0 || this.isVictoryModalOpen) {
+            this.loadLevel(targetLvl);
           }
         }
       });
@@ -6121,6 +6143,7 @@ class GameController {
     const btnVicRoulette = document.getElementById('btn-vic-roulette');
     if (btnVicRoulette) {
       this.bindTapOrClick(btnVicRoulette, () => {
+        this.navigationSource = 'game';
         this.hideModal(this.modalVictory);
         if (window.rouletteEngine) {
           window.rouletteEngine.openModal(75, true);
