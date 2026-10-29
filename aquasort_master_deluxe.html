@@ -46,10 +46,10 @@
   <link rel="icon" type="image/svg+xml" href="icons/icon.svg">
 
   <!--Modular Stylesheets -->
-  <link rel="stylesheet" href="css/main.css?v=87">
-  <link rel="stylesheet" href="css/tubes.css?v=87">
-  <link rel="stylesheet" href="css/roulette.css?v=87">
-  <link rel="stylesheet" href="css/accessibility.css?v=87">
+  <link rel="stylesheet" href="css/main.css?v=88">
+  <link rel="stylesheet" href="css/tubes.css?v=88">
+  <link rel="stylesheet" href="css/roulette.css?v=88">
+  <link rel="stylesheet" href="css/accessibility.css?v=88">
 </head>
 <body class="min-h-screen flex flex-col justify-between select-none relative">
 
@@ -1114,18 +1114,18 @@
           </svg>
         </div>
 
-        <!-- MULTIPLICADORES DIRECTOS EN LOS SECTORES -->
+        <!-- REFERENCIA DE COLORES Y MULTIPLICADORES DE LOS SECTORES -->
         <div class="w-full mb-2">
           <div class="text-[11px] text-slate-300 font-bold mb-1 flex items-center justify-between">
-            <span>Sectores de la Ruleta:</span>
-            <span class="text-amber-300 text-[10px] font-mono">¡Proporciones reales en la rueda!</span>
+            <span>Colores de la Ruleta:</span>
+            <span class="text-amber-300 text-[10px] font-mono">¡Multiplicador según el color!</span>
           </div>
           <div id="roulette-sectors-legend" class="grid grid-cols-5 gap-1 text-center font-black text-[10px] sm:text-[11px]">
-            <span class="py-1 px-1 rounded-lg bg-rose-900/40 text-rose-300 border border-rose-500/40" title="Pierde todo el pozo (5%)">💀 5%</span>
-            <span class="py-1 px-1 rounded-lg bg-rose-600/30 text-rose-200 border border-rose-500/40" title="Divide el pozo a la mitad (10%)">💰/ 2 (10%)</span>
-            <span class="py-1 px-1 rounded-lg bg-sky-500/20 text-sky-300 border border-sky-500/30" title="Mantiene el monto (40%)">💰 (40%)</span>
-            <span class="py-1 px-1 rounded-lg bg-amber-500/20 text-amber-300 border border-amber-500/30" title="Duplica el monto (30%)">💰x 2 (30%)</span>
-            <span class="py-1 px-1 rounded-lg bg-purple-500/20 text-purple-300 border border-purple-500/30" title="Triplica el monto (15%)">💰🚀 (15%)</span>
+            <span class="py-1 px-1 rounded-lg bg-zinc-950 text-white border border-slate-600 shadow-inner" title="Negro: pierde el 100% del pozo">💰x 0</span>
+            <span class="py-1 px-1 rounded-lg bg-red-600/35 text-red-200 border border-red-500/60" title="Rojo: resta el 50% del pozo">💰/ 2</span>
+            <span class="py-1 px-1 rounded-lg bg-blue-600/35 text-sky-200 border border-blue-400/60" title="Azul: mantiene el monto (0%)">💰x 1</span>
+            <span class="py-1 px-1 rounded-lg bg-emerald-600/35 text-emerald-200 border border-emerald-400/60" title="Verde: duplica el pozo (+100%)">💰x 2</span>
+            <span class="py-1 px-1 rounded-lg bg-amber-500/35 text-amber-200 border border-amber-400/70" title="Dorado: triplica el pozo (+200%)">💰x 3</span>
           </div>
         </div>
 
@@ -3107,20 +3107,20 @@
   <input type="file" id="input-save-file" accept=".json" class="hidden">
 
   <!-- Scripts modulares -->
-  <script src="js/i18n.js?v=87"></script>
-  <script src="js/firebase-config.js?v=87"></script>
-  <script src="js/cloud-sync.js?v=87"></script>
-  <script src="js/audio.js?v=87"></script>
-  <script src="js/palette.js?v=87"></script>
-  <script src="js/levels.js?v=87"></script>
-  <script src="js/challenges.js?v=87"></script>
-  <script src="js/honor.js?v=87"></script>
-  <script src="js/state.js?v=87"></script>
-  <script src="js/achievements.js?v=87"></script>
-  <script src="js/leaderboard.js?v=87"></script>
-  <script src="js/roulette.js?v=87"></script>
-  <script src="js/story.js?v=87"></script>
-  <script src="js/game.js?v=87"></script>
+  <script src="js/i18n.js?v=88"></script>
+  <script src="js/firebase-config.js?v=88"></script>
+  <script src="js/cloud-sync.js?v=88"></script>
+  <script src="js/audio.js?v=88"></script>
+  <script src="js/palette.js?v=88"></script>
+  <script src="js/levels.js?v=88"></script>
+  <script src="js/challenges.js?v=88"></script>
+  <script src="js/honor.js?v=88"></script>
+  <script src="js/state.js?v=88"></script>
+  <script src="js/achievements.js?v=88"></script>
+  <script src="js/leaderboard.js?v=88"></script>
+  <script src="js/roulette.js?v=88"></script>
+  <script src="js/story.js?v=88"></script>
+  <script src="js/game.js?v=88"></script>
 
   <!-- Registro de Service Worker PWA -->
   <script>
@@ -3133,7 +3133,7 @@
         }
       });
       window.addEventListener('load', () => {
-        navigator.serviceWorker.register('./sw.js?v=87', { updateViaCache: 'none' }).then((reg) => {
+        navigator.serviceWorker.register('./sw.js?v=88', { updateViaCache: 'none' }).then((reg) => {
           reg.update();
           console.log('AlcheMix PWA ServiceWorker activo:', reg.scope);
         }).catch((err) => {

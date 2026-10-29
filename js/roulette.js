@@ -479,72 +479,67 @@ class MinigameEngine {
     }
   }
 
-  // --- RULETA: LÓGICA DE SECTORES CON PORCENTAJES REALES ---
-  // Estado normal:
-  // • 💀     (5% -> 18°)  : pierde todo el monto en juego (-1.0)
-  // • 💰/ 2  (10% -> 36°) : divide el monto a la mitad (-0.5)
-  // • 💰     (40% -> 144°): mantiene el monto (1.0)
-  // • 💰x 2  (30% -> 108°): duplica el monto (2.0)
-  // • 💰🚀   (15% -> 54°) : triplica el monto (3.0)
+  // --- RULETA: SECTORES POR COLOR DISTRIBUIDOS ALEATORIAMENTE (11 PORCIONES) ---
+  // Mantiene exactamente las proporciones reales pero divididas en ~10% y sólo con color:
+  // • Negro  (-100% -> 💰x 0):  5% total = 1 porción de 5% (18°)
+  // • Rojo   (-50%  -> 💰/ 2): 10% total = 1 porción de 10% (36°)
+  // • Azul   (0%    -> 💰x 1): 40% total = 4 porciones de 10% (36° c/u)
+  // • Verde  (2x    -> 💰x 2): 30% total = 3 porciones de 10% (36° c/u)
+  // • Dorado (3x    -> 💰x 3): 15% total = 2 porciones de 7.5% (27° c/u)
   shuffleSlices() {
     const isDouble = (this.activeCard === 'doubleOrNothing');
     const pool = [
-      {
-        id: 'skull',
-        label: '💀',
-        value: -1.0,
-        spanDeg: 18, // 5%
-        hex: '#881337',
-        isWin: false,
-        isNegative: true
-      },
-      {
-        id: 'half',
-        label: '💰/ 2',
-        value: -0.5,
-        spanDeg: 36, // 10%
-        hex: '#be123c',
-        isWin: false,
-        isNegative: true
-      },
-      {
-        id: 'keep',
-        label: isDouble ? '💰x 2' : '💰',
-        value: isDouble ? 2.0 : 1.0,
-        spanDeg: 144, // 40%
-        hex: '#0284c7',
-        isWin: true,
-        isNegative: false
-      },
-      {
-        id: 'double',
-        label: isDouble ? '💰x 4' : '💰x 2',
-        value: isDouble ? 4.0 : 2.0,
-        spanDeg: 108, // 30%
-        hex: '#f59e0b',
-        isWin: true,
-        isNegative: false
-      },
-      {
-        id: 'rocket',
-        label: isDouble ? '💰🚀x6' : '💰🚀',
-        value: isDouble ? 6.0 : 3.0,
-        spanDeg: 54, // 15%
-        hex: '#8b5cf6',
-        isWin: true,
-        isNegative: false
-      }
+      // 1x Negro (5% = 18°) -> 💰x 0 (-100%)
+      { id: 'skull_1', type: 'skull', label: '💰x 0', value: -1.0, spanDeg: 18, hex: '#09090b', isWin: false, isNegative: true },
+      // 1x Rojo (10% = 36°) -> 💰/ 2 (-50%)
+      { id: 'half_1', type: 'half', label: '💰/ 2', value: -0.5, spanDeg: 36, hex: '#dc2626', isWin: false, isNegative: true },
+      // 4x Azul (4 x 10% = 40% = 144°) -> 💰x 1 (mantiene el monto)
+      { id: 'keep_1', type: 'keep', label: isDouble ? '💰x 2' : '💰x 1', value: isDouble ? 2.0 : 1.0, spanDeg: 36, hex: '#2563eb', isWin: true, isNegative: false },
+      { id: 'keep_2', type: 'keep', label: isDouble ? '💰x 2' : '💰x 1', value: isDouble ? 2.0 : 1.0, spanDeg: 36, hex: '#2563eb', isWin: true, isNegative: false },
+      { id: 'keep_3', type: 'keep', label: isDouble ? '💰x 2' : '💰x 1', value: isDouble ? 2.0 : 1.0, spanDeg: 36, hex: '#2563eb', isWin: true, isNegative: false },
+      { id: 'keep_4', type: 'keep', label: isDouble ? '💰x 2' : '💰x 1', value: isDouble ? 2.0 : 1.0, spanDeg: 36, hex: '#2563eb', isWin: true, isNegative: false },
+      // 3x Verde (3 x 10% = 30% = 108°) -> 💰x 2 (duplica)
+      { id: 'double_1', type: 'double', label: isDouble ? '💰x 4' : '💰x 2', value: isDouble ? 4.0 : 2.0, spanDeg: 36, hex: '#16a34a', isWin: true, isNegative: false },
+      { id: 'double_2', type: 'double', label: isDouble ? '💰x 4' : '💰x 2', value: isDouble ? 4.0 : 2.0, spanDeg: 36, hex: '#16a34a', isWin: true, isNegative: false },
+      { id: 'double_3', type: 'double', label: isDouble ? '💰x 4' : '💰x 2', value: isDouble ? 4.0 : 2.0, spanDeg: 36, hex: '#16a34a', isWin: true, isNegative: false },
+      // 2x Dorado (2 x 7.5% = 15% = 54°) -> 💰x 3 (triplica)
+      { id: 'triple_1', type: 'triple', label: isDouble ? '💰x 6' : '💰x 3', value: isDouble ? 6.0 : 3.0, spanDeg: 27, hex: '#eab308', isWin: true, isNegative: false },
+      { id: 'triple_2', type: 'triple', label: isDouble ? '💰x 6' : '💰x 3', value: isDouble ? 6.0 : 3.0, spanDeg: 27, hex: '#eab308', isWin: true, isNegative: false }
     ];
 
-    // Mezclar determinísticamente el orden de aparición alrededor de la rueda
-    for (let i = pool.length - 1; i > 0; i--) {
-      const j = Math.floor(Math.random() * (i + 1));
-      [pool[i], pool[j]] = [pool[j], pool[i]];
-    }
-
-    this.assignSliceAngles(pool);
+    const distributed = this.distributeSlicesAvoidingAdjacents(pool);
+    this.assignSliceAngles(distributed);
     this.updateRouletteLegendUI(false);
     this.currentAngle = Math.floor(Math.random() * 360);
+  }
+
+  // Distribuye aleatoriamente las porciones evitando que queden pegadas dos del mismo color siempre que sea posible
+  distributeSlicesAvoidingAdjacents(pool) {
+    let bestOrder = [...pool];
+    let bestConflicts = Infinity;
+
+    for (let attempt = 0; attempt < 40; attempt++) {
+      const candidate = [...pool];
+      for (let i = candidate.length - 1; i > 0; i--) {
+        const j = Math.floor(Math.random() * (i + 1));
+        [candidate[i], candidate[j]] = [candidate[j], candidate[i]];
+      }
+
+      let conflicts = 0;
+      for (let i = 0; i < candidate.length; i++) {
+        const next = candidate[(i + 1) % candidate.length];
+        if (candidate[i].type === next.type) conflicts++;
+      }
+
+      if (conflicts === 0) {
+        return candidate;
+      }
+      if (conflicts < bestConflicts) {
+        bestConflicts = conflicts;
+        bestOrder = candidate;
+      }
+    }
+    return bestOrder;
   }
 
   assignSliceAngles(slices) {
@@ -561,21 +556,26 @@ class MinigameEngine {
   updateRouletteLegendUI(isPerfectGold = false) {
     const legendEl = document.getElementById('roulette-sectors-legend');
     if (!legendEl) return;
+    const isDouble = (this.activeCard === 'doubleOrNothing');
+    const lblKeep = isDouble ? '💰x 2' : '💰x 1';
+    const lblDouble = isDouble ? '💰x 4' : '💰x 2';
+    const lblTriple = isDouble ? '💰x 6' : '💰x 3';
+
     if (isPerfectGold) {
       legendEl.className = 'grid grid-cols-3 gap-1.5 text-center font-black text-[11px]';
       legendEl.innerHTML = `
-        <span class="py-1 px-1.5 rounded-lg bg-sky-500/20 text-sky-300 border border-sky-500/30">💰 (25%)</span>
-        <span class="py-1 px-1.5 rounded-lg bg-amber-500/20 text-amber-300 border border-amber-500/30">💰x 2 (30%)</span>
-        <span class="py-1 px-1.5 rounded-lg bg-purple-500/25 text-purple-200 border border-purple-400/50 animate-pulse">💰🚀 (45%)</span>
+        <span class="py-1 px-1.5 rounded-lg bg-blue-600/35 text-sky-200 border border-blue-400/60" title="Azul: mantiene el monto">${lblKeep}</span>
+        <span class="py-1 px-1.5 rounded-lg bg-emerald-600/35 text-emerald-200 border border-emerald-400/60" title="Verde: duplica el pozo">${lblDouble}</span>
+        <span class="py-1 px-1.5 rounded-lg bg-amber-500/35 text-amber-200 border border-amber-400/70 animate-pulse" title="Dorado: triplica el pozo">${lblTriple}</span>
       `;
     } else {
       legendEl.className = 'grid grid-cols-5 gap-1 text-center font-black text-[10px] sm:text-[11px]';
       legendEl.innerHTML = `
-        <span class="py-1 px-1 rounded-lg bg-rose-900/40 text-rose-300 border border-rose-500/40" title="Pierde todo el pozo (5%)">💀 5%</span>
-        <span class="py-1 px-1 rounded-lg bg-rose-600/30 text-rose-200 border border-rose-500/40" title="Divide el pozo a la mitad (10%)">💰/ 2 (10%)</span>
-        <span class="py-1 px-1 rounded-lg bg-sky-500/20 text-sky-300 border border-sky-500/30" title="Mantiene el monto (40%)">💰 (40%)</span>
-        <span class="py-1 px-1 rounded-lg bg-amber-500/20 text-amber-300 border border-amber-500/30" title="Duplica el monto (30%)">💰x 2 (30%)</span>
-        <span class="py-1 px-1 rounded-lg bg-purple-500/20 text-purple-300 border border-purple-500/30" title="Triplica el monto (15%)">💰🚀 (15%)</span>
+        <span class="py-1 px-1 rounded-lg bg-zinc-950 text-white border border-slate-600 shadow-inner" title="Negro: pierde el 100% del pozo">💰x 0</span>
+        <span class="py-1 px-1 rounded-lg bg-red-600/35 text-red-200 border border-red-500/60" title="Rojo: resta el 50% del pozo">💰/ 2</span>
+        <span class="py-1 px-1 rounded-lg bg-blue-600/35 text-sky-200 border border-blue-400/60" title="Azul: mantiene el monto">${lblKeep}</span>
+        <span class="py-1 px-1 rounded-lg bg-emerald-600/35 text-emerald-200 border border-emerald-400/60" title="Verde: duplica el pozo">${lblDouble}</span>
+        <span class="py-1 px-1 rounded-lg bg-amber-500/35 text-amber-200 border border-amber-400/70" title="Dorado: triplica el pozo">${lblTriple}</span>
       `;
     }
   }
@@ -611,7 +611,7 @@ class MinigameEngine {
     if (!subLbl) return;
 
     if (this.currentMode === 'roulette') {
-      subLbl.innerHTML = `🎡 Clava la aguja en la <strong>Zona Oro</strong> para eliminar <strong>💀</strong> y <strong>💰/ 2</strong> (45% 💰🚀) • ¡Toca para girar!`;
+      subLbl.innerHTML = `🎡 Clava la aguja en la <strong>Zona Oro</strong> para eliminar <strong>Negro</strong> y <strong>Rojo</strong> • ¡Toca para girar!`;
     } else if (this.currentMode === 'moving_targets') {
       subLbl.innerHTML = `🎪 <strong>Tiro al Blanco:</strong> Anticipa el movimiento • <strong>1🎯=x1</strong> • <strong>2🎯=x2</strong> • <strong>3🎯=x3</strong> (0🎯 pierde el pozo)`;
     } else {
@@ -667,26 +667,7 @@ class MinigameEngine {
       path.dataset.index = i;
       this.wheelGroup.appendChild(path);
 
-      const midRad = ((startDeg + endDeg) / 2) * (Math.PI / 180);
-      // Para sectores angostos (como el 5% = 18°), ubicar la etiqueta un poco más hacia el borde exterior donde el arco es más ancho
-      const textDistRatio = spanDeg <= 22 ? 0.76 : (spanDeg <= 40 ? 0.70 : 0.63);
-      const fontSize = spanDeg <= 22 ? '12' : (spanDeg <= 40 ? '11.5' : '14');
-      const tx = cx + (radius * textDistRatio) * Math.cos(midRad);
-      const ty = cy + (radius * textDistRatio) * Math.sin(midRad);
-
-      const text = document.createElementNS('http://www.w3.org/2000/svg', 'text');
-      text.setAttribute('x', tx);
-      text.setAttribute('y', ty);
-      text.setAttribute('fill', '#ffffff');
-      text.setAttribute('font-size', fontSize);
-      text.setAttribute('font-weight', '900');
-      text.setAttribute('text-anchor', 'middle');
-      text.setAttribute('dominant-baseline', 'central');
-      text.setAttribute('pointer-events', 'none');
-      text.setAttribute('filter', 'drop-shadow(0 2px 4px rgba(0,0,0,0.85))');
-      text.textContent = slice.label;
-      this.wheelGroup.appendChild(text);
-
+      // En la rueda solo se dejan los colores puros (los multiplicadores se leen en las referencias de color inferiores)
       const peg = document.createElementNS('http://www.w3.org/2000/svg', 'circle');
       peg.setAttribute('cx', x1);
       peg.setAttribute('cy', y1);
@@ -833,46 +814,35 @@ class MinigameEngine {
     if (timingResult === 'perfect') {
       if (this.timingNeedle) this.timingNeedle.classList.add('locked-gold');
       if (this.timingFeedbackLbl) {
-        this.timingFeedbackLbl.innerHTML = '⭐ <strong class="text-amber-300">¡TIRO PERFECTO!</strong> Eliminados 💀 y 💰/ 2 • Redistribuido 25% / 30% / 45% ⭐';
+        this.timingFeedbackLbl.innerHTML = '⭐ <strong class="text-amber-300">¡TIRO PERFECTO!</strong> Eliminados Negro y Rojo • Más sectores Dorados y Verdes ⭐';
         this.timingFeedbackLbl.className = 'text-center text-[11px] font-black text-amber-300 mt-1 min-h-[16px] animate-pulse';
       }
       
       // Animación especial al acertar al centro ANTES de girar la ruleta
-      this.triggerPerfectCelebration("¡TIRO PERFECTO! 🌟", "¡Eliminados 💀 y 💰/ 2! 45% de probabilidad de 💰🚀");
+      this.triggerPerfectCelebration("¡TIRO PERFECTO! 🌟", "¡Eliminados 💰x 0 y 💰/ 2! Mayor probabilidad de 💰x 3");
 
-      // Al acertar en Zona Oro: se eliminan las dos primeras opciones (💀 y 💰/ 2)
-      // y se redistribuye entre x1 (💰 25% = 90°), x2 (💰x 2 30% = 108°) y x3 (💰🚀 45% = 162°)
+      // Al acertar en Zona Oro: se eliminan Negro y Rojo y se redistribuye en 10 porciones:
+      // • Azul   (💰x 1, 25% total = 90°) : 3 porciones de 30° c/u
+      // • Verde  (💰x 2, 30% total = 108°): 3 porciones de 36° c/u
+      // • Dorado (💰x 3, 45% total = 162°): 4 porciones de 40.5° c/u
       const isDouble = (this.activeCard === 'doubleOrNothing');
       const goldPool = [
-        {
-          id: 'keep_gold',
-          label: isDouble ? '💰x 2' : '💰',
-          value: isDouble ? 2.0 : 1.0,
-          spanDeg: 90, // 25%
-          hex: '#0284c7',
-          isWin: true,
-          isNegative: false
-        },
-        {
-          id: 'double_gold',
-          label: isDouble ? '💰x 4' : '💰x 2',
-          value: isDouble ? 4.0 : 2.0,
-          spanDeg: 108, // 30%
-          hex: '#f59e0b',
-          isWin: true,
-          isNegative: false
-        },
-        {
-          id: 'rocket_gold',
-          label: isDouble ? '💰🚀x6' : '💰🚀',
-          value: isDouble ? 6.0 : 3.0,
-          spanDeg: 162, // 45%
-          hex: '#8b5cf6',
-          isWin: true,
-          isNegative: false
-        }
+        // 3x Azul (25% total = 90°)
+        { id: 'keep_g1', type: 'keep', label: isDouble ? '💰x 2' : '💰x 1', value: isDouble ? 2.0 : 1.0, spanDeg: 30, hex: '#2563eb', isWin: true, isNegative: false },
+        { id: 'keep_g2', type: 'keep', label: isDouble ? '💰x 2' : '💰x 1', value: isDouble ? 2.0 : 1.0, spanDeg: 30, hex: '#2563eb', isWin: true, isNegative: false },
+        { id: 'keep_g3', type: 'keep', label: isDouble ? '💰x 2' : '💰x 1', value: isDouble ? 2.0 : 1.0, spanDeg: 30, hex: '#2563eb', isWin: true, isNegative: false },
+        // 3x Verde (30% total = 108°)
+        { id: 'double_g1', type: 'double', label: isDouble ? '💰x 4' : '💰x 2', value: isDouble ? 4.0 : 2.0, spanDeg: 36, hex: '#16a34a', isWin: true, isNegative: false },
+        { id: 'double_g2', type: 'double', label: isDouble ? '💰x 4' : '💰x 2', value: isDouble ? 4.0 : 2.0, spanDeg: 36, hex: '#16a34a', isWin: true, isNegative: false },
+        { id: 'double_g3', type: 'double', label: isDouble ? '💰x 4' : '💰x 2', value: isDouble ? 4.0 : 2.0, spanDeg: 36, hex: '#16a34a', isWin: true, isNegative: false },
+        // 4x Dorado (45% total = 162°)
+        { id: 'triple_g1', type: 'triple', label: isDouble ? '💰x 6' : '💰x 3', value: isDouble ? 6.0 : 3.0, spanDeg: 40.5, hex: '#eab308', isWin: true, isNegative: false },
+        { id: 'triple_g2', type: 'triple', label: isDouble ? '💰x 6' : '💰x 3', value: isDouble ? 6.0 : 3.0, spanDeg: 40.5, hex: '#eab308', isWin: true, isNegative: false },
+        { id: 'triple_g3', type: 'triple', label: isDouble ? '💰x 6' : '💰x 3', value: isDouble ? 6.0 : 3.0, spanDeg: 40.5, hex: '#eab308', isWin: true, isNegative: false },
+        { id: 'triple_g4', type: 'triple', label: isDouble ? '💰x 6' : '💰x 3', value: isDouble ? 6.0 : 3.0, spanDeg: 40.5, hex: '#eab308', isWin: true, isNegative: false }
       ];
-      this.assignSliceAngles(goldPool);
+      const distributedGold = this.distributeSlicesAvoidingAdjacents(goldPool);
+      this.assignSliceAngles(distributedGold);
       this.updateRouletteLegendUI(true);
       this.renderWheel();
     } else if (timingResult === 'fail') {
