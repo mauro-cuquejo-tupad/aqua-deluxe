@@ -88,8 +88,8 @@ class CloudSyncManager {
       this.status = 'synced';
       console.log('Usuario de Google autenticado:', user.displayName, user.email);
       
-      // Sincronizar automáticamente al iniciar sesión
-      await this.syncWithCloud(false);
+      // Sincronizar automáticamente en segundo plano al iniciar sesión (sin carteles invasivos)
+      await this.syncWithCloud(false, false);
     } else {
       this.status = 'logged_out';
       console.log('Ningún usuario de Google autenticado.');
@@ -302,7 +302,8 @@ class CloudSyncManager {
   }
 
   // --- SINCRONIZACIÓN CON LA NUBE ---
-  async syncWithCloud(forceUpload = false) {
+  // notifyUser = true solo cuando el usuario presiona manualmente "Sincronizar Ahora"
+  async syncWithCloud(forceUpload = false, notifyUser = false) {
     if (!this.currentUser || !this.db) return false;
 
     this.isSyncing = true;
@@ -320,7 +321,9 @@ class CloudSyncManager {
         localStorage.setItem('aquasort_last_cloud_sync', this.lastSyncTimestamp);
         this.status = 'synced';
         this.updateUI();
-        this.showToast('☁️ Progreso respaldado en Google Cloud');
+        if (notifyUser) {
+          this.showToast('☁️ Progreso respaldado en Google Cloud');
+        }
         return true;
       }
 
@@ -363,11 +366,15 @@ class CloudSyncManager {
           }
         }
 
-        this.showToast('✨ Partida sincronizada con éxito');
+        if (notifyUser) {
+          this.showToast('✨ Partida sincronizada con éxito');
+        }
       } else {
         // Primera vez en este usuario: subir la partida local
         await userDocRef.set(localData);
-        this.showToast('🚀 Partida vinculada a tu cuenta de Google');
+        if (notifyUser) {
+          this.showToast('🚀 Partida vinculada a tu cuenta de Google');
+        }
       }
 
       this.lastSyncTimestamp = new Date().toISOString();
@@ -379,7 +386,9 @@ class CloudSyncManager {
       console.error('Error durante la sincronización en la nube:', err);
       this.status = 'error';
       this.updateUI();
-      this.showToast('⚠️ Error al sincronizar con la nube');
+      if (notifyUser) {
+        this.showToast('⚠️ Error al sincronizar con la nube');
+      }
       return false;
     } finally {
       this.isSyncing = false;
@@ -387,7 +396,7 @@ class CloudSyncManager {
     }
   }
 
-  // --- AUTO-GUARDADO (DEBOUNCED) TRAS VICTORIA O COMPRAS ---
+  // --- AUTO-GUARDADO SILENCIOSO (DEBOUNCED) TRAS VICTORIA O COMPRAS ---
   triggerAutoSave() {
     if (!this.currentUser || !this.db) return;
 
@@ -396,8 +405,8 @@ class CloudSyncManager {
     }
 
     this.autoSaveTimer = setTimeout(() => {
-      this.syncWithCloud(true);
-    }, 1800);
+      this.syncWithCloud(true, false);
+    }, 3500);
   }
 
   // --- RECONECTAR CON NUEVA CONFIGURACIÓN ---

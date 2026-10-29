@@ -46,10 +46,10 @@
   <link rel="icon" type="image/svg+xml" href="icons/icon.svg">
 
   <!--Modular Stylesheets -->
-  <link rel="stylesheet" href="css/main.css?v=93">
-  <link rel="stylesheet" href="css/tubes.css?v=93">
-  <link rel="stylesheet" href="css/roulette.css?v=93">
-  <link rel="stylesheet" href="css/accessibility.css?v=93">
+  <link rel="stylesheet" href="css/main.css?v=94">
+  <link rel="stylesheet" href="css/tubes.css?v=94">
+  <link rel="stylesheet" href="css/roulette.css?v=94">
+  <link rel="stylesheet" href="css/accessibility.css?v=94">
 </head>
 <body class="min-h-screen flex flex-col justify-between select-none relative">
 
@@ -1892,9 +1892,9 @@
   </div>
 
   <!-- ==========================================================================
-       PANTALLA DE SALIDA SEGURA (PWA / IPHONE / NAVEGADOR)
+       PANTALLA DE SALIDA SEGURA (PWA / IPHONE / NAVEGADOR) - FONDO NEGRO PURO
        ========================================================================== -->
-  <div id="screen-game-exited" class="fixed inset-0 bg-slate-950/98 z-[999] hidden flex flex-col items-center justify-center p-6 text-center select-none">
+  <div id="screen-game-exited" class="fixed inset-0 z-[9999] hidden flex flex-col items-center justify-center p-6 text-center select-none" style="background-color: #000000;">
     <div class="w-20 h-20 rounded-3xl bg-emerald-500/20 border-2 border-emerald-400/50 flex items-center justify-center mb-5 shadow-2xl shadow-emerald-500/30 animate-pulse">
       <i data-lucide="shield-check" class="w-10 h-10 text-emerald-300"></i>
     </div>
@@ -3179,20 +3179,20 @@
   <input type="file" id="input-save-file" accept=".json" class="hidden">
 
   <!-- Scripts modulares -->
-  <script src="js/i18n.js?v=93"></script>
-  <script src="js/firebase-config.js?v=93"></script>
-  <script src="js/cloud-sync.js?v=93"></script>
-  <script src="js/audio.js?v=93"></script>
-  <script src="js/palette.js?v=93"></script>
-  <script src="js/levels.js?v=93"></script>
-  <script src="js/challenges.js?v=93"></script>
-  <script src="js/honor.js?v=93"></script>
-  <script src="js/state.js?v=93"></script>
-  <script src="js/achievements.js?v=93"></script>
-  <script src="js/leaderboard.js?v=93"></script>
-  <script src="js/roulette.js?v=93"></script>
-  <script src="js/story.js?v=93"></script>
-  <script src="js/game.js?v=93"></script>
+  <script src="js/i18n.js?v=94"></script>
+  <script src="js/firebase-config.js?v=94"></script>
+  <script src="js/cloud-sync.js?v=94"></script>
+  <script src="js/audio.js?v=94"></script>
+  <script src="js/palette.js?v=94"></script>
+  <script src="js/levels.js?v=94"></script>
+  <script src="js/challenges.js?v=94"></script>
+  <script src="js/honor.js?v=94"></script>
+  <script src="js/state.js?v=94"></script>
+  <script src="js/achievements.js?v=94"></script>
+  <script src="js/leaderboard.js?v=94"></script>
+  <script src="js/roulette.js?v=94"></script>
+  <script src="js/story.js?v=94"></script>
+  <script src="js/game.js?v=94"></script>
 
   <!-- Registro de Service Worker PWA -->
   <script>
@@ -3205,7 +3205,7 @@
         }
       });
       window.addEventListener('load', () => {
-        navigator.serviceWorker.register('./sw.js?v=93', { updateViaCache: 'none' }).then((reg) => {
+        navigator.serviceWorker.register('./sw.js?v=94', { updateViaCache: 'none' }).then((reg) => {
           reg.update();
           console.log('AlcheMix PWA ServiceWorker activo:', reg.scope);
         }).catch((err) => {

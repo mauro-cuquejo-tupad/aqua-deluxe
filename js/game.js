@@ -5118,6 +5118,9 @@ class GameController {
 
   executeExitGame() {
     this.closeConfirmExitGameModal();
+    if (this.modalHome) {
+      this.hideModal(this.modalHome);
+    }
 
     // 1. Guardar estado de forma segura (nivel, vidas, monedas, escudos)
     if (window.stateManager) {
@@ -5137,19 +5140,20 @@ class GameController {
       console.warn('window.close() no soportado directamente en este entorno:', e);
     }
 
-    // 3. En iOS PWA / WebClip o navegadores móviles (donde la política de seguridad
-    // de Apple impide que JavaScript cierre la app), mostrar pantalla de salida segura
+    // 3. Mostrar pantalla de salida sobre fondo negro absoluto para dejar claro que el juego se cerró
     setTimeout(() => {
       if (this.screenGameExited) {
         this.screenGameExited.classList.remove('hidden');
+        this.screenGameExited.style.setProperty('display', 'flex', 'important');
         if (window.lucide) lucide.createIcons();
       }
-    }, 120);
+    }, 80);
   }
 
   resumeGameFromExitScreen() {
     if (this.screenGameExited) {
       this.screenGameExited.classList.add('hidden');
+      this.screenGameExited.style.setProperty('display', 'none', 'important');
     }
     this.openHomeModal();
   }
@@ -6036,7 +6040,7 @@ class GameController {
     }
     if (btnCloudSyncNow) {
       this.bindTapOrClick(btnCloudSyncNow, () => {
-        if (window.cloudSyncManager) window.cloudSyncManager.syncWithCloud(true);
+        if (window.cloudSyncManager) window.cloudSyncManager.syncWithCloud(true, true);
       });
     }
     if (btnToggleConfig) {
