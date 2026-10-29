@@ -1683,9 +1683,83 @@ class GameController {
     if (pauseCoins) pauseCoins.textContent = formatted;
   }
 
+  // --- SINCRONIZACIÓN DE MIMETIZACIÓN DEL LÍQUIDO CAMALEÓN ---
+  syncChameleonStates() {
+    if (!Array.isArray(this.tubes)) return;
+
+    const getNeighborSource = (item) => {
+      if (!item || item.isMystery || item.isChameleon || !item.color || item.color === 'chameleon') {
+        return null;
+      }
+      return item;
+    };
+
+    for (const tube of this.tubes) {
+      if (!tube || !Array.isArray(tube.liquids)) continue;
+      const len = tube.liquids.length;
+
+      for (let lIdx = 0; lIdx < len; lIdx++) {
+        const liq = tube.liquids[lIdx];
+        if (!liq || !liq.isChameleon) continue;
+
+        let mimicSource = null;
+
+        if (len === 1) {
+          // 1) Está solo sin otras piezas -> Multicolor
+          mimicSource = null;
+        } else if (lIdx === 0) {
+          // 2) Está debajo de todo en la botella y hay un líquido encima -> Mimetizarse con el de arriba
+          mimicSource = getNeighborSource(tube.liquids[1]);
+        } else if (lIdx === len - 1) {
+          // 3) Está encima de todo en una botella y hay un líquido debajo -> Mimetizarse con el de abajo
+          mimicSource = getNeighborSource(tube.liquids[len - 2]);
+        } else {
+          // 4) Está en el medio (tiene una pieza encima y una debajo):
+          //    - Si arriba y abajo son del mismo color -> Mimetizarse con ese color
+          //    - Si arriba y abajo son de distinto color -> Multicolor
+          const below = getNeighborSource(tube.liquids[lIdx - 1]);
+          const above = getNeighborSource(tube.liquids[lIdx + 1]);
+          if (below && above && String(below.color).toLowerCase() === String(above.color).toLowerCase()) {
+            mimicSource = below;
+          } else {
+            mimicSource = null;
+          }
+        }
+
+        if (mimicSource) {
+          const colorDef = window.paletteManager
+            ? ((mimicSource.colorIndex !== undefined && mimicSource.colorIndex !== null)
+                ? window.paletteManager.getColor(mimicSource.colorIndex)
+                : window.paletteManager.getColorByHex(mimicSource.color))
+            : null;
+          liq.color = mimicSource.color;
+          liq.adaptedToColor = mimicSource.color;
+          liq.colorIndex = (mimicSource.colorIndex !== undefined && mimicSource.colorIndex !== null)
+            ? mimicSource.colorIndex
+            : (colorDef ? colorDef.index : 'chameleon');
+          liq.name = mimicSource.name || (colorDef ? colorDef.name : 'Camaleón');
+          liq.shape = mimicSource.shape || (colorDef ? colorDef.shape : '★');
+          liq.letter = mimicSource.letter || (colorDef ? colorDef.letter : null);
+          liq.textHex = mimicSource.textHex || (colorDef ? colorDef.textHex : '#ffffff');
+          liq.pattern = null;
+        } else {
+          liq.color = 'chameleon';
+          liq.adaptedToColor = null;
+          liq.colorIndex = 'chameleon';
+          liq.name = 'Camaleón';
+          liq.shape = '★';
+          liq.letter = '★';
+          liq.textHex = '#ffffff';
+          liq.pattern = null;
+        }
+      }
+    }
+  }
+
   // --- RENDERIZADO VISUAL DE FRASCOS Y LÍQUIDOS (OPTIMIZADO PARA MÓVILES Y PWA) ---
   renderTubes() {
     if (!this.tubesGrid) return;
+    this.syncChameleonStates();
     this.tubesGrid.innerHTML = '';
 
     const totalTubes = this.tubes.length;
