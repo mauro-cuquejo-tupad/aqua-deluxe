@@ -1619,3 +1619,53 @@
 
 
 
+
+/* ===== Tutorial Candado: A -> B (azul), luego A -> C (llave abre el candado) ===== */
+/* Ciclo de 7s:
+   0-8%    reposo
+   8-18%   A se levanta y se inclina sobre B
+   18-30%  vierte el azul en B
+   30-38%  A vuelve a su lugar
+   42-52%  A se inclina sobre C
+   52-62%  vierte la llave rosa -> el candado se abre y aparece el contenido
+   62-70%  A vuelve
+   70-90%  C queda abierto mostrando su contenido
+   90-100% reinicio */
+@keyframes tutLockTubeAMove {
+  0%, 8%   { transform: translate(0, 0) rotate(0deg); }
+  18%, 30% { transform: translate(34px, -30px) rotate(64deg); }
+  38%, 42% { transform: translate(0, 0) rotate(0deg); }
+  52%, 62% { transform: translate(92px, -30px) rotate(64deg); }
+  70%, 100% { transform: translate(0, 0) rotate(0deg); }
+}
+@keyframes tutLockBlueDrain {
+  0%, 18%  { transform: scaleY(1); opacity: 1; }
+  30%, 92% { transform: scaleY(0); opacity: 0; }
+  100%     { transform: scaleY(1); opacity: 1; }
+}
+@keyframes tutLockBlueFill {
+  0%, 18%  { transform: scaleY(0); opacity: 0; }
+  30%, 90% { transform: scaleY(1); opacity: 1; }
+  96%, 100% { transform: scaleY(0); opacity: 0; }
+}
+@keyframes tutLockKeyDrain {
+  0%, 52%  { transform: scaleY(1); opacity: 1; }
+  62%, 92% { transform: scaleY(0); opacity: 0; }
+  100%     { transform: scaleY(1); opacity: 1; }
+}
+@keyframes tutLockOverlayOpen {
+  0%, 54%  { opacity: 1; transform: scale(1); filter: none; }
+  58%      { opacity: 1; transform: scale(1.08); filter: drop-shadow(0 0 10px #ec4899); }
+  64%, 90% { opacity: 0; transform: scale(0.6) translateY(-14px); }
+  97%, 100% { opacity: 1; transform: scale(1); filter: none; }
+}
+.test-tube.tutorial-mini-tube.tut-lock-tubeA {
+  position: relative;
+  z-index: 40;
+  transform-origin: 85% 15%;
+  animation: tutLockTubeAMove 7s ease-in-out infinite;
+}
+.tut-lock-blue-drain { transform-origin: top center; animation: tutLockBlueDrain 7s ease-in-out infinite; }
+.tut-lock-blue-fill  { transform-origin: bottom center; animation: tutLockBlueFill 7s ease-in-out infinite; }
+.tut-lock-key-drain  { transform-origin: top center; animation: tutLockKeyDrain 7s ease-in-out infinite; }
+.tut-lock-overlay-open { animation: tutLockOverlayOpen 7s ease-in-out infinite; }

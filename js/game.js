@@ -7447,7 +7447,8 @@ class GameController {
     isFragile = false,
     allowedColors = [],
     extraTubeClasses = '',
-    animPourClass = ''
+    animPourClass = '',
+    lockAnimClass = 'tut-anim-lock-shackle'
   } = {}) {
     let typeClass = '';
     if (isNarrow) typeClass = 'tube-narrow';
@@ -7479,7 +7480,7 @@ class GameController {
     let lockedOverlayHtml = '';
     if (isLocked) {
       lockedOverlayHtml = `
-        <div class="locked-overlay tut-anim-lock-shackle">
+        <div class="locked-overlay ${lockAnimClass}">
           <div class="w-6 h-6 rounded-full bg-amber-500/20 border border-amber-400 flex items-center justify-center mb-0.5 text-amber-400">
             <i data-lucide="lock" class="w-3 h-3"></i>
           </div>
@@ -7657,7 +7658,7 @@ class GameController {
       },
       lock: {
         title: 'Candado Alquímico con Llave',
-        desc: 'El frasco C está protegido por un cerrojo mágico. Si el color de la llave está cubierto por otro líquido en el tubo A, despeja primero ese líquido hacia el tubo B y luego vierte la llave para desbloquear.',
+        desc: 'El frasco C está protegido por un candado mágico que solo se abre con el líquido llave (🔑) de su color. Si la llave está tapada en el tubo A, primero mové el líquido de arriba al tubo B; después seleccioná A y luego C: la llave abre el candado y revela su contenido.',
         icon: 'lock',
         svg: `
           <div class="tutorial-mini-stage" style="gap: 14px;">
@@ -7666,9 +7667,10 @@ class GameController {
               ${this.generateMiniTubeHtml({
                 capacity: 4,
                 liquids: [
-                  { color: '#ec4899', shape: '🔑', textHex: '#ffffff' },
-                  { color: '#3b82f6', shape: '▲', textHex: '#ffffff' }
-                ]
+                  { color: '#ec4899', shape: '🔑', textHex: '#ffffff', animClass: 'tut-lock-key-drain' },
+                  { color: '#3b82f6', shape: '▲', textHex: '#ffffff', animClass: 'tut-lock-blue-drain' }
+                ],
+                extraTubeClasses: 'tut-lock-tubeA'
               })}
             </div>
             <div class="flex flex-col items-center">
@@ -7676,7 +7678,8 @@ class GameController {
               ${this.generateMiniTubeHtml({
                 capacity: 4,
                 liquids: [
-                  { color: '#3b82f6', shape: '▲', textHex: '#ffffff' }
+                  { color: '#3b82f6', shape: '▲', textHex: '#ffffff' },
+                  { color: '#3b82f6', shape: '▲', textHex: '#ffffff', animClass: 'tut-lock-blue-fill' }
                 ]
               })}
             </div>
@@ -7686,7 +7689,8 @@ class GameController {
                 capacity: 4,
                 isLocked: true,
                 keyColor: '#ec4899',
-                keyShape: '★',
+                keyShape: '🔑',
+                lockAnimClass: 'tut-lock-overlay-open',
                 liquids: [
                   { color: '#10b981', shape: '■', textHex: '#ffffff' },
                   { color: '#10b981', shape: '■', textHex: '#ffffff' }
