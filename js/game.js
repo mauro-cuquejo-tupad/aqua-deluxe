@@ -1340,12 +1340,12 @@ class GameController {
     const sm = window.stateManager;
     const unlocked = sm ? (sm.state.progress.unlockedLevel || 1) : 1;
     const mechUnlocks = [
-      { id: 'cb-sandbox-mystery', lbl: 'lbl-cb-mystery', lvl: 11 },
+      { id: 'cb-sandbox-mystery', lbl: 'lbl-cb-mystery', slider: 'input-sandbox-count-mystery', valLbl: 'lbl-val-sandbox-mystery', lvl: 11 },
       { id: 'cb-sandbox-giant', lbl: 'lbl-cb-giant', slider: 'input-sandbox-count-giant', valLbl: 'lbl-val-sandbox-giant', lvl: 21 },
       { id: 'cb-sandbox-lock', lbl: 'lbl-cb-lock', slider: 'input-sandbox-count-lock', valLbl: 'lbl-val-sandbox-lock', lvl: 31 },
       { id: 'cb-sandbox-narrow', lbl: 'lbl-cb-narrow', slider: 'input-sandbox-count-narrow', valLbl: 'lbl-val-sandbox-narrow', lvl: 41 },
-      { id: 'cb-sandbox-glued', lbl: 'lbl-cb-glued', lvl: 51 },
-      { id: 'cb-sandbox-chameleon', lbl: 'lbl-cb-chameleon', lvl: 61 },
+      { id: 'cb-sandbox-glued', lbl: 'lbl-cb-glued', slider: 'input-sandbox-count-glued', valLbl: 'lbl-val-sandbox-glued', lvl: 51 },
+      { id: 'cb-sandbox-chameleon', lbl: 'lbl-cb-chameleon', slider: 'input-sandbox-count-chameleon', valLbl: 'lbl-val-sandbox-chameleon', lvl: 61 },
       { id: 'cb-sandbox-fragile', lbl: 'lbl-cb-fragile', slider: 'input-sandbox-count-fragile', valLbl: 'lbl-val-sandbox-fragile', lvl: 71 }
     ];
 
@@ -1430,9 +1430,12 @@ class GameController {
         fragile: (unlockedLvl >= 71) && !!document.getElementById('cb-sandbox-fragile')?.checked
       };
       const mechanicCounts = {
+        mystery: parseInt(document.getElementById('input-sandbox-count-mystery')?.value, 10) || 0,
         giant: parseInt(document.getElementById('input-sandbox-count-giant')?.value, 10) || 0,
         lock: parseInt(document.getElementById('input-sandbox-count-lock')?.value, 10) || 0,
         narrow: parseInt(document.getElementById('input-sandbox-count-narrow')?.value, 10) || 0,
+        glued: parseInt(document.getElementById('input-sandbox-count-glued')?.value, 10) || 0,
+        chameleon: parseInt(document.getElementById('input-sandbox-count-chameleon')?.value, 10) || 0,
         fragile: parseInt(document.getElementById('input-sandbox-count-fragile')?.value, 10) || 0
       };
       config = { tubeCount, colorCount, mechanics, mechanicCounts, seed: Math.floor(Math.random() * 9999999) };

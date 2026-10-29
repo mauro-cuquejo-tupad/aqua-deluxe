@@ -46,10 +46,10 @@
   <link rel="icon" type="image/svg+xml" href="icons/icon.svg">
 
   <!--Modular Stylesheets -->
-  <link rel="stylesheet" href="css/main.css?v=96">
-  <link rel="stylesheet" href="css/tubes.css?v=96">
-  <link rel="stylesheet" href="css/roulette.css?v=96">
-  <link rel="stylesheet" href="css/accessibility.css?v=96">
+  <link rel="stylesheet" href="css/main.css?v=97">
+  <link rel="stylesheet" href="css/tubes.css?v=97">
+  <link rel="stylesheet" href="css/roulette.css?v=97">
+  <link rel="stylesheet" href="css/accessibility.css?v=97">
 </head>
 <body class="min-h-screen flex flex-col justify-between select-none relative">
 
@@ -2980,8 +2980,20 @@
             Usa el control deslizable al lado de cada tipo de tubo para fijar cuántos quieres, o déjalo en <strong>Auto</strong> para que se combinen al azar en cada nivel.
           </p>
 
-          <!-- Mecánicas de Tubo con Slider de Cantidad (Auto = 0, o 1..6) -->
+          <!-- Mecánicas y Tipos de Botella con Slider de Cantidad (Auto = 0, o 1..6) -->
           <div class="space-y-2 text-xs">
+            <!-- Líquido '?' (Misterio - Nvl 11) -->
+            <div id="lbl-cb-mystery" class="flex items-center justify-between gap-2 p-2 rounded-xl bg-slate-900 border border-slate-700/80">
+              <label class="flex items-center gap-2 cursor-pointer flex-1 min-w-0">
+                <input type="checkbox" id="cb-sandbox-mystery" class="accent-cyan-500">
+                <span class="text-slate-200 truncate">Líquido '?' <span class="text-[10px] text-cyan-400 font-mono">(Nvl 11)</span></span>
+              </label>
+              <div class="flex items-center gap-2 shrink-0">
+                <input type="range" id="input-sandbox-count-mystery" min="0" max="6" value="0" class="w-20 accent-cyan-500 cursor-pointer" oninput="document.getElementById('lbl-val-sandbox-mystery').textContent = this.value === '0' ? 'Auto' : this.value; if(this.value !== '0'){ const cb = document.getElementById('cb-sandbox-mystery'); if(cb && !cb.disabled) cb.checked = true; }">
+                <span id="lbl-val-sandbox-mystery" class="w-9 text-right font-mono text-[11px] font-black text-cyan-300">Auto</span>
+              </div>
+            </div>
+
             <!-- Frasco Gigante (Nvl 21) -->
             <div id="lbl-cb-giant" class="flex items-center justify-between gap-2 p-2 rounded-xl bg-slate-900 border border-slate-700/80">
               <label class="flex items-center gap-2 cursor-pointer flex-1 min-w-0">
@@ -3018,6 +3030,30 @@
               </div>
             </div>
 
+            <!-- Frasco en la Piedra / Inamovible (Nvl 51) -->
+            <div id="lbl-cb-glued" class="flex items-center justify-between gap-2 p-2 rounded-xl bg-slate-900 border border-slate-700/80">
+              <label class="flex items-center gap-2 cursor-pointer flex-1 min-w-0">
+                <input type="checkbox" id="cb-sandbox-glued" class="accent-stone-400">
+                <span class="text-slate-200 truncate">Frasco en Piedra <span class="text-[10px] text-stone-400 font-mono">(Nvl 51)</span></span>
+              </label>
+              <div class="flex items-center gap-2 shrink-0">
+                <input type="range" id="input-sandbox-count-glued" min="0" max="3" value="0" class="w-20 accent-stone-400 cursor-pointer" oninput="document.getElementById('lbl-val-sandbox-glued').textContent = this.value === '0' ? 'Auto' : this.value; if(this.value !== '0'){ const cb = document.getElementById('cb-sandbox-glued'); if(cb && !cb.disabled) cb.checked = true; }">
+                <span id="lbl-val-sandbox-glued" class="w-9 text-right font-mono text-[11px] font-black text-stone-300">Auto</span>
+              </div>
+            </div>
+
+            <!-- Líquido Camaleón (Nvl 61) -->
+            <div id="lbl-cb-chameleon" class="flex items-center justify-between gap-2 p-2 rounded-xl bg-slate-900 border border-slate-700/80">
+              <label class="flex items-center gap-2 cursor-pointer flex-1 min-w-0">
+                <input type="checkbox" id="cb-sandbox-chameleon" class="accent-pink-500">
+                <span class="text-slate-200 truncate">Camaleón <span class="text-[10px] text-pink-400 font-mono">(Nvl 61)</span></span>
+              </label>
+              <div class="flex items-center gap-2 shrink-0">
+                <input type="range" id="input-sandbox-count-chameleon" min="0" max="5" value="0" class="w-20 accent-pink-500 cursor-pointer" oninput="document.getElementById('lbl-val-sandbox-chameleon').textContent = this.value === '0' ? 'Auto' : this.value; if(this.value !== '0'){ const cb = document.getElementById('cb-sandbox-chameleon'); if(cb && !cb.disabled) cb.checked = true; }">
+                <span id="lbl-val-sandbox-chameleon" class="w-9 text-right font-mono text-[11px] font-black text-pink-300">Auto</span>
+              </div>
+            </div>
+
             <!-- Frasco Frágil / Afinidad (Nvl 71) -->
             <div id="lbl-cb-fragile" class="flex items-center justify-between gap-2 p-2 rounded-xl bg-slate-900 border border-slate-700/80">
               <label class="flex items-center gap-2 cursor-pointer flex-1 min-w-0">
@@ -3029,18 +3065,6 @@
                 <span id="lbl-val-sandbox-fragile" class="w-9 text-right font-mono text-[11px] font-black text-rose-300">Auto</span>
               </div>
             </div>
-          </div>
-
-          <!-- Mecánicas de Líquido (Misterio y Camaleón) -->
-          <div class="grid grid-cols-2 gap-2 text-xs pt-1">
-            <label id="lbl-cb-mystery" class="flex items-center gap-2 p-2 rounded-xl bg-slate-900 border border-slate-700/80 cursor-pointer hover:border-slate-500">
-              <input type="checkbox" id="cb-sandbox-mystery" class="accent-sky-500">
-              <span class="text-slate-200">Líquido '?' <span class="text-[10px] text-sky-400 font-mono">(Nvl 11)</span></span>
-            </label>
-            <label id="lbl-cb-chameleon" class="flex items-center gap-2 p-2 rounded-xl bg-slate-900 border border-slate-700/80 cursor-pointer hover:border-slate-500">
-              <input type="checkbox" id="cb-sandbox-chameleon" class="accent-pink-500">
-              <span class="text-slate-200">Camaleón <span class="text-[10px] text-pink-400 font-mono">(Nvl 61)</span></span>
-            </label>
           </div>
         </div>
         <!-- Opción rápida de sugerencia de publicación -->
@@ -3222,20 +3246,20 @@
   <input type="file" id="input-save-file" accept=".json" class="hidden">
 
   <!-- Scripts modulares -->
-  <script src="js/i18n.js?v=96"></script>
-  <script src="js/firebase-config.js?v=96"></script>
-  <script src="js/cloud-sync.js?v=96"></script>
-  <script src="js/audio.js?v=96"></script>
-  <script src="js/palette.js?v=96"></script>
-  <script src="js/levels.js?v=96"></script>
-  <script src="js/challenges.js?v=96"></script>
-  <script src="js/honor.js?v=96"></script>
-  <script src="js/state.js?v=96"></script>
-  <script src="js/achievements.js?v=96"></script>
-  <script src="js/leaderboard.js?v=96"></script>
-  <script src="js/roulette.js?v=96"></script>
-  <script src="js/story.js?v=96"></script>
-  <script src="js/game.js?v=96"></script>
+  <script src="js/i18n.js?v=97"></script>
+  <script src="js/firebase-config.js?v=97"></script>
+  <script src="js/cloud-sync.js?v=97"></script>
+  <script src="js/audio.js?v=97"></script>
+  <script src="js/palette.js?v=97"></script>
+  <script src="js/levels.js?v=97"></script>
+  <script src="js/challenges.js?v=97"></script>
+  <script src="js/honor.js?v=97"></script>
+  <script src="js/state.js?v=97"></script>
+  <script src="js/achievements.js?v=97"></script>
+  <script src="js/leaderboard.js?v=97"></script>
+  <script src="js/roulette.js?v=97"></script>
+  <script src="js/story.js?v=97"></script>
+  <script src="js/game.js?v=97"></script>
 
   <!-- Registro de Service Worker PWA -->
   <script>
@@ -3248,7 +3272,7 @@
         }
       });
       window.addEventListener('load', () => {
-        navigator.serviceWorker.register('./sw.js?v=96', { updateViaCache: 'none' }).then((reg) => {
+        navigator.serviceWorker.register('./sw.js?v=97', { updateViaCache: 'none' }).then((reg) => {
           reg.update();
           console.log('AlcheMix PWA ServiceWorker activo:', reg.scope);
         }).catch((err) => {

@@ -362,34 +362,45 @@ class LevelGenerator {
       return s / 0x7fffffff;
     };
 
-    const gluedTube = tubes.find(t => t.isGlued);
+    const gluedTubes = tubes.filter(t => t.isGlued);
     const mainTubes = tubes.filter(t => !t.isGlued && !t.isAffinity && t.capacity >= 4);
 
-    // 1. Extraer todos los líquidos de los tubos principales a un pool común
+    // 1. Extraer todos los líquidos de los tubos principales y de piedra a un pool común
     const pool = [];
     mainTubes.forEach(t => {
       pool.push(...t.liquids);
       t.liquids = [];
     });
+    gluedTubes.forEach(t => {
+      pool.push(...t.liquids);
+      t.liquids = [];
+    });
 
-    // 2. Si hay frasco atrapado en roca (gluedTube), asignarle 1 unidad de un color estándar (capacidad 4)
-    // para que el jugador sepa cuál color debe completar en la roca, garantizando que haya 4 unidades en total.
-    if (gluedTube) {
+    // 2. Si hay frascos atrapados en roca (gluedTubes), asignar a cada uno 1 unidad de un color estándar distinto (capacidad 4)
+    // para que el jugador sepa cuál color debe completar en cada roca, garantizando que haya 4 unidades en total.
+    if (gluedTubes.length > 0) {
       const colorCounts = {};
       pool.forEach(l => {
         if (!l.isChameleon) colorCounts[l.color] = (colorCounts[l.color] || 0) + 1;
       });
       const standardColors = Object.keys(colorCounts).filter(c => colorCounts[c] === 4);
-      if (standardColors.length > 0) {
-        const chosenColor = standardColors[Math.abs(seed) % standardColors.length];
-        const sampleIdx = pool.findIndex(l => l.color === chosenColor);
-        if (sampleIdx !== -1) {
-          const sample = pool.splice(sampleIdx, 1)[0];
-          sample.isMystery = false;
-          sample.isChameleon = false;
-          gluedTube.liquids = [sample];
+      const usedGluedColors = new Set();
+
+      gluedTubes.forEach((gt, gIdx) => {
+        const availableColors = standardColors.filter(c => !usedGluedColors.has(c));
+        const candidateList = availableColors.length > 0 ? availableColors : standardColors;
+        if (candidateList.length > 0) {
+          const chosenColor = candidateList[Math.abs(seed + gIdx * 7) % candidateList.length];
+          usedGluedColors.add(chosenColor);
+          const sampleIdx = pool.findIndex(l => l.color === chosenColor && !l.isChameleon);
+          if (sampleIdx !== -1) {
+            const sample = pool.splice(sampleIdx, 1)[0];
+            sample.isMystery = false;
+            sample.isChameleon = false;
+            gt.liquids = [sample];
+          }
         }
-      }
+      });
     }
 
     // 3. Mezclar determinísticamente con Fisher-Yates
@@ -597,6 +608,11 @@ class LevelGenerator {
     const fragileCount = resolveCount(hasFragile, mechanicCounts.fragile, emptyCount, emptyCount);
     const maxLockPossible = Math.max(0, numColors - 1);
     const lockCount = resolveCount(hasLock, mechanicCounts.lock, maxLockPossible, Math.min(2, maxLockPossible));
+    const maxGluedPossible = Math.max(0, Math.min(emptyCount - 1, numColors - giantCount));
+    const gluedCount = resolveCount(hasGlued, mechanicCounts.glued, maxGluedPossible, Math.min(2, maxGluedPossible));
+    const mysteryCount = resolveCount(hasMystery, mechanicCounts.mystery, numColors, numColors);
+    const maxChameleonPossible = Math.max(0, numColors - giantCount);
+    const chameleonCount = resolveCount(hasChameleon, mechanicCounts.chameleon, maxChameleonPossible, Math.min(3, maxChameleonPossible));
 
     const tubes = [];
     const capacity = 4;
@@ -608,16 +624,19 @@ class LevelGenerator {
       [colorIndices[i], colorIndices[j]] = [colorIndices[j], colorIndices[i]];
     }
     const giantSet = new Set(colorIndices.slice(0, giantCount));
+    const nonGiantIndices = colorIndices.filter(idx => !giantSet.has(idx));
+    const chameleonSet = new Set(nonGiantIndices.slice(0, chameleonCount));
 
     // 1. Crear los numColors tubos con líquido
     for (let i = 0; i < numColors; i++) {
       const col = activeColors[i];
       const isGiant = giantSet.has(i);
+      const hasChamInColor = chameleonSet.has(i);
       const cap = isGiant ? 6 : capacity;
       const tubeLiquids = [];
 
       for (let k = 0; k < cap; k++) {
-        const isCham = (hasChameleon && i === 1 && k === 1 && !isGiant);
+        const isCham = (hasChamInColor && k === 1 && !isGiant);
         tubeLiquids.push({
           colorIndex: isCham ? 'chameleon' : col.id,
           color: isCham ? 'chameleon' : col.hex,
@@ -626,7 +645,7 @@ class LevelGenerator {
           letter: isCham ? '★' : (col.letter || col.shape),
           pattern: isCham ? null : col.pattern,
           textHex: isCham ? '#ffffff' : col.textHex,
-          isMystery: (hasMystery && k < cap - 1 && !isCham),
+          isMystery: false,
           isChameleon: isCham,
           revealed: false
         });
@@ -636,7 +655,7 @@ class LevelGenerator {
         id: i,
         capacity: cap, // SIEMPRE 4 (o 6 si es gigante), incluso si luego es tubo 1x1
         liquids: tubeLiquids,
-        isGlued: (hasGlued && i === numColors - 1),
+        isGlued: false,
         isLocked: false,
         keyColor: null,
         keyColorName: null,
@@ -652,10 +671,12 @@ class LevelGenerator {
       });
     }
 
-    // 2. Crear los emptyCount tubos vacíos (pueden incluir tubos frágiles/afinidad si corresponde)
+    // 2. Crear los emptyCount tubos adicionales (pueden incluir frascos en la piedra y/o tubos frágiles)
+    const actualFragileEmpty = Math.min(fragileCount, Math.max(0, emptyCount - gluedCount));
     for (let j = 0; j < emptyCount; j++) {
       const tubeIndex = numColors + j;
-      const isAffinityTube = (j < fragileCount);
+      const isGluedTube = (j < gluedCount);
+      const isAffinityTube = (!isGluedTube && (j - gluedCount) < actualFragileEmpty);
       let allowedColors = [];
       let allowedColorNames = [];
       if (isAffinityTube && activeColors.length >= 2) {
@@ -672,7 +693,7 @@ class LevelGenerator {
         id: tubeIndex,
         capacity: capacity, // 4 líquidos de capacidad
         liquids: [],
-        isGlued: false,
+        isGlued: isGluedTube,
         isLocked: false,
         keyColor: null,
         keyColorName: null,
@@ -747,10 +768,18 @@ class LevelGenerator {
       }
     }
 
-    // 6. Aplicar estados de misterio en Sandbox (la capa superior siempre descubierta)
-    if (hasMystery) {
-      tubes.forEach(tube => {
-        if (tube.isGlued || tube.liquids.length === 0) return;
+    // 6. Aplicar estados de misterio en Sandbox a mysteryCount tubos con líquido (la capa superior siempre descubierta)
+    tubes.forEach(tube => {
+      tube.liquids.forEach(liq => { liq.isMystery = false; });
+    });
+    if (mysteryCount > 0) {
+      const mysteryCandidates = tubes.filter(t => !t.isGlued && t.liquids.length >= 2);
+      for (let i = mysteryCandidates.length - 1; i > 0; i--) {
+        const j = Math.floor(rnd() * (i + 1));
+        [mysteryCandidates[i], mysteryCandidates[j]] = [mysteryCandidates[j], mysteryCandidates[i]];
+      }
+      const chosenMysteryTubes = mysteryCandidates.slice(0, Math.min(mysteryCount, mysteryCandidates.length));
+      chosenMysteryTubes.forEach(tube => {
         tube.liquids.forEach((liq, idx) => {
           liq.isMystery = (idx < tube.liquids.length - 1) && !liq.isChameleon;
         });
@@ -765,10 +794,6 @@ class LevelGenerator {
           }
         }
       });
-    } else {
-      tubes.forEach(tube => {
-        tube.liquids.forEach(liq => { liq.isMystery = false; });
-      });
     }
 
     // 7. Mezclar el orden de las botellas en el tablero de forma aleatoria
@@ -782,13 +807,13 @@ class LevelGenerator {
     });
 
     const activeMechanicNames = [];
-    if (hasMystery) activeMechanicNames.push('Misterio');
+    if (mysteryCount > 0) activeMechanicNames.push(`Misterio x${mysteryCount}`);
     if (giantCount > 0) activeMechanicNames.push(`Gigante x${giantCount}`);
     if (lockCount > 0) activeMechanicNames.push(`Candado x${lockCount}`);
     if (narrowCount > 0) activeMechanicNames.push(`Tubo 1x1 x${narrowCount}`);
-    if (hasGlued) activeMechanicNames.push('En Roca');
-    if (hasChameleon) activeMechanicNames.push('Camaleón');
-    if (fragileCount > 0) activeMechanicNames.push(`Frágil x${fragileCount}`);
+    if (gluedCount > 0) activeMechanicNames.push(`En Piedra x${gluedCount}`);
+    if (chameleonCount > 0) activeMechanicNames.push(`Camaleón x${chameleonCount}`);
+    if (actualFragileEmpty > 0) activeMechanicNames.push(`Frágil x${actualFragileEmpty}`);
 
     return {
       level: 'casual_sandbox',
