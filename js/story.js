@@ -439,7 +439,8 @@ class StoryManager {
         </g>
 
         <!-- Científico asustado con bata tiznada y frasco en mano -->
-        <g class="story-anim-ch1-scientist" transform="translate(180, 95)">
+        <g transform="translate(180, 95)">
+          <g class="story-anim-ch1-scientist">
           <!-- Cabeza y ojos sorprendidos -->
           <circle cx="15" cy="15" r="10" fill="#fed7aa"/>
           <path d="M 8 25 L 22 25 L 26 55 L 4 55 Z" fill="#e2e8f0"/>
@@ -457,6 +458,7 @@ class StoryManager {
           <text x="15" y="48" font-size="12" text-anchor="middle">🧪</text>
           <!-- Mensaje cómico del científico -->
           <text x="15" y="-3" font-size="8.5" font-weight="900" fill="#93c5fd" text-anchor="middle">"¿Ups...?"</text>
+        </g>
         </g>
 
         <!-- Perrito Mirko esperando afuera moviendo la cola feliz -->
@@ -516,7 +518,8 @@ class StoryManager {
         </g>
 
         <!-- Gato Tom durmiendo plácidamente con zzz -->
-        <g class="story-anim-ch2-cat" transform="translate(230, 115)">
+        <g transform="translate(230, 115)">
+          <g class="story-anim-ch2-cat">
           <ellipse cx="25" cy="22" rx="16" ry="11" fill="#334155"/>
           <circle cx="12" cy="18" r="9" fill="#334155"/>
           <polygon points="6,12 10,5 14,12" fill="#475569"/>
@@ -525,6 +528,7 @@ class StoryManager {
           <path class="story-anim-ch2-cat-tail" d="M 38 24 Q 48 20 44 12" stroke="#334155" stroke-width="3" stroke-linecap="round" fill="none"/>
           <text class="story-anim-ch2-zzz" x="14" y="5" font-size="11" fill="#93c5fd" font-weight="bold">zzZ</text>
           <text x="25" y="40" font-size="9" font-weight="900" fill="#cbd5e1" text-anchor="middle">🐱 Tom (zzZ)</text>
+        </g>
         </g>
       </svg>
     `;
@@ -553,18 +557,22 @@ class StoryManager {
           <text x="160" y="88" font-size="18" font-weight="900" fill="#ffffff" text-anchor="middle">✨ ¡PLASH! ✨</text>
         </g>
         <!-- Amiga Nina riendo -->
-        <g class="story-anim-ch3-nina" transform="translate(40, 85)">
+        <g transform="translate(40, 85)">
+          <g class="story-anim-ch3-nina">
           <circle cx="18" cy="18" r="11" fill="#fed7aa"/>
           <path d="M 10 30 Q 18 26 26 30 L 30 65 L 6 65 Z" fill="#ec4899"/>
           <text x="18" y="12" font-size="12" text-anchor="middle">💇‍♀️</text>
           <text x="18" y="75" font-size="9" font-weight="900" fill="#f472b6" text-anchor="middle">Nina 😂</text>
         </g>
+        </g>
         <!-- Científico disculpándose -->
-        <g class="story-anim-ch3-scientist" transform="translate(245, 85)">
+        <g transform="translate(245, 85)">
+          <g class="story-anim-ch3-scientist">
           <circle cx="18" cy="18" r="11" fill="#fed7aa"/>
           <path d="M 10 30 L 26 30 L 28 65 L 8 65 Z" fill="#38bdf8"/>
           <circle cx="18" cy="22" r="3" fill="#1e293b"/>
           <text x="18" y="75" font-size="9" font-weight="900" fill="#7dd3fc" text-anchor="middle">Ups! 😅</text>
+        </g>
         </g>
       </svg>
     `;
@@ -583,17 +591,21 @@ class StoryManager {
           <text class="story-anim-ch4-zzz" x="75" y="15" font-size="14" fill="#93c5fd" font-weight="bold">zzZ</text>
         </g>
         <!-- Bombilla brillante de idea -->
-        <g class="story-anim-ch4-lightbulb" transform="translate(180, 25)">
+        <g transform="translate(180, 25)">
+          <g class="story-anim-ch4-lightbulb">
           <circle cx="20" cy="20" r="18" fill="#facc15" filter="drop-shadow(0 0 12px #facc15)"/>
           <text x="20" y="27" font-size="22" text-anchor="middle">💡</text>
         </g>
+        </g>
         <!-- Gatita Matilda ronroneando -->
-        <g class="story-anim-ch4-cat" transform="translate(225, 115)">
+        <g transform="translate(225, 115)">
+          <g class="story-anim-ch4-cat">
           <ellipse cx="20" cy="20" rx="14" ry="10" fill="#e2e8f0"/>
           <circle cx="10" cy="14" r="8" fill="#cbd5e1"/>
           <polygon points="5,8 9,2 13,8" fill="#94a3b8"/>
           <polygon points="11,8 15,2 19,8" fill="#94a3b8"/>
           <text x="20" y="38" font-size="9" font-weight="900" fill="#f1f5f9" text-anchor="middle">🐾 Matilda</text>
+        </g>
         </g>
       </svg>
     `;
@@ -624,11 +636,13 @@ class StoryManager {
           </g>
         </g>
         <!-- Bianca supervisando -->
-        <g class="story-anim-ch5-bianca" transform="translate(245, 75)">
+        <g transform="translate(245, 75)">
+          <g class="story-anim-ch5-bianca">
           <circle cx="18" cy="18" r="11" fill="#fed7aa"/>
           <path d="M 8 30 L 28 30 L 32 70 L 4 70 Z" fill="#10b981"/>
           <text x="18" y="12" font-size="12" text-anchor="middle">👓</text>
           <text x="18" y="82" font-size="9" font-weight="900" fill="#34d399" text-anchor="middle">Bianca 📐</text>
+        </g>
         </g>
       </svg>
     `;
@@ -708,10 +722,12 @@ class StoryManager {
           <circle cx="152" cy="94" r="3" fill="#0f172a" stroke="#c084fc" stroke-width="1"/>
           
           <!-- Recuerdo de Zoila (Corazón palpitante) -->
-          <g class="story-anim-ch7refl-heart" transform="translate(108, 48)">
+          <g transform="translate(108, 48)">
+          <g class="story-anim-ch7refl-heart">
             <text x="0" y="0" font-size="18" text-anchor="middle">💖</text>
             <text x="0" y="15" font-size="7" font-weight="900" fill="#f472b6" text-anchor="middle">Zoila</text>
           </g>
+        </g>
 
           <text x="148" y="46" font-size="12" font-weight="900" fill="#cbd5e1" text-anchor="middle">¿?</text>
 
@@ -763,11 +779,13 @@ class StoryManager {
         <rect x="15" y="154" width="290" height="18" fill="#0f172a" opacity="0.6"/>
 
         <!-- Flores del cantero que se mecen suavemente -->
-        <g class="story-anim-ch8love-flowers" transform="translate(130, 130)">
+        <g transform="translate(130, 130)">
+          <g class="story-anim-ch8love-flowers">
           <text x="0" y="20" font-size="18">🌸</text>
           <text x="20" y="22" font-size="16">🌷</text>
           <text x="38" y="19" font-size="17">🌺</text>
           <text x="56" y="21" font-size="16">🌼</text>
+        </g>
         </g>
 
         <!-- Mariposa mágica revoloteando -->
@@ -826,11 +844,13 @@ class StoryManager {
         <line x1="15" y1="154" x2="305" y2="154" stroke="#334155" stroke-width="1.5" stroke-dasharray="3,3"/>
 
         <!-- Humo cósmico y chispas violetas del truco fallido -->
-        <g class="story-anim-ch9love-smoke" transform="translate(90, 75)">
+        <g transform="translate(90, 75)">
+          <g class="story-anim-ch9love-smoke">
           <circle cx="0" cy="0" r="14" fill="#a855f7" opacity="0.6"/>
           <circle cx="10" cy="-8" r="18" fill="#c084fc" opacity="0.5"/>
           <text x="6" y="-12" font-size="12">✨</text>
           <text x="-8" y="-16" font-size="10">💥</text>
+        </g>
         </g>
 
         <!-- Científico con sombrero chamuscado y carita con hollín -->
@@ -849,7 +869,8 @@ class StoryManager {
         </g>
 
         <!-- Freya riendo con ternura infinita y limpiándole el hollín -->
-        <g class="story-anim-ch9love-freya" transform="translate(190, 84)">
+        <g transform="translate(190, 84)">
+          <g class="story-anim-ch9love-freya">
           <circle cx="20" cy="18" r="12" fill="#fed7aa"/>
           <path d="M 6 18 Q 6 4 20 4 Q 34 4 34 18 Q 35 28 32 31 Q 28 18 20 18 Q 12 18 8 31 Z" fill="#92400e"/>
           <text x="28" y="12" font-size="11" text-anchor="middle">🌸</text>
@@ -860,11 +881,14 @@ class StoryManager {
           <text x="-4" y="38" font-size="14">🧻</text>
           <text x="20" y="82" font-size="8" font-weight="900" fill="#f472b6" text-anchor="middle">Freya 🥰</text>
         </g>
+        </g>
 
         <!-- Globito cómplice y tierno de Freya -->
-        <g class="story-anim-ch9love-bubble" transform="translate(125, 26)">
+        <g transform="translate(125, 26)">
+          <g class="story-anim-ch9love-bubble">
           <rect x="0" y="0" width="165" height="26" rx="12" fill="rgba(15, 23, 42, 0.95)" stroke="#ec4899" stroke-width="1.8" filter="drop-shadow(0 2px 6px rgba(0,0,0,0.6))"/>
           <text x="82" y="17" font-size="9" font-weight="900" fill="#fce7f3" text-anchor="middle">"¡Eres un desastre adorable! 💕"</text>
+        </g>
         </g>
       </svg>
     `;
@@ -882,9 +906,11 @@ class StoryManager {
         <text x="40" y="92" font-size="11">🌍 ✨ 🧪 💧</text>
 
         <!-- Matraz de energía pura luminosa en el centro -->
-        <g class="story-anim-ch8sci-globe" transform="translate(160, 68)">
+        <g transform="translate(160, 68)">
+          <g class="story-anim-ch8sci-globe">
           <circle cx="0" cy="0" r="26" fill="rgba(56, 189, 248, 0.25)" filter="blur(6px)"/>
           <text x="0" y="8" font-size="28" text-anchor="middle">🌍</text>
+        </g>
         </g>
 
         <!-- Mesa con tubos de ensayo purificadores -->
@@ -923,17 +949,23 @@ class StoryManager {
         <line x1="15" y1="154" x2="305" y2="154" stroke="#334155" stroke-width="1.5" stroke-dasharray="3,3"/>
 
         <!-- 3 Explosiones en cadena: Púrpura, Verde y Naranja -->
-        <g class="story-anim-ch9sci-boom1" transform="translate(60, 50)">
+        <g transform="translate(60, 50)">
+          <g class="story-anim-ch9sci-boom1">
           <circle cx="0" cy="0" r="28" fill="#a855f7" opacity="0.85"/>
           <text x="0" y="6" font-size="16" font-weight="900" fill="#fef08a" text-anchor="middle">💥 ¡PUM!</text>
         </g>
-        <g class="story-anim-ch9sci-boom2" transform="translate(160, 36)">
+        </g>
+        <g transform="translate(160, 36)">
+          <g class="story-anim-ch9sci-boom2">
           <circle cx="0" cy="0" r="32" fill="#10b981" opacity="0.85"/>
           <text x="0" y="6" font-size="17" font-weight="900" fill="#ffffff" text-anchor="middle">💥 ¡BOOM!</text>
         </g>
-        <g class="story-anim-ch9sci-boom3" transform="translate(260, 50)">
+        </g>
+        <g transform="translate(260, 50)">
+          <g class="story-anim-ch9sci-boom3">
           <circle cx="0" cy="0" r="28" fill="#f97316" opacity="0.85"/>
           <text x="0" y="6" font-size="16" font-weight="900" fill="#fef08a" text-anchor="middle">💥 ¡ZAS!</text>
+        </g>
         </g>
 
         <!-- Manchas de pintura química en las paredes -->
@@ -942,7 +974,8 @@ class StoryManager {
         <circle cx="120" cy="98" r="8" fill="#10b981" opacity="0.4"/>
 
         <!-- Científico en el centro, mareado y tiznado -->
-        <g class="story-anim-ch9sci-scientist" transform="translate(140, 84)">
+        <g transform="translate(140, 84)">
+          <g class="story-anim-ch9sci-scientist">
           <circle cx="20" cy="18" r="13" fill="#fed7aa"/>
           <text x="14" y="21" font-size="10" text-anchor="middle">😵‍💫</text>
           <circle cx="12" cy="14" r="3.5" fill="#1e293b" opacity="0.8"/>
@@ -951,6 +984,7 @@ class StoryManager {
           <text x="-4" y="50" font-size="14">🧪</text>
           <text x="32" y="50" font-size="14">🧪</text>
           <text x="20" y="85" font-size="8" font-weight="900" fill="#7dd3fc" text-anchor="middle">Alquimista 😵‍💫</text>
+        </g>
         </g>
 
         <!-- Cartel cómico inferior -->
@@ -992,11 +1026,13 @@ class StoryManager {
         <svg viewBox="0 0 320 180" class="w-full h-full rounded-2xl bg-gradient-to-b from-slate-950 via-slate-900 to-indigo-950/70 p-2 story-svg-container select-none">
           <text x="40" y="45" font-size="20">🚩</text>
           <text x="280" y="45" font-size="20">🚩</text>
-          <g class="story-anim-ch10end-crown" transform="translate(160, 52)">
+          <g transform="translate(160, 52)">
+          <g class="story-anim-ch10end-crown">
             <circle cx="0" cy="0" r="28" fill="rgba(56, 189, 248, 0.3)" filter="blur(8px)"/>
             <text x="0" y="8" font-size="30" text-anchor="middle">💎</text>
             <text x="0" y="-18" font-size="16" text-anchor="middle">👑</text>
           </g>
+        </g>
           <text x="80" y="75" font-size="14">🎉</text>
           <text x="240" y="75" font-size="14">🎊</text>
           <g transform="translate(140, 85)">
@@ -1021,11 +1057,13 @@ class StoryManager {
           <text x="100" y="112" font-size="28" text-anchor="middle">✨</text>
           <text x="65" y="90" font-size="14">✨</text>
           <text x="135" y="95" font-size="14">✨</text>
-          <g class="story-anim-ch10end-soapbubble" transform="translate(100, 75)">
+          <g transform="translate(100, 75)">
+          <g class="story-anim-ch10end-soapbubble">
             <text x="-25" y="0" font-size="14">🫧</text>
             <text x="15" y="-12" font-size="18">🫧</text>
             <text x="-5" y="-25" font-size="12">🫧</text>
           </g>
+        </g>
           <g transform="translate(200, 75)">
             <circle cx="20" cy="18" r="12" fill="#fed7aa"/>
             <circle cx="16" cy="17" r="1.5" fill="#0f172a"/>
@@ -1087,7 +1125,8 @@ class StoryManager {
         </g>
 
         <!-- El científico (posicionado más abajo y a la izquierda para dejar lugar a los globitos) -->
-        <g class="story-anim-ch7-scientist" transform="translate(62, 88)">
+        <g transform="translate(62, 88)">
+          <g class="story-anim-ch7-scientist">
           <!-- Cabeza -->
           <circle cx="20" cy="20" r="12" fill="#fed7aa"/>
           <!-- Ojos -->
@@ -1105,9 +1144,11 @@ class StoryManager {
             <text x="32" y="15" font-size="12">💧</text>
           </g>
         </g>
+        </g>
 
         <!-- Freya (posicionada más abajo y a la derecha) -->
-        <g class="story-anim-ch7-freya" transform="translate(218, 88)">
+        <g transform="translate(218, 88)">
+          <g class="story-anim-ch7-freya">
           <circle cx="20" cy="20" r="12" fill="#fed7aa"/>
           <!-- Cabello bonito castaño -->
           <path d="M 6 20 Q 6 6 20 6 Q 34 6 34 20 Q 35 30 32 33 Q 28 20 20 20 Q 12 20 8 33 Z" fill="#92400e"/>
@@ -1122,6 +1163,7 @@ class StoryManager {
           <path d="M 8 32 L 32 32 L 36 74 L 4 74 Z" fill="#ec4899"/>
           <!-- Etiqueta de nombre -->
           <text x="20" y="85" font-size="8" font-weight="900" fill="#f472b6" text-anchor="middle">Freya 💕</text>
+        </g>
         </g>
 
         <!-- ================= GLOBITOS DE CHARLA CÓMICOS ================= -->
@@ -1221,7 +1263,8 @@ class StoryManager {
 
         <!-- ================= MASCOTAS ADORADAS ================= -->
         <!-- 1. CANICHE GRIS CON COPITO BLANCO EN LA CABEZA -->
-        <g class="story-anim-fe-poodle" transform="translate(60, 145)">
+        <g transform="translate(60, 145)">
+          <g class="story-anim-fe-poodle">
           <!-- Cuerpo rizado gris -->
           <ellipse cx="25" cy="22" rx="16" ry="12" fill="#94a3b8"/>
           <!-- Cabeza rizada gris -->
@@ -1241,6 +1284,7 @@ class StoryManager {
           <circle cx="28" cy="32" r="3.5" fill="#94a3b8"/>
           <circle class="story-anim-fe-tail" cx="40" cy="14" r="5" fill="#ffffff"/>
           <text x="25" y="44" font-size="8" font-weight="900" fill="#e2e8f0" text-anchor="middle">Caniche Gris 🐩</text>
+        </g>
         </g>
 
         <!-- 2. GATO 1 BLANCO Y NEGRO (Tuxedo Cat 1) -->
