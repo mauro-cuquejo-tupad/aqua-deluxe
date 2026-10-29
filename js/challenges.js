@@ -254,22 +254,7 @@ class ChallengeManager {
     });
 
     // ------------------------------------------------------------------------
-    // TIPO 6: Claridad Mental: Sin Pistas Alquímicas
-    // ------------------------------------------------------------------------
-    candidates.push({
-      type: 'no_hints',
-      id: 'no_hints',
-      icon: 'sparkles',
-      title: 'Superar sin usar ninguna pista',
-      shortTitle: 'Sin pistas',
-      coins: 50,
-      check: (game) => (game.hintsUsedInLevel || 0) === 0,
-      getCurrentText: (game) => ((game.hintsUsedInLevel || 0) > 0 ? 'Usada ✕' : 'Activo ✓'),
-      isFailedLive: (game) => (game.hintsUsedInLevel || 0) > 0
-    });
-
-    // ------------------------------------------------------------------------
-    // TIPO 7: Pureza Cristalina: Sin fisuras en frasco de afinidad
+    // TIPO 6: Pureza Cristalina: Sin fisuras en frasco de afinidad
     // ------------------------------------------------------------------------
     if (tubes.some(t => t.isAffinity && !t.isSuperFragile)) {
       candidates.push({
