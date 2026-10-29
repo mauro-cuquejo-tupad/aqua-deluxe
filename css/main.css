@@ -1327,7 +1327,7 @@ body.screen-apocalypse-rumble {
 }
 .story-anim-ch0-school-glow {
   animation: ch0SchoolGlow 8.0s ease-out 1 forwards;
-  transform-origin: 270px 105px;
+  transform-origin: 300px 115px;
 }
 .story-anim-ch0-baby {
   animation: ch0BabyBounce 1.8s infinite ease-in-out;
