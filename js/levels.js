@@ -328,8 +328,8 @@ class LevelGenerator {
       });
     }
 
-    // 6. Cálculo de movimientos óptimos estimados para estrellas
-    const optimalMoves = colorCount * 3 + Math.floor(level / 4) + (hasMystery ? 2 : 0) + (hasLock ? 2 : 0) + (hasGlued ? 2 : 0);
+    // 6. Cálculo de movimientos óptimos estimados para estrellas (+2 de margen adicional para alcanzar las 3★)
+    const optimalMoves = colorCount * 3 + Math.floor(level / 4) + (hasMystery ? 2 : 0) + (hasLock ? 2 : 0) + (hasGlued ? 2 : 0) + 2;
 
     // Verificación final de normalización para asegurar que la colocación de la llave
     // no haya dejado rachas mayores a 2 ni frascos resueltos
@@ -695,7 +695,7 @@ class LevelGenerator {
       title: `Modo Casual (${totalTubes} Tubos, ${numColors} Colores)`,
       name: `Alquimia Infinita #${actualSeed % 100000}`,
       mechanicTag: activeMechanicNames.length > 0 ? activeMechanicNames.join(' • ') : 'Puro y Relajante',
-      optimalMoves: numColors * 3 + 4,
+      optimalMoves: numColors * 3 + 6,
       totalTubes: totalTubes,
       totalColors: numColors,
       tubes: tubes,
