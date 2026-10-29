@@ -549,14 +549,22 @@ class LevelGenerator {
    * @param {number} options.tubeCount - Total de tubos (4 a 12, defecto 7)
    * @param {number} options.colorCount - Total de colores (3 a 10, defecto 5)
    * @param {Object} options.mechanics - { mystery, giant, lock, narrow, glued, chameleon, fragile }
+   * @param {Object} options.mechanicCounts - { giant: 0..5, lock: 0..5, narrow: 0..6, fragile: 0..4 } (0 = Auto/Azar)
    * @param {number} options.seed - Semilla opcional
    */
-  static generateCasualSandbox({ tubeCount = 7, colorCount = 5, mechanics = {}, seed = null } = {}) {
+  static generateCasualSandbox({ tubeCount = 7, colorCount = 5, mechanics = {}, mechanicCounts = {}, seed = null } = {}) {
     const totalTubes = Math.max(4, Math.min(12, parseInt(tubeCount) || 7));
-    // Los colores no pueden superar totalTubes - 1 (mínimo 1 tubo vacío, idealmente 2)
+    // Los colores no pueden superar totalTubes - 2 (mínimo 2 tubos vacíos para maniobrar)
     const maxColors = Math.max(2, totalTubes - 2);
     const numColors = Math.max(2, Math.min(maxColors, Math.min(10, parseInt(colorCount) || 5)));
     const emptyCount = totalTubes - numColors;
+
+    const actualSeed = (seed !== null && seed !== undefined) ? seed : Math.floor(Math.random() * 9999999);
+    let s = (Math.abs(actualSeed) * 1103515245 + 12345) & 0x7fffffff;
+    const rnd = () => {
+      s = (s * 1103515245 + 12345) & 0x7fffffff;
+      return s / 0x7fffffff;
+    };
 
     const currentPalette = window.paletteManager ? window.paletteManager.getPalette() : [];
     const activeColors = currentPalette.slice(0, numColors);
@@ -569,12 +577,42 @@ class LevelGenerator {
     const hasChameleon = !!mechanics.chameleon;
     const hasFragile = !!mechanics.fragile;
 
+    // Resolver la cantidad de tubos de cada tipo:
+    // - Si el slider está en 0 (Auto / Por defecto): puede no aparecer (0) o aparecer múltiples veces al azar,
+    //   respetando el máximo de tubos posibles.
+    // - Si se eligió un número específico (> 0): aparece exactamente esa cantidad de tubos (limitado al máximo válido).
+    const resolveCount = (isActive, rawSliderVal, maxAllowed, maxAutoRoll) => {
+      if (!isActive || maxAllowed <= 0) return 0;
+      const val = parseInt(rawSliderVal, 10) || 0;
+      if (val > 0) {
+        return Math.min(val, maxAllowed);
+      }
+      // En modo Auto (0): entre 0 y min(maxAllowed, maxAutoRoll)
+      const capRoll = Math.min(maxAllowed, maxAutoRoll);
+      return Math.floor(rnd() * (capRoll + 1));
+    };
+
+    const giantCount = resolveCount(hasGiant, mechanicCounts.giant, numColors, Math.min(3, numColors));
+    const narrowCount = resolveCount(hasNarrow, mechanicCounts.narrow, totalTubes - 1, Math.min(4, totalTubes - 1));
+    const fragileCount = resolveCount(hasFragile, mechanicCounts.fragile, emptyCount, emptyCount);
+    const maxLockPossible = Math.max(0, numColors - 1);
+    const lockCount = resolveCount(hasLock, mechanicCounts.lock, maxLockPossible, Math.min(2, maxLockPossible));
+
     const tubes = [];
     const capacity = 4;
 
+    // Elegir al azar cuáles de los tubos con líquido serán Gigantes (capacidad 6)
+    const colorIndices = Array.from({ length: numColors }, (_, idx) => idx);
+    for (let i = colorIndices.length - 1; i > 0; i--) {
+      const j = Math.floor(rnd() * (i + 1));
+      [colorIndices[i], colorIndices[j]] = [colorIndices[j], colorIndices[i]];
+    }
+    const giantSet = new Set(colorIndices.slice(0, giantCount));
+
+    // 1. Crear los numColors tubos con líquido
     for (let i = 0; i < numColors; i++) {
       const col = activeColors[i];
-      const isGiant = (hasGiant && i === 0);
+      const isGiant = giantSet.has(i);
       const cap = isGiant ? 6 : capacity;
       const tubeLiquids = [];
 
@@ -589,105 +627,168 @@ class LevelGenerator {
           pattern: isCham ? null : col.pattern,
           textHex: isCham ? '#ffffff' : col.textHex,
           isMystery: (hasMystery && k < cap - 1 && !isCham),
+          isChameleon: isCham,
           revealed: false
         });
       }
 
       tubes.push({
         id: i,
-        capacity: cap,
+        capacity: cap, // SIEMPRE 4 (o 6 si es gigante), incluso si luego es tubo 1x1
         liquids: tubeLiquids,
         isGlued: (hasGlued && i === numColors - 1),
         isLocked: false,
         keyColor: null,
         keyColorName: null,
-        fragileUses: (hasFragile && i === 2) ? 3 : null,
-        isNarrow: false
+        isNarrow: false,
+        isFragile: false,
+        isAffinity: false,
+        isSuperFragile: false,
+        cracks: 0,
+        maxCracks: null,
+        isBroken: false,
+        allowedColors: [],
+        allowedColorNames: []
       });
     }
 
-    // Tubos vacíos
+    // 2. Crear los emptyCount tubos vacíos (pueden incluir tubos frágiles/afinidad si corresponde)
     for (let j = 0; j < emptyCount; j++) {
       const tubeIndex = numColors + j;
-      const isNarrow = (hasNarrow && j === emptyCount - 1);
+      const isAffinityTube = (j < fragileCount);
+      let allowedColors = [];
+      let allowedColorNames = [];
+      if (isAffinityTube && activeColors.length >= 2) {
+        const c1 = activeColors[Math.floor(rnd() * activeColors.length)];
+        let c2 = activeColors[Math.floor(rnd() * activeColors.length)];
+        if (c2.hex === c1.hex && activeColors.length > 1) {
+          c2 = activeColors[(activeColors.indexOf(c1) + 1) % activeColors.length];
+        }
+        allowedColors = [c1.hex, c2.hex];
+        allowedColorNames = [c1.name, c2.name];
+      }
+
       tubes.push({
         id: tubeIndex,
-        capacity: isNarrow ? 1 : capacity,
+        capacity: capacity, // 4 líquidos de capacidad
         liquids: [],
         isGlued: false,
         isLocked: false,
         keyColor: null,
         keyColorName: null,
-        fragileUses: null,
-        isNarrow: isNarrow
+        isNarrow: false,
+        isFragile: isAffinityTube,
+        isAffinity: isAffinityTube,
+        isSuperFragile: false,
+        cracks: 0,
+        maxCracks: isAffinityTube ? 3 : null,
+        isBroken: false,
+        allowedColors: allowedColors,
+        allowedColorNames: allowedColorNames
       });
     }
 
-    const actualSeed = (seed !== null && seed !== undefined) ? seed : Math.floor(Math.random() * 9999999);
+    // 3. Asignar la propiedad Tubo 1x1 (isNarrow) a narrowCount tubos (todos mantienen capacidad de 4 líquidos, igual que en el modo historia)
+    if (narrowCount > 0) {
+      const narrowCandidates = tubes.filter(t => !t.isGlued && t.capacity === 4);
+      for (let i = narrowCandidates.length - 1; i > 0; i--) {
+        const j = Math.floor(rnd() * (i + 1));
+        [narrowCandidates[i], narrowCandidates[j]] = [narrowCandidates[j], narrowCandidates[i]];
+      }
+      const chosenNarrow = narrowCandidates.slice(0, Math.min(narrowCount, narrowCandidates.length));
+      chosenNarrow.forEach(t => {
+        t.isNarrow = true;
+        t.capacity = 4; // Garantizar que el tubo 1x1 siempre tenga lugar para 4 líquidos
+      });
+    }
+
+    // 4. Distribuir y mezclar los líquidos entre los tubos con líquido
     this.distributeAndShuffle(tubes, actualSeed);
 
-    // Aplicar candado con llave correctamente si hasLock está activo en Sandbox
-    if (hasLock && tubes.length > 0) {
-      // Candidato a candado: con líquidos, no inamovible (glued), no estrecho (narrow), preferentemente frasco estándar de 4 si hay
-      let lockCandidates = tubes.filter(t => !t.isGlued && !t.isNarrow && t.capacity === 4 && t.liquids.length >= 2);
+    // 5. Aplicar candados con llave (lockCount) si corresponde
+    if (lockCount > 0 && tubes.length > 0) {
+      let lockCandidates = tubes.filter(t => !t.isGlued && !t.isNarrow && t.liquids.length >= 2);
       if (lockCandidates.length === 0) {
-        lockCandidates = tubes.filter(t => !t.isGlued && !t.isNarrow && t.liquids.length >= 2);
+        lockCandidates = tubes.filter(t => !t.isGlued && t.liquids.length >= 2);
       }
-      if (lockCandidates.length > 0) {
-        const lockIndex = Math.abs(actualSeed) % lockCandidates.length;
-        const lockTube = lockCandidates[lockIndex];
+      for (let i = lockCandidates.length - 1; i > 0; i--) {
+        const j = Math.floor(rnd() * (i + 1));
+        [lockCandidates[i], lockCandidates[j]] = [lockCandidates[j], lockCandidates[i]];
+      }
+      const actualLocks = Math.min(lockCount, Math.max(0, lockCandidates.length - 1));
+      for (let lIdx = 0; lIdx < actualLocks; lIdx++) {
+        const lockTube = lockCandidates[lIdx];
         lockTube.isLocked = true;
-
-        // Seleccionar color de la llave entre los colores activos
-        const keyColorObj = activeColors[Math.abs(actualSeed + 3) % activeColors.length];
+        const keyColorObj = activeColors[Math.floor(rnd() * activeColors.length)];
         lockTube.keyColor = keyColorObj.hex;
         lockTube.keyColorName = keyColorObj.name;
+      }
 
-        // Garantizar que la llave esté en un tubo accesible (no bloqueado, no inamovible)
-        const sourceCandidates = tubes.filter(t => !t.isLocked && !t.isGlued && !t.isNarrow && t.liquids.length >= 2);
-        if (sourceCandidates.length > 0) {
-          const keySourceTube = sourceCandidates[Math.abs(actualSeed + 7) % sourceCandidates.length];
-          const coverCount = keySourceTube.liquids.length >= 3 ? 2 : 1;
-          const keyPos = keySourceTube.liquids.length - 1 - coverCount;
-
-          let foundKey = false;
-          for (let ti = 0; ti < tubes.length; ti++) {
-            if (tubes[ti] === lockTube) continue;
-            for (let li = 0; li < tubes[ti].liquids.length; li++) {
-              if (tubes[ti].liquids[li].color === lockTube.keyColor) {
-                const temp = keySourceTube.liquids[keyPos];
-                keySourceTube.liquids[keyPos] = tubes[ti].liquids[li];
+      // Asegurar que al menos una llave esté en un tubo accesible
+      const unlockedWithLiquids = tubes.filter(t => !t.isLocked && !t.isGlued && t.liquids.length >= 2);
+      if (unlockedWithLiquids.length > 0) {
+        tubes.filter(t => t.isLocked).forEach((lockTube) => {
+          const hasAccessibleKey = unlockedWithLiquids.some(ut => ut.liquids.some(l => l.color === lockTube.keyColor));
+          if (!hasAccessibleKey) {
+            const targetUnlocked = unlockedWithLiquids[Math.floor(rnd() * unlockedWithLiquids.length)];
+            const swapIdx = Math.max(0, targetUnlocked.liquids.length - 2);
+            for (let ti = 0; ti < tubes.length; ti++) {
+              if (!tubes[ti].isLocked) continue;
+              const li = tubes[ti].liquids.findIndex(l => l.color === lockTube.keyColor);
+              if (li !== -1) {
+                const temp = targetUnlocked.liquids[swapIdx];
+                targetUnlocked.liquids[swapIdx] = tubes[ti].liquids[li];
                 tubes[ti].liquids[li] = temp;
-                foundKey = true;
-                break;
-              }
-            }
-            if (foundKey) break;
-          }
-
-          if (!foundKey) {
-            for (let li = 0; li < lockTube.liquids.length; li++) {
-              if (lockTube.liquids[li].color === lockTube.keyColor) {
-                const temp = keySourceTube.liquids[keyPos];
-                keySourceTube.liquids[keyPos] = lockTube.liquids[li];
-                lockTube.liquids[li] = temp;
-                foundKey = true;
                 break;
               }
             }
           }
-        }
+        });
       }
     }
 
+    // 6. Aplicar estados de misterio en Sandbox (la capa superior siempre descubierta)
+    if (hasMystery) {
+      tubes.forEach(tube => {
+        if (tube.isGlued || tube.liquids.length === 0) return;
+        tube.liquids.forEach((liq, idx) => {
+          liq.isMystery = (idx < tube.liquids.length - 1) && !liq.isChameleon;
+        });
+        if (tube.liquids.length >= 2) {
+          const topColor = tube.liquids[tube.liquids.length - 1].color;
+          for (let k = tube.liquids.length - 2; k >= 0; k--) {
+            if (tube.liquids[k].color === topColor) {
+              tube.liquids[k].isMystery = false;
+            } else {
+              break;
+            }
+          }
+        }
+      });
+    } else {
+      tubes.forEach(tube => {
+        tube.liquids.forEach(liq => { liq.isMystery = false; });
+      });
+    }
+
+    // 7. Mezclar el orden de las botellas en el tablero de forma aleatoria
+    // (respetando las cantidades de tubos elegidas, de modo que vacíos, gigantes, 1x1, candados, etc. queden en posiciones aleatorias)
+    for (let i = tubes.length - 1; i > 0; i--) {
+      const j = Math.floor(rnd() * (i + 1));
+      [tubes[i], tubes[j]] = [tubes[j], tubes[i]];
+    }
+    tubes.forEach((t, idx) => {
+      t.id = idx;
+    });
+
     const activeMechanicNames = [];
     if (hasMystery) activeMechanicNames.push('Misterio');
-    if (hasGiant) activeMechanicNames.push('Gigante');
-    if (hasLock) activeMechanicNames.push('Candado');
-    if (hasNarrow) activeMechanicNames.push('Tubo 1x1');
+    if (giantCount > 0) activeMechanicNames.push(`Gigante x${giantCount}`);
+    if (lockCount > 0) activeMechanicNames.push(`Candado x${lockCount}`);
+    if (narrowCount > 0) activeMechanicNames.push(`Tubo 1x1 x${narrowCount}`);
     if (hasGlued) activeMechanicNames.push('En Roca');
     if (hasChameleon) activeMechanicNames.push('Camaleón');
-    if (hasFragile) activeMechanicNames.push('Frágil');
+    if (fragileCount > 0) activeMechanicNames.push(`Frágil x${fragileCount}`);
 
     return {
       level: 'casual_sandbox',
@@ -699,7 +800,7 @@ class LevelGenerator {
       totalTubes: totalTubes,
       totalColors: numColors,
       tubes: tubes,
-      config: { tubeCount: totalTubes, colorCount: numColors, mechanics, seed: actualSeed }
+      config: { tubeCount: totalTubes, colorCount: numColors, mechanics, mechanicCounts, seed: actualSeed }
     };
   }
 

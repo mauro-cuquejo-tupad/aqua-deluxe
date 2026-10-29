@@ -425,6 +425,7 @@ class GameController {
     this.hintsUsedInLevel = 0;
     this.undoCountInLevel = 0;
     this.touchedTubeIndices = new Set();
+    this.rewardedNarrowTubeIds = new Set();
     this.isPouringAnimation = false;
     this.seedVariation = seedVariation;
 
@@ -1340,26 +1341,46 @@ class GameController {
     const unlocked = sm ? (sm.state.progress.unlockedLevel || 1) : 1;
     const mechUnlocks = [
       { id: 'cb-sandbox-mystery', lbl: 'lbl-cb-mystery', lvl: 11 },
-      { id: 'cb-sandbox-giant', lbl: 'lbl-cb-giant', lvl: 21 },
-      { id: 'cb-sandbox-lock', lbl: 'lbl-cb-lock', lvl: 31 },
-      { id: 'cb-sandbox-narrow', lbl: 'lbl-cb-narrow', lvl: 41 },
+      { id: 'cb-sandbox-giant', lbl: 'lbl-cb-giant', slider: 'input-sandbox-count-giant', valLbl: 'lbl-val-sandbox-giant', lvl: 21 },
+      { id: 'cb-sandbox-lock', lbl: 'lbl-cb-lock', slider: 'input-sandbox-count-lock', valLbl: 'lbl-val-sandbox-lock', lvl: 31 },
+      { id: 'cb-sandbox-narrow', lbl: 'lbl-cb-narrow', slider: 'input-sandbox-count-narrow', valLbl: 'lbl-val-sandbox-narrow', lvl: 41 },
+      { id: 'cb-sandbox-glued', lbl: 'lbl-cb-glued', lvl: 51 },
       { id: 'cb-sandbox-chameleon', lbl: 'lbl-cb-chameleon', lvl: 61 },
-      { id: 'cb-sandbox-fragile', lbl: 'lbl-cb-fragile', lvl: 71 }
+      { id: 'cb-sandbox-fragile', lbl: 'lbl-cb-fragile', slider: 'input-sandbox-count-fragile', valLbl: 'lbl-val-sandbox-fragile', lvl: 71 }
     ];
 
     mechUnlocks.forEach(m => {
       const cb = document.getElementById(m.id);
       const lbl = document.getElementById(m.lbl);
+      const sliderEl = m.slider ? document.getElementById(m.slider) : null;
+      const valLblEl = m.valLbl ? document.getElementById(m.valLbl) : null;
       if (cb) {
         if (unlocked < m.lvl) {
           cb.checked = false;
           cb.disabled = true;
+          if (sliderEl) {
+            sliderEl.value = 0;
+            sliderEl.disabled = true;
+          }
+          if (valLblEl) valLblEl.textContent = 'Auto';
           if (lbl) {
             lbl.classList.add('opacity-40', 'cursor-not-allowed');
             lbl.title = `Bloqueado: Requiere desbloquear el Nivel ${m.lvl} en la Historia.`;
           }
         } else {
           cb.disabled = false;
+          if (sliderEl) {
+            sliderEl.disabled = false;
+            if (!cb._hasSandboxSync) {
+              cb._hasSandboxSync = true;
+              cb.addEventListener('change', () => {
+                if (!cb.checked && sliderEl) {
+                  sliderEl.value = 0;
+                  if (valLblEl) valLblEl.textContent = 'Auto';
+                }
+              });
+            }
+          }
           if (lbl) {
             lbl.classList.remove('opacity-40', 'cursor-not-allowed');
             lbl.title = '';
@@ -1408,7 +1429,13 @@ class GameController {
         chameleon: (unlockedLvl >= 61) && !!document.getElementById('cb-sandbox-chameleon')?.checked,
         fragile: (unlockedLvl >= 71) && !!document.getElementById('cb-sandbox-fragile')?.checked
       };
-      config = { tubeCount, colorCount, mechanics, seed: Math.floor(Math.random() * 9999999) };
+      const mechanicCounts = {
+        giant: parseInt(document.getElementById('input-sandbox-count-giant')?.value, 10) || 0,
+        lock: parseInt(document.getElementById('input-sandbox-count-lock')?.value, 10) || 0,
+        narrow: parseInt(document.getElementById('input-sandbox-count-narrow')?.value, 10) || 0,
+        fragile: parseInt(document.getElementById('input-sandbox-count-fragile')?.value, 10) || 0
+      };
+      config = { tubeCount, colorCount, mechanics, mechanicCounts, seed: Math.floor(Math.random() * 9999999) };
     } else if (config && config.mechanics) {
       if (unlockedLvl < 11) config.mechanics.mystery = false;
       if (unlockedLvl < 21) config.mechanics.giant = false;
@@ -2898,6 +2925,18 @@ class GameController {
                 this.renderTubes();
                 this.updateButtonsUI();
                 this.updateChallengesHUD();
+
+                // Recompensa especial (+50 monedas) al llenar un tubo 1x1 (isNarrow)
+                if (toTube.isNarrow && this.isTubeComplete(toTube, { allowChameleon: true })) {
+                  const narrowKey = toTube.id !== undefined ? toTube.id : toIdx;
+                  if (!this.rewardedNarrowTubeIds) this.rewardedNarrowTubeIds = new Set();
+                  if (!this.rewardedNarrowTubeIds.has(narrowKey)) {
+                    this.rewardedNarrowTubeIds.add(narrowKey);
+                    this.addCoins(50);
+                    this.triggerUnlockSuccess(toIdx, '✨ ¡Tubo 1x1! +50 🪙');
+                    this.showToast('🧪 ¡Tubo 1x1 completado! Ganaste +50 🪙', 'success');
+                  }
+                }
 
                 // Auto-desbloqueo de candados si se completó el frasco del color de la llave
                 this.checkAutoUnlockLockedTubes();
@@ -6876,6 +6915,17 @@ class GameController {
       if (btnRestart) {
         btnRestart.innerHTML = '<i data-lucide="refresh-cw" class="w-4 h-4 text-purple-400"></i><span>Reiniciar Nivel</span>';
       }
+    } else if (this.isCasualSandbox) {
+      if (pauseInfo) pauseInfo.textContent = '🎲 Modo Casual Infinito';
+      if (btnExitHome) {
+        btnExitHome.innerHTML = '<i data-lucide="home" class="w-4 h-4 text-amber-400"></i><span>Salir al Menú Principal</span>';
+      }
+      if (btnExitMap) {
+        btnExitMap.classList.add('hidden');
+      }
+      if (btnRestart) {
+        btnRestart.innerHTML = '<i data-lucide="refresh-cw" class="w-4 h-4 text-cyan-400"></i><span>Reiniciar Nivel (Sin perder ❤️)</span>';
+      }
     } else {
       if (pauseInfo) pauseInfo.textContent = `Nivel ${this.currentLevel}`;
       if (btnExitHome) {
@@ -7070,6 +7120,11 @@ class GameController {
       if (window.audio) window.audio.playSelect();
       return;
     }
+    if (this.isCasualSandbox) {
+      this.restartCasualSandboxLevel();
+      if (window.audio) window.audio.playSelect();
+      return;
+    }
     if (this.isTimeAttack) {
       this.startTimeAttack();
       if (window.audio) window.audio.playSelect();
@@ -7111,10 +7166,20 @@ class GameController {
     this.hideModal(this.modalRestartConfirm);
   }
 
+  restartCasualSandboxLevel() {
+    if (this.levelData && this.initialSandboxTubes && this.initialSandboxTubes.length > 0) {
+      this.levelData.tubes = JSON.parse(JSON.stringify(this.initialSandboxTubes));
+      this.loadLevel('casual_sandbox', 0, this.levelData);
+      this.showToast('🔄 Nivel Casual reiniciado (Sin perder ❤️)', 'info');
+    } else {
+      this.nextCasualSandboxLevel();
+    }
+  }
+
   confirmRestartLevel() {
     if (this.isCasualSandbox) {
       this.closeRestartConfirmModal();
-      this.nextCasualSandboxLevel();
+      this.restartCasualSandboxLevel();
       if (window.audio) window.audio.playSelect();
       return;
     }
@@ -8442,7 +8507,7 @@ class GameController {
             { id: 1, capacity: 4, isLocked: true, keyColor: '#3b82f6', keyColorName: 'Azul', isNarrow: false, liquids: [{ color: '#3b82f6', name: 'Azul', shape: '▲' }, { color: '#eab308', name: 'Amarillo', shape: '★' }, { color: '#10b981', name: 'Verde', shape: '■' }, { color: '#ef4444', name: 'Rojo', shape: '●' }] },
             { id: 2, capacity: 4, isLocked: false, isNarrow: false, liquids: [{ color: '#10b981', name: 'Verde', shape: '■' }, { color: '#eab308', name: 'Amarillo', shape: '★' }, { color: '#ef4444', name: 'Rojo', shape: '●' }, { color: '#3b82f6', name: 'Azul', shape: '▲' }] },
             { id: 3, capacity: 4, isLocked: false, isNarrow: false, liquids: [{ color: '#eab308', name: 'Amarillo', shape: '★' }, { color: '#10b981', name: 'Verde', shape: '■' }, { color: '#ef4444', name: 'Rojo', shape: '●' }, { color: '#3b82f6', name: 'Azul', shape: '▲' }] },
-            { id: 4, capacity: 1, isLocked: false, isNarrow: true, liquids: [] },
+            { id: 4, capacity: 4, isLocked: false, isNarrow: true, liquids: [] },
             { id: 5, capacity: 4, isLocked: false, isNarrow: false, liquids: [] }
           ]
         },

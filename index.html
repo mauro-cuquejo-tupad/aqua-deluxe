@@ -46,10 +46,10 @@
   <link rel="icon" type="image/svg+xml" href="icons/icon.svg">
 
   <!--Modular Stylesheets -->
-  <link rel="stylesheet" href="css/main.css?v=95">
-  <link rel="stylesheet" href="css/tubes.css?v=95">
-  <link rel="stylesheet" href="css/roulette.css?v=95">
-  <link rel="stylesheet" href="css/accessibility.css?v=95">
+  <link rel="stylesheet" href="css/main.css?v=96">
+  <link rel="stylesheet" href="css/tubes.css?v=96">
+  <link rel="stylesheet" href="css/roulette.css?v=96">
+  <link rel="stylesheet" href="css/accessibility.css?v=96">
 </head>
 <body class="min-h-screen flex flex-col justify-between select-none relative">
 
@@ -2967,36 +2967,79 @@
           </div>
         </div>
 
-        <!-- Mecánicas Opcionales -->
+        <!-- Mecánicas Opcionales y Sliders de Cantidad por Tipo de Botella -->
         <div class="bg-slate-800/60 border border-slate-700/80 rounded-2xl p-3.5 space-y-2.5">
-          <div class="text-xs font-black text-amber-300 uppercase tracking-wider flex items-center gap-1.5">
-            <i data-lucide="sliders" class="w-4 h-4 text-amber-400"></i>
-            <span>Mecánicas en el Tablero</span>
+          <div class="flex items-center justify-between">
+            <div class="text-xs font-black text-amber-300 uppercase tracking-wider flex items-center gap-1.5">
+              <i data-lucide="sliders" class="w-4 h-4 text-amber-400"></i>
+              <span>Mecánicas y Tipos de Botella</span>
+            </div>
+            <span class="text-[10px] text-slate-400 font-mono">0 = Auto (Azar)</span>
           </div>
-          <div class="grid grid-cols-2 gap-2 text-xs">
+          <p class="text-[11px] text-slate-400 leading-snug">
+            Usa el control deslizable al lado de cada tipo de tubo para fijar cuántos quieres, o déjalo en <strong>Auto</strong> para que se combinen al azar en cada nivel.
+          </p>
+
+          <!-- Mecánicas de Tubo con Slider de Cantidad (Auto = 0, o 1..6) -->
+          <div class="space-y-2 text-xs">
+            <!-- Frasco Gigante (Nvl 21) -->
+            <div id="lbl-cb-giant" class="flex items-center justify-between gap-2 p-2 rounded-xl bg-slate-900 border border-slate-700/80">
+              <label class="flex items-center gap-2 cursor-pointer flex-1 min-w-0">
+                <input type="checkbox" id="cb-sandbox-giant" class="accent-sky-500">
+                <span class="text-slate-200 truncate">Frasco Gigante <span class="text-[10px] text-sky-400 font-mono">(Nvl 21)</span></span>
+              </label>
+              <div class="flex items-center gap-2 shrink-0">
+                <input type="range" id="input-sandbox-count-giant" min="0" max="5" value="0" class="w-20 accent-sky-500 cursor-pointer" oninput="document.getElementById('lbl-val-sandbox-giant').textContent = this.value === '0' ? 'Auto' : this.value; if(this.value !== '0'){ const cb = document.getElementById('cb-sandbox-giant'); if(cb && !cb.disabled) cb.checked = true; }">
+                <span id="lbl-val-sandbox-giant" class="w-9 text-right font-mono text-[11px] font-black text-sky-300">Auto</span>
+              </div>
+            </div>
+
+            <!-- Candado y Llave (Nvl 31) -->
+            <div id="lbl-cb-lock" class="flex items-center justify-between gap-2 p-2 rounded-xl bg-slate-900 border border-slate-700/80">
+              <label class="flex items-center gap-2 cursor-pointer flex-1 min-w-0">
+                <input type="checkbox" id="cb-sandbox-lock" class="accent-amber-500">
+                <span class="text-slate-200 truncate">Candado y Llave <span class="text-[10px] text-amber-400 font-mono">(Nvl 31)</span></span>
+              </label>
+              <div class="flex items-center gap-2 shrink-0">
+                <input type="range" id="input-sandbox-count-lock" min="0" max="5" value="0" class="w-20 accent-amber-500 cursor-pointer" oninput="document.getElementById('lbl-val-sandbox-lock').textContent = this.value === '0' ? 'Auto' : this.value; if(this.value !== '0'){ const cb = document.getElementById('cb-sandbox-lock'); if(cb && !cb.disabled) cb.checked = true; }">
+                <span id="lbl-val-sandbox-lock" class="w-9 text-right font-mono text-[11px] font-black text-amber-300">Auto</span>
+              </div>
+            </div>
+
+            <!-- Tubo 1x1 (Nvl 41) -->
+            <div id="lbl-cb-narrow" class="flex items-center justify-between gap-2 p-2 rounded-xl bg-slate-900 border border-slate-700/80">
+              <label class="flex items-center gap-2 cursor-pointer flex-1 min-w-0">
+                <input type="checkbox" id="cb-sandbox-narrow" class="accent-purple-500">
+                <span class="text-slate-200 truncate">Tubo 1x1 (+50🪙) <span class="text-[10px] text-purple-400 font-mono">(Nvl 41)</span></span>
+              </label>
+              <div class="flex items-center gap-2 shrink-0">
+                <input type="range" id="input-sandbox-count-narrow" min="0" max="6" value="0" class="w-20 accent-purple-500 cursor-pointer" oninput="document.getElementById('lbl-val-sandbox-narrow').textContent = this.value === '0' ? 'Auto' : this.value; if(this.value !== '0'){ const cb = document.getElementById('cb-sandbox-narrow'); if(cb && !cb.disabled) cb.checked = true; }">
+                <span id="lbl-val-sandbox-narrow" class="w-9 text-right font-mono text-[11px] font-black text-purple-300">Auto</span>
+              </div>
+            </div>
+
+            <!-- Frasco Frágil / Afinidad (Nvl 71) -->
+            <div id="lbl-cb-fragile" class="flex items-center justify-between gap-2 p-2 rounded-xl bg-slate-900 border border-slate-700/80">
+              <label class="flex items-center gap-2 cursor-pointer flex-1 min-w-0">
+                <input type="checkbox" id="cb-sandbox-fragile" class="accent-rose-500">
+                <span class="text-slate-200 truncate">Frasco Frágil <span class="text-[10px] text-rose-400 font-mono">(Nvl 71)</span></span>
+              </label>
+              <div class="flex items-center gap-2 shrink-0">
+                <input type="range" id="input-sandbox-count-fragile" min="0" max="4" value="0" class="w-20 accent-rose-500 cursor-pointer" oninput="document.getElementById('lbl-val-sandbox-fragile').textContent = this.value === '0' ? 'Auto' : this.value; if(this.value !== '0'){ const cb = document.getElementById('cb-sandbox-fragile'); if(cb && !cb.disabled) cb.checked = true; }">
+                <span id="lbl-val-sandbox-fragile" class="w-9 text-right font-mono text-[11px] font-black text-rose-300">Auto</span>
+              </div>
+            </div>
+          </div>
+
+          <!-- Mecánicas de Líquido (Misterio y Camaleón) -->
+          <div class="grid grid-cols-2 gap-2 text-xs pt-1">
             <label id="lbl-cb-mystery" class="flex items-center gap-2 p-2 rounded-xl bg-slate-900 border border-slate-700/80 cursor-pointer hover:border-slate-500">
               <input type="checkbox" id="cb-sandbox-mystery" class="accent-sky-500">
               <span class="text-slate-200">Líquido '?' <span class="text-[10px] text-sky-400 font-mono">(Nvl 11)</span></span>
             </label>
-            <label id="lbl-cb-giant" class="flex items-center gap-2 p-2 rounded-xl bg-slate-900 border border-slate-700/80 cursor-pointer hover:border-slate-500">
-              <input type="checkbox" id="cb-sandbox-giant" class="accent-sky-500">
-              <span class="text-slate-200">Frasco Gigante <span class="text-[10px] text-sky-400 font-mono">(Nvl 21)</span></span>
-            </label>
-            <label id="lbl-cb-narrow" class="flex items-center gap-2 p-2 rounded-xl bg-slate-900 border border-slate-700/80 cursor-pointer hover:border-slate-500">
-              <input type="checkbox" id="cb-sandbox-narrow" class="accent-purple-500">
-              <span class="text-slate-200">Tubo 1x1 <span class="text-[10px] text-purple-400 font-mono">(Nvl 41)</span></span>
-            </label>
-            <label id="lbl-cb-lock" class="flex items-center gap-2 p-2 rounded-xl bg-slate-900 border border-slate-700/80 cursor-pointer hover:border-slate-500">
-              <input type="checkbox" id="cb-sandbox-lock" class="accent-amber-500">
-              <span class="text-slate-200">Candado y Llave <span class="text-[10px] text-amber-400 font-mono">(Nvl 31)</span></span>
-            </label>
             <label id="lbl-cb-chameleon" class="flex items-center gap-2 p-2 rounded-xl bg-slate-900 border border-slate-700/80 cursor-pointer hover:border-slate-500">
               <input type="checkbox" id="cb-sandbox-chameleon" class="accent-pink-500">
               <span class="text-slate-200">Camaleón <span class="text-[10px] text-pink-400 font-mono">(Nvl 61)</span></span>
-            </label>
-            <label id="lbl-cb-fragile" class="flex items-center gap-2 p-2 rounded-xl bg-slate-900 border border-slate-700/80 cursor-pointer hover:border-slate-500">
-              <input type="checkbox" id="cb-sandbox-fragile" class="accent-rose-500">
-              <span class="text-slate-200">Frasco Frágil <span class="text-[10px] text-rose-400 font-mono">(Nvl 71)</span></span>
             </label>
           </div>
         </div>
@@ -3179,20 +3222,20 @@
   <input type="file" id="input-save-file" accept=".json" class="hidden">
 
   <!-- Scripts modulares -->
-  <script src="js/i18n.js?v=95"></script>
-  <script src="js/firebase-config.js?v=95"></script>
-  <script src="js/cloud-sync.js?v=95"></script>
-  <script src="js/audio.js?v=95"></script>
-  <script src="js/palette.js?v=95"></script>
-  <script src="js/levels.js?v=95"></script>
-  <script src="js/challenges.js?v=95"></script>
-  <script src="js/honor.js?v=95"></script>
-  <script src="js/state.js?v=95"></script>
-  <script src="js/achievements.js?v=95"></script>
-  <script src="js/leaderboard.js?v=95"></script>
-  <script src="js/roulette.js?v=95"></script>
-  <script src="js/story.js?v=95"></script>
-  <script src="js/game.js?v=95"></script>
+  <script src="js/i18n.js?v=96"></script>
+  <script src="js/firebase-config.js?v=96"></script>
+  <script src="js/cloud-sync.js?v=96"></script>
+  <script src="js/audio.js?v=96"></script>
+  <script src="js/palette.js?v=96"></script>
+  <script src="js/levels.js?v=96"></script>
+  <script src="js/challenges.js?v=96"></script>
+  <script src="js/honor.js?v=96"></script>
+  <script src="js/state.js?v=96"></script>
+  <script src="js/achievements.js?v=96"></script>
+  <script src="js/leaderboard.js?v=96"></script>
+  <script src="js/roulette.js?v=96"></script>
+  <script src="js/story.js?v=96"></script>
+  <script src="js/game.js?v=96"></script>
 
   <!-- Registro de Service Worker PWA -->
   <script>
@@ -3205,7 +3248,7 @@
         }
       });
       window.addEventListener('load', () => {
-        navigator.serviceWorker.register('./sw.js?v=95', { updateViaCache: 'none' }).then((reg) => {
+        navigator.serviceWorker.register('./sw.js?v=96', { updateViaCache: 'none' }).then((reg) => {
           reg.update();
           console.log('AlcheMix PWA ServiceWorker activo:', reg.scope);
         }).catch((err) => {
