@@ -46,10 +46,10 @@
   <link rel="icon" type="image/svg+xml" href="icons/icon.svg">
 
   <!--Modular Stylesheets -->
-  <link rel="stylesheet" href="css/main.css?v=84">
-  <link rel="stylesheet" href="css/tubes.css?v=84">
-  <link rel="stylesheet" href="css/roulette.css?v=84">
-  <link rel="stylesheet" href="css/accessibility.css?v=84">
+  <link rel="stylesheet" href="css/main.css?v=85">
+  <link rel="stylesheet" href="css/tubes.css?v=85">
+  <link rel="stylesheet" href="css/roulette.css?v=85">
+  <link rel="stylesheet" href="css/accessibility.css?v=85">
 </head>
 <body class="min-h-screen flex flex-col justify-between select-none relative">
 
@@ -3098,20 +3098,20 @@
   <input type="file" id="input-save-file" accept=".json" class="hidden">
 
   <!-- Scripts modulares -->
-  <script src="js/i18n.js?v=84"></script>
-  <script src="js/firebase-config.js?v=84"></script>
-  <script src="js/cloud-sync.js?v=84"></script>
-  <script src="js/audio.js?v=84"></script>
-  <script src="js/palette.js?v=84"></script>
-  <script src="js/levels.js?v=84"></script>
-  <script src="js/challenges.js?v=84"></script>
-  <script src="js/honor.js?v=84"></script>
-  <script src="js/state.js?v=84"></script>
-  <script src="js/achievements.js?v=84"></script>
-  <script src="js/leaderboard.js?v=84"></script>
-  <script src="js/roulette.js?v=84"></script>
-  <script src="js/story.js?v=84"></script>
-  <script src="js/game.js?v=84"></script>
+  <script src="js/i18n.js?v=85"></script>
+  <script src="js/firebase-config.js?v=85"></script>
+  <script src="js/cloud-sync.js?v=85"></script>
+  <script src="js/audio.js?v=85"></script>
+  <script src="js/palette.js?v=85"></script>
+  <script src="js/levels.js?v=85"></script>
+  <script src="js/challenges.js?v=85"></script>
+  <script src="js/honor.js?v=85"></script>
+  <script src="js/state.js?v=85"></script>
+  <script src="js/achievements.js?v=85"></script>
+  <script src="js/leaderboard.js?v=85"></script>
+  <script src="js/roulette.js?v=85"></script>
+  <script src="js/story.js?v=85"></script>
+  <script src="js/game.js?v=85"></script>
 
   <!-- Registro de Service Worker PWA -->
   <script>
@@ -3124,7 +3124,7 @@
         }
       });
       window.addEventListener('load', () => {
-        navigator.serviceWorker.register('./sw.js?v=84', { updateViaCache: 'none' }).then((reg) => {
+        navigator.serviceWorker.register('./sw.js?v=85', { updateViaCache: 'none' }).then((reg) => {
           reg.update();
           console.log('AlcheMix PWA ServiceWorker activo:', reg.scope);
         }).catch((err) => {

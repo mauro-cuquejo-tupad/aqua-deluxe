@@ -3,7 +3,7 @@
    Soporte Offline, Caché Rápida y Experiencia de App Nativa Móvil
    ========================================================================== */
 
-const CACHE_NAME = 'aquasort-deluxe-v8.4';
+const CACHE_NAME = 'aquasort-deluxe-v8.5';
 
 const PRECACHE_ASSETS = [
   './',
@@ -12,24 +12,24 @@ const PRECACHE_ASSETS = [
   './icons/icon-192.png',
   './icons/icon-512.png',
   './icons/icon.svg',
-  './css/main.css?v=84',
-  './css/tubes.css?v=84',
-  './css/roulette.css?v=84',
-  './css/accessibility.css?v=84',
-  './js/i18n.js?v=84',
-  './js/firebase-config.js?v=84',
-  './js/cloud-sync.js?v=84',
-  './js/audio.js?v=84',
-  './js/palette.js?v=84',
-  './js/levels.js?v=84',
-  './js/challenges.js?v=84',
-  './js/honor.js?v=84',
-  './js/state.js?v=84',
-  './js/achievements.js?v=84',
-  './js/leaderboard.js?v=84',
-  './js/roulette.js?v=84',
-  './js/story.js?v=84',
-  './js/game.js?v=84'
+  './css/main.css?v=85',
+  './css/tubes.css?v=85',
+  './css/roulette.css?v=85',
+  './css/accessibility.css?v=85',
+  './js/i18n.js?v=85',
+  './js/firebase-config.js?v=85',
+  './js/cloud-sync.js?v=85',
+  './js/audio.js?v=85',
+  './js/palette.js?v=85',
+  './js/levels.js?v=85',
+  './js/challenges.js?v=85',
+  './js/honor.js?v=85',
+  './js/state.js?v=85',
+  './js/achievements.js?v=85',
+  './js/leaderboard.js?v=85',
+  './js/roulette.js?v=85',
+  './js/story.js?v=85',
+  './js/game.js?v=85'
 ];
 
 // Instalación: Cachear recursos críticos evitando caché HTTP obsoleta

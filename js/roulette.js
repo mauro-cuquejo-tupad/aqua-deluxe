@@ -1593,12 +1593,12 @@ class MinigameEngine {
       hintEl.className = 'text-center text-[11px] font-bold text-slate-300 mt-1 mb-2';
     }
 
-    // Acelerar +5% las dianas móviles y aplicar variación aleatoria de +/-5% a cada una
-    // para que el jugador no pueda memorizar velocidades fijas y deba calcular el tiro anticipado
+    // Aumentar un 10% adicional la velocidad base de las dianas móviles (1.05 * 1.10 = 1.155)
+    // y mantener variación aleatoria de +/-5% a cada una para requerir tiro anticipado
     const slowFactor = hasSlowCard ? 0.65 : 1.0;
     const calcTargetSpeed = (baseSpeed, dirSign) => {
       const randVariation = 0.95 + (Math.random() * 0.10); // +/- 5% (0.95 a 1.05)
-      return +(baseSpeed * 1.05 * randVariation * slowFactor * dirSign).toFixed(3);
+      return +(baseSpeed * 1.155 * randVariation * slowFactor * dirSign).toFixed(3);
     };
 
     const dir0 = Math.random() < 0.5 ? 1 : -1;
@@ -1807,9 +1807,9 @@ class MinigameEngine {
 
     const dartsGroup = document.getElementById('moving-darts-anim-group');
     const impactsGroup = document.getElementById('moving-impacts-group');
-    // Reducir la velocidad de la pelotita un 10% (mayor tiempo de vuelo)
-    // para que el jugador tenga que anticipar adónde pasará la diana al llegar la bola al final de su camino
-    const duration = 325;
+    // Reducir la velocidad del proyectil un 50% (duplicando el tiempo de vuelo a 650ms)
+    // para que el jugador deba anticipar con precisión por dónde pasará la diana
+    const duration = 650;
     const startTime = performance.now();
 
     const finishShot = (hitTarget, finalX, finalY) => {
