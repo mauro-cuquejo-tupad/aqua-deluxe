@@ -46,10 +46,10 @@
   <link rel="icon" type="image/svg+xml" href="icons/icon.svg">
 
   <!-- Modular Stylesheets -->
-  <link rel="stylesheet" href="css/main.css?v=80">
-  <link rel="stylesheet" href="css/tubes.css?v=80">
-  <link rel="stylesheet" href="css/roulette.css?v=80">
-  <link rel="stylesheet" href="css/accessibility.css?v=80">
+  <link rel="stylesheet" href="css/main.css?v=81">
+  <link rel="stylesheet" href="css/tubes.css?v=81">
+  <link rel="stylesheet" href="css/roulette.css?v=81">
+  <link rel="stylesheet" href="css/accessibility.css?v=81">
 </head>
 <body class="min-h-screen flex flex-col justify-between select-none relative">
 
@@ -819,33 +819,74 @@
             <span id="cards-drawer-arrow" class="text-slate-400 text-xs">▼</span>
           </div>
         </button>
-        <div id="alchemy-cards-drawer-body" class="drawer-collapsed p-2 border-t border-slate-800">
-          <div class="grid grid-cols-5 gap-1">
-            <button id="card-diana-favor" data-card="dianaFavor" class="btn-alchemy-card flex flex-col items-center justify-center p-1 rounded-xl bg-slate-800 border border-slate-700 hover:border-sky-400 transition-all text-center">
-              <span class="text-sm mb-0.5">🎯</span>
-              <span class="text-[8px] font-black text-sky-300 leading-tight">Tiro Extra</span>
-              <span class="card-count text-[8px] text-amber-300 font-black mt-0.5">x2</span>
+        <div id="alchemy-cards-drawer-body" class="drawer-collapsed p-2 border-t border-slate-800 space-y-1.5">
+          <!-- Cartas específicas del minijuego actual (se filtran dinámicamente por data-minigame) -->
+          <div id="cards-minigame-specific-grid" class="grid grid-cols-2 gap-1.5">
+            <!-- Ruleta -->
+            <button id="card-double-or-nothing" data-card="doubleOrNothing" data-minigame="roulette" class="btn-alchemy-card flex items-center justify-between px-2 py-1.5 rounded-xl bg-slate-800 border border-slate-700 hover:border-rose-400 transition-all text-left">
+              <span class="flex items-center gap-1.5">
+                <span class="text-sm">⚡</span>
+                <span class="text-[9px] font-black text-rose-300 leading-tight">Doble o Nada (x2)</span>
+              </span>
+              <span class="card-count text-[9px] text-amber-300 font-black">x1</span>
             </button>
-            <button id="card-roulette-favor" data-card="rouletteFavor" class="btn-alchemy-card flex flex-col items-center justify-center p-1 rounded-xl bg-slate-800 border border-slate-700 hover:border-amber-400 transition-all text-center">
-              <span class="text-sm mb-0.5">👁️</span>
-              <span class="text-[8px] font-black text-amber-300 leading-tight">Ojo Oro</span>
-              <span class="card-count text-[8px] text-amber-300 font-black mt-0.5">x2</span>
+            <button id="card-golden-eye" data-card="goldenEye" data-minigame="roulette" class="btn-alchemy-card flex items-center justify-between px-2 py-1.5 rounded-xl bg-slate-800 border border-slate-700 hover:border-amber-400 transition-all text-left">
+              <span class="flex items-center gap-1.5">
+                <span class="text-sm">👁️</span>
+                <span class="text-[9px] font-black text-amber-300 leading-tight">Ojo de Oro</span>
+              </span>
+              <span class="card-count text-[9px] text-amber-300 font-black">x1</span>
             </button>
-            <button id="card-double-or-nothing" data-card="doubleOrNothing" class="btn-alchemy-card flex flex-col items-center justify-center p-1 rounded-xl bg-slate-800 border border-slate-700 hover:border-rose-400 transition-all text-center">
-              <span class="text-sm mb-0.5">⚖️</span>
-              <span class="text-[8px] font-black text-rose-300 leading-tight">Doble</span>
-              <span class="card-count text-[8px] text-amber-300 font-black mt-0.5">x2</span>
+
+            <!-- Diana Clásica -->
+            <button id="card-calm-atmosphere" data-card="calmAtmosphere" data-minigame="diana" class="btn-alchemy-card flex items-center justify-between px-2 py-1.5 rounded-xl bg-slate-800 border border-slate-700 hover:border-emerald-400 transition-all text-left">
+              <span class="flex items-center gap-1.5">
+                <span class="text-sm">🌬️</span>
+                <span class="text-[9px] font-black text-emerald-300 leading-tight">Sin Viento (0 m/s)</span>
+              </span>
+              <span class="card-count text-[9px] text-amber-300 font-black">x1</span>
             </button>
-            <button id="card-calm-atmosphere" data-card="calmAtmosphere" class="btn-alchemy-card flex flex-col items-center justify-center p-1 rounded-xl bg-slate-800 border border-slate-700 hover:border-emerald-400 transition-all text-center">
-              <span class="text-sm mb-0.5">🌬️</span>
-              <span class="text-[8px] font-black text-emerald-300 leading-tight">Sin Viento</span>
-              <span class="card-count text-[8px] text-amber-300 font-black mt-0.5">x2</span>
+            <button id="card-trajectory-sight" data-card="trajectorySight" data-minigame="diana" class="btn-alchemy-card flex items-center justify-between px-2 py-1.5 rounded-xl bg-slate-800 border border-slate-700 hover:border-purple-400 transition-all text-left" title="Predice la trayectoria base sin contemplar el viento">
+              <span class="flex items-center gap-1.5">
+                <span class="text-sm">🔮</span>
+                <span class="text-[9px] font-black text-purple-300 leading-tight">Guía Parábola</span>
+              </span>
+              <span class="card-count text-[9px] text-amber-300 font-black">x1</span>
             </button>
-            <button id="card-trajectory-sight" data-card="trajectorySight" class="btn-alchemy-card flex flex-col items-center justify-center p-1 rounded-xl bg-slate-800 border border-slate-700 hover:border-purple-400 transition-all text-center" title="Predice la trayectoria base sin contemplar el viento">
-              <span class="text-sm mb-0.5">🔮</span>
-              <span class="text-[8px] font-black text-purple-300 leading-tight">Trayectoria</span>
-              <span class="card-count text-[8px] text-amber-300 font-black mt-0.5">x2</span>
+
+            <!-- Tiro al Blanco Móvil -->
+            <button id="card-moving-slow" data-card="movingSlow" data-minigame="moving_targets" class="btn-alchemy-card col-span-2 flex items-center justify-between px-2.5 py-1.5 rounded-xl bg-slate-800 border border-slate-700 hover:border-purple-400 transition-all text-left">
+              <span class="flex items-center gap-1.5">
+                <span class="text-sm">⏳</span>
+                <span class="text-[9px] font-black text-purple-300 leading-tight">Foco Móvil (Blancos -35% vel. y +1 Dardo)</span>
+              </span>
+              <span class="card-count text-[9px] text-amber-300 font-black">x1</span>
             </button>
+          </div>
+
+          <!-- Cartas de Destino: 90% probabilidad por 5 bonus en Modo Historia -->
+          <div class="pt-1 border-t border-slate-800/80">
+            <div class="text-[9px] text-slate-400 font-bold mb-1 flex items-center justify-between px-0.5">
+              <span>🎲 Destino (90% prob. por 5 bonus):</span>
+              <span id="lbl-active-favor-status" class="text-[9px] text-sky-300 font-mono">Sin favor activo</span>
+            </div>
+            <div class="grid grid-cols-3 gap-1">
+              <button id="card-diana-favor" data-card="dianaFavor" data-minigame="favor" class="btn-alchemy-card flex flex-col items-center justify-center p-1 rounded-xl bg-slate-800 border border-slate-700 hover:border-sky-400 transition-all text-center">
+                <span class="text-xs">🎯</span>
+                <span class="text-[8px] font-black text-sky-300 leading-tight">90% Diana (5)</span>
+                <span class="card-count text-[8px] text-amber-300 font-black">x1</span>
+              </button>
+              <button id="card-roulette-favor" data-card="rouletteFavor" data-minigame="favor" class="btn-alchemy-card flex flex-col items-center justify-center p-1 rounded-xl bg-slate-800 border border-slate-700 hover:border-amber-400 transition-all text-center">
+                <span class="text-xs">🎡</span>
+                <span class="text-[8px] font-black text-amber-300 leading-tight">90% Ruleta (5)</span>
+                <span class="card-count text-[8px] text-amber-300 font-black">x1</span>
+              </button>
+              <button id="card-moving-favor" data-card="movingFavor" data-minigame="favor" class="btn-alchemy-card flex flex-col items-center justify-center p-1 rounded-xl bg-slate-800 border border-slate-700 hover:border-purple-400 transition-all text-center">
+                <span class="text-xs">🎪</span>
+                <span class="text-[8px] font-black text-purple-300 leading-tight">90% Móvil (5)</span>
+                <span class="card-count text-[8px] text-amber-300 font-black">x1</span>
+              </button>
+            </div>
           </div>
         </div>
       </div>
@@ -885,19 +926,19 @@
               </radialGradient>
             </defs>
 
-            <!-- 1. TRES AROS SÓLIDOS Y CLARAMENTE DIFERENCIADOS -->
-            <!-- Anillo Exterior: Bronce x1.2 (Radio 130) -->
-            <circle cx="150" cy="140" r="130" fill="url(#grad-bronze)" stroke="#d97706" stroke-width="3"/>
-            <!-- Anillo Medio: Plata x1.5 (Radio 75) -->
-            <circle cx="150" cy="140" r="75" fill="url(#grad-silver)" stroke="#ffffff" stroke-width="2.5"/>
-            <!-- Centro: Oro Brillante x3.0 (Radio 28) -->
-            <circle cx="150" cy="140" r="28" fill="url(#grad-gold)" stroke="#fef08a" stroke-width="3"/>
-            <circle cx="150" cy="140" r="8" fill="#ef4444" stroke="#ffffff" stroke-width="1.5"/>
+            <!-- 1. TRES AROS SÓLIDOS Y CLARAMENTE DIFERENCIADOS (ACHICADOS ~10% PARA PERMITIR TIROS AFUERA) -->
+            <!-- Anillo Exterior: Bronce x1.2 (Radio 115) -->
+            <circle cx="150" cy="140" r="115" fill="url(#grad-bronze)" stroke="#d97706" stroke-width="3"/>
+            <!-- Anillo Medio: Plata x1.5 (Radio 67) -->
+            <circle cx="150" cy="140" r="67" fill="url(#grad-silver)" stroke="#ffffff" stroke-width="2.5"/>
+            <!-- Centro: Oro Brillante x3.0 (Radio 25) -->
+            <circle cx="150" cy="140" r="25" fill="url(#grad-gold)" stroke="#fef08a" stroke-width="3"/>
+            <circle cx="150" cy="140" r="7" fill="#ef4444" stroke="#ffffff" stroke-width="1.5"/>
 
             <!-- Etiquetas Grandes y Legibles de Multiplicadores -->
-            <text x="150" y="45" text-anchor="middle" fill="#fde68a" font-size="12" font-weight="900" letter-spacing="1">BRONCE x1.2</text>
-            <text x="150" y="92" text-anchor="middle" fill="#ffffff" font-size="11" font-weight="900" letter-spacing="1">PLATA x1.5</text>
-            <text x="150" y="144" text-anchor="middle" fill="#000000" font-size="10" font-weight="900">x3.0</text>
+            <text x="150" y="54" text-anchor="middle" fill="#fde68a" font-size="11" font-weight="900" letter-spacing="1">BRONCE x1.2</text>
+            <text x="150" y="96" text-anchor="middle" fill="#ffffff" font-size="10.5" font-weight="900" letter-spacing="1">PLATA x1.5</text>
+            <text x="150" y="144" text-anchor="middle" fill="#000000" font-size="9.5" font-weight="900">x3.0</text>
 
             <!-- 2. BRISA Y VIENTO ANIMADO VISUAL -->
             <g id="diana-breeze-group" class="pointer-events-none" opacity="0.8">
@@ -952,7 +993,7 @@
         <!-- HUD DE ESTADO: DARDOS Y ACIERTOS -->
         <div class="flex items-center justify-between w-full max-w-[290px] mb-1.5 px-1 text-xs font-black">
           <span id="moving-darts-count-badge" class="px-2 py-0.5 rounded-full bg-purple-500/20 text-purple-300 border border-purple-500/30">
-            🏹 4 Dardos
+            🏹 3 Dardos
           </span>
           <span id="moving-hits-count-badge" class="px-2 py-0.5 rounded-full bg-amber-500/20 text-amber-300 border border-amber-500/30">
             🎯 0/3 Aciertos
@@ -1057,10 +1098,10 @@
           <div class="grid grid-cols-6 gap-1 text-center font-black text-[11px]">
             <span class="py-1 px-1 rounded-lg bg-sky-500/20 text-sky-300 border border-sky-500/30">x1.2</span>
             <span class="py-1 px-1 rounded-lg bg-amber-500/20 text-amber-300 border border-amber-500/30">x2.0</span>
-            <span class="py-1 px-1 rounded-lg bg-rose-600/30 text-rose-300 border border-rose-500/40">-0.5💀</span>
+            <span class="py-1 px-1 rounded-lg bg-rose-600/30 text-rose-300 border border-rose-500/40">x-0.5💀</span>
             <span class="py-1 px-1 rounded-lg bg-emerald-500/20 text-emerald-300 border border-emerald-500/30">x1.5</span>
             <span class="py-1 px-1 rounded-lg bg-purple-500/20 text-purple-300 border border-purple-500/30">x3.0★</span>
-            <span class="py-1 px-1 rounded-lg bg-slate-700/40 text-slate-400 border border-slate-600/30">x0 ✕</span>
+            <span class="py-1 px-1 rounded-lg bg-rose-900/40 text-rose-300 border border-rose-500/40">x-1 💀</span>
           </div>
         </div>
 
@@ -3042,19 +3083,19 @@
   <input type="file" id="input-save-file" accept=".json" class="hidden">
 
   <!-- Scripts modulares -->
-  <script src="js/firebase-config.js?v=80"></script>
-  <script src="js/cloud-sync.js?v=80"></script>
-  <script src="js/audio.js?v=80"></script>
-  <script src="js/palette.js?v=80"></script>
-  <script src="js/levels.js?v=80"></script>
-  <script src="js/challenges.js?v=80"></script>
-  <script src="js/honor.js?v=80"></script>
-  <script src="js/state.js?v=80"></script>
-  <script src="js/achievements.js?v=80"></script>
-  <script src="js/leaderboard.js?v=80"></script>
-  <script src="js/roulette.js?v=80"></script>
-  <script src="js/story.js?v=80"></script>
-  <script src="js/game.js?v=80"></script>
+  <script src="js/firebase-config.js?v=81"></script>
+  <script src="js/cloud-sync.js?v=81"></script>
+  <script src="js/audio.js?v=81"></script>
+  <script src="js/palette.js?v=81"></script>
+  <script src="js/levels.js?v=81"></script>
+  <script src="js/challenges.js?v=81"></script>
+  <script src="js/honor.js?v=81"></script>
+  <script src="js/state.js?v=81"></script>
+  <script src="js/achievements.js?v=81"></script>
+  <script src="js/leaderboard.js?v=81"></script>
+  <script src="js/roulette.js?v=81"></script>
+  <script src="js/story.js?v=81"></script>
+  <script src="js/game.js?v=81"></script>
 
   <!-- Registro de Service Worker PWA -->
   <script>
@@ -3067,7 +3108,7 @@
         }
       });
       window.addEventListener('load', () => {
-        navigator.serviceWorker.register('./sw.js?v=80', { updateViaCache: 'none' }).then((reg) => {
+        navigator.serviceWorker.register('./sw.js?v=81', { updateViaCache: 'none' }).then((reg) => {
           reg.update();
           console.log('AquaSort PWA ServiceWorker activo:', reg.scope);
         }).catch((err) => {

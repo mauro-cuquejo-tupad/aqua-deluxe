@@ -4170,9 +4170,9 @@ class GameController {
 
     let finalLevelCoins;
     if (mult < 0) {
-      // Pérdida porcentual sobre el monto del nivel (ej. -0.5 resta un 50% del monto del nivel)
+      // Pérdida porcentual sobre el monto en juego (ej. -0.5 resta 50% del monto en juego; -1.0 resta el 100%)
       const lossRatio = Math.min(1, Math.abs(mult));
-      finalLevelCoins = -Math.round(levelEarned * lossRatio);
+      finalLevelCoins = Math.max(0, Math.round(levelEarned * (1 - lossRatio)));
     } else {
       finalLevelCoins = Math.round(levelEarned * mult);
     }
@@ -4673,55 +4673,7 @@ class GameController {
         </div>
       </div>
 
-      <!-- 3. Capacidad Máxima de Pistas -->
-      <div class="bg-slate-800/80 border border-slate-700/80 rounded-2xl p-4 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 shadow-md">
-        <div class="flex items-center gap-3">
-          <div class="w-12 h-12 rounded-2xl bg-amber-500/15 border border-amber-400/30 flex items-center justify-center text-amber-400 shadow-inner">
-            <i data-lucide="sparkles" class="w-6 h-6"></i>
-          </div>
-          <div>
-            <h4 class="text-sm font-bold text-white flex items-center gap-2">
-              Capacidad de Pistas
-              <span class="text-[10px] px-2 py-0.5 rounded-full bg-amber-500/20 text-amber-300 font-mono">Max: ${hintsCap}</span>
-            </h4>
-            <p class="text-xs text-slate-400">Capacidad actual: <strong>${hintsCap} pistas</strong>. ${nextHintsCap ? `Ampliar a <strong>${nextHintsCap} pistas</strong>.` : '<span class="text-emerald-400 font-semibold">¡Capacidad Máxima!</span>'}</p>
-          </div>
-        </div>
-        <div>
-          ${nextHintsCap ? `
-            <button class="btn-interactive px-4 py-2 rounded-xl text-xs font-black bg-gradient-to-r from-amber-500 to-orange-600 hover:from-amber-400 hover:to-orange-500 text-slate-950 font-bold shadow-md shadow-amber-500/20 disabled:opacity-40" ${coins < hintsCapCost ? 'disabled' : ''} onclick="window.game.buyUpgrade('hints_capacity')">
-              Ampliar (${hintsCapCost} 🪙)
-            </button>
-          ` : `
-            <span class="px-3 py-1.5 rounded-xl bg-emerald-500/20 border border-emerald-500/40 text-emerald-300 font-bold text-xs">
-              ✓ Nivel Máximo
-            </span>
-          `}
-        </div>
-      </div>
-
-      <!-- 4. Pack Instantáneo de Pistas (+3 Pistas) -->
-      <div class="bg-slate-800/80 border border-slate-700/80 rounded-2xl p-4 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 shadow-md">
-        <div class="flex items-center gap-3">
-          <div class="w-12 h-12 rounded-2xl bg-purple-500/15 border border-purple-400/30 flex items-center justify-center text-purple-400 shadow-inner">
-            <i data-lucide="layers" class="w-6 h-6"></i>
-          </div>
-          <div>
-            <h4 class="text-sm font-bold text-white flex items-center gap-2">
-              Pack Instantáneo (+3 Pistas)
-              <span class="text-[10px] px-2 py-0.5 rounded-full bg-purple-500/20 text-purple-300 font-mono">Consumible</span>
-            </h4>
-            <p class="text-xs text-slate-400">Pistas disponibles en juego: <strong>${this.hintsRemaining}</strong>.</p>
-          </div>
-        </div>
-        <div>
-          <button class="btn-interactive px-4 py-2 rounded-xl text-xs font-black bg-gradient-to-r from-purple-500 to-pink-600 hover:from-purple-400 hover:to-pink-500 text-white shadow-md shadow-purple-500/20 disabled:opacity-40" ${coins < 450 ? 'disabled' : ''} onclick="window.game.buyUpgrade('buy_hints_pack')">
-            Comprar (450 🪙)
-          </button>
-        </div>
-      </div>
-
-      <!-- 5. Seguro Temporal de Minijuego (Ruleta / Diana - 30 Minutos) -->
+      <!-- 3. Seguro Temporal de Minijuego (Ruleta / Diana / Tiro al Blanco - 30 Minutos) -->
       <div class="bg-slate-800/80 border border-slate-700/80 rounded-2xl p-4 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 shadow-md">
         <div class="flex items-center gap-3">
           <div class="w-12 h-12 rounded-2xl bg-rose-500/15 border border-rose-400/30 flex items-center justify-center text-rose-400 shadow-inner">
@@ -4732,7 +4684,7 @@ class GameController {
               Seguro de Minijuegos (Boost)
               <span class="text-[10px] px-2 py-0.5 rounded-full bg-rose-500/20 text-rose-300 font-mono">30 Minutos</span>
             </h4>
-            <p class="text-xs text-slate-400">Si fallas en la ruleta o en la diana con viento, conservas el 100% de tus monedas ganadas en lugar de perderlas. Dura 30 minutos desde la activación.</p>
+            <p class="text-xs text-slate-400">Si fallas en cualquiera de los minijuegos, conservas el 100% de tus monedas en juego en lugar de perderlas. Dura 30 minutos desde la activación.</p>
           </div>
         </div>
         <div>
@@ -4748,66 +4700,131 @@ class GameController {
         </div>
       </div>
 
-      <!-- 6. Cartas Alquímicas de Fortuna (Consumibles de Bonificación) -->
+      <!-- 4. Cartas de Probabilidad de Minijuego (90% por 5 Bonus en Modo Historia - 50 🪙 c/u) -->
+      <div class="mt-4 pt-4 border-t border-slate-700/80">
+        <h3 class="text-xs font-black tracking-wider text-sky-400 uppercase flex items-center gap-2 mb-3">
+          <i data-lucide="dice-5" class="w-4 h-4"></i>
+          Cartas de Destino (90% Probabilidad por 5 Bonus • 50 🪙 c/u)
+        </h3>
+        <div class="grid grid-cols-1 sm:grid-cols-3 gap-2.5">
+          <!-- Favor de la Diana (90%) -->
+          <div class="bg-slate-800/90 border border-sky-500/30 rounded-2xl p-3 flex flex-col justify-between gap-2 shadow-md">
+            <div>
+              <div class="flex items-center justify-between gap-1 font-bold text-xs text-white">
+                <span>🎯 Favor de Diana</span>
+                <span class="text-[10px] px-1.5 py-0.5 rounded bg-sky-500/20 text-sky-300 font-mono">x${(state.cards && state.cards.dianaFavor) || 0}</span>
+              </div>
+              <p class="text-[11px] text-slate-400 mt-1">Garantiza <strong>90% de probabilidad</strong> de que salga <strong>Diana Clásica</strong> durante 5 bonus en Modo Historia.</p>
+            </div>
+            <button class="btn-interactive w-full px-3 py-1.5 rounded-xl text-xs font-black bg-gradient-to-r from-sky-500 to-indigo-600 hover:from-sky-400 hover:to-indigo-500 text-white shadow-sm disabled:opacity-40" ${coins < 50 ? 'disabled' : ''} onclick="window.game.buyUpgrade('buy_card_dianaFavor')">
+              Comprar (50 🪙)
+            </button>
+          </div>
+
+          <!-- Favor de la Ruleta (90%) -->
+          <div class="bg-slate-800/90 border border-amber-500/30 rounded-2xl p-3 flex flex-col justify-between gap-2 shadow-md">
+            <div>
+              <div class="flex items-center justify-between gap-1 font-bold text-xs text-white">
+                <span>🎡 Favor de Ruleta</span>
+                <span class="text-[10px] px-1.5 py-0.5 rounded bg-amber-500/20 text-amber-300 font-mono">x${(state.cards && state.cards.rouletteFavor) || 0}</span>
+              </div>
+              <p class="text-[11px] text-slate-400 mt-1">Garantiza <strong>90% de probabilidad</strong> de que salga <strong>Ruleta</strong> durante 5 bonus en Modo Historia.</p>
+            </div>
+            <button class="btn-interactive w-full px-3 py-1.5 rounded-xl text-xs font-black bg-gradient-to-r from-amber-500 to-orange-600 hover:from-amber-400 hover:to-orange-500 text-slate-950 font-bold shadow-sm disabled:opacity-40" ${coins < 50 ? 'disabled' : ''} onclick="window.game.buyUpgrade('buy_card_rouletteFavor')">
+              Comprar (50 🪙)
+            </button>
+          </div>
+
+          <!-- Favor de Tiro al Blanco (90%) -->
+          <div class="bg-slate-800/90 border border-purple-500/30 rounded-2xl p-3 flex flex-col justify-between gap-2 shadow-md">
+            <div>
+              <div class="flex items-center justify-between gap-1 font-bold text-xs text-white">
+                <span>🎪 Favor Tiro Móvil</span>
+                <span class="text-[10px] px-1.5 py-0.5 rounded bg-purple-500/20 text-purple-300 font-mono">x${(state.cards && state.cards.movingFavor) || 0}</span>
+              </div>
+              <p class="text-[11px] text-slate-400 mt-1">Garantiza <strong>90% de probabilidad</strong> de que salga <strong>Tiro al Blanco</strong> durante 5 bonus en Modo Historia.</p>
+            </div>
+            <button class="btn-interactive w-full px-3 py-1.5 rounded-xl text-xs font-black bg-gradient-to-r from-purple-500 to-pink-600 hover:from-purple-400 hover:to-pink-500 text-white shadow-sm disabled:opacity-40" ${coins < 50 ? 'disabled' : ''} onclick="window.game.buyUpgrade('buy_card_movingFavor')">
+              Comprar (50 🪙)
+            </button>
+          </div>
+        </div>
+      </div>
+
+      <!-- 5. Cartas Alquímicas de Fortuna por Minijuego (50 🪙 c/u) -->
       <div class="mt-4 pt-4 border-t border-slate-700/80">
         <h3 class="text-xs font-black tracking-wider text-amber-400 uppercase flex items-center gap-2 mb-3">
           <i data-lucide="sparkles" class="w-4 h-4"></i>
-          Cartas Alquímicas de Fortuna (200 🪙 c/u)
+          Cartas de Fortuna por Minijuego (50 🪙 c/u)
         </h3>
         <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
-          <!-- Favor de la Diana -->
-          <div class="bg-slate-800/90 border border-indigo-500/30 rounded-2xl p-3 flex items-center justify-between gap-2 shadow-md">
+          <!-- Ruleta: Doble o Nada -->
+          <div class="bg-slate-800/90 border border-rose-500/30 rounded-2xl p-3 flex items-center justify-between gap-2 shadow-md">
             <div>
               <div class="flex items-center gap-1.5 font-bold text-xs text-white">
-                <span>🎯 Favor de la Diana</span>
-                <span class="text-[10px] px-1.5 py-0.2 rounded bg-indigo-500/20 text-indigo-300 font-mono">x${(state.cards && state.cards.dianaFavor) || 0}</span>
+                <span>⚡ Doble o Nada (Ruleta)</span>
+                <span class="text-[10px] px-1.5 py-0.2 rounded bg-rose-500/20 text-rose-300 font-mono">x${(state.cards && state.cards.doubleOrNothing) || 0}</span>
               </div>
-              <p class="text-[11px] text-slate-400 mt-0.5">Añade 5 fichas de Diana a la bolsa durante los próximos 5 minijuegos. Se desactiva tras 5 usos.</p>
+              <p class="text-[11px] text-slate-400 mt-0.5">Duplica todos los multiplicadores positivos de la Ruleta.</p>
             </div>
-            <button class="btn-interactive px-3 py-1.5 rounded-xl text-xs font-black bg-gradient-to-r from-indigo-500 to-sky-600 hover:from-indigo-400 hover:to-sky-500 text-white shadow-sm disabled:opacity-40" ${coins < 200 ? 'disabled' : ''} onclick="window.game.buyUpgrade('buy_card_dianaFavor')">
-              200 🪙
+            <button class="btn-interactive px-3 py-1.5 rounded-xl text-xs font-black bg-gradient-to-r from-rose-500 to-orange-600 hover:from-rose-400 hover:to-orange-500 text-white shadow-sm disabled:opacity-40" ${coins < 50 ? 'disabled' : ''} onclick="window.game.buyUpgrade('buy_card_doubleOrNothing')">
+              50 🪙
             </button>
           </div>
 
-          <!-- Giro del Destino -->
-          <div class="bg-slate-800/90 border border-purple-500/30 rounded-2xl p-3 flex items-center justify-between gap-2 shadow-md">
-            <div>
-              <div class="flex items-center gap-1.5 font-bold text-xs text-white">
-                <span>🎡 Giro del Destino</span>
-                <span class="text-[10px] px-1.5 py-0.2 rounded bg-purple-500/20 text-purple-300 font-mono">x${(state.cards && state.cards.rouletteFavor) || 0}</span>
-              </div>
-              <p class="text-[11px] text-slate-400 mt-0.5">Añade 5 fichas de Ruleta a la bolsa durante los próximos 5 minijuegos. Se desactiva tras 5 usos.</p>
-            </div>
-            <button class="btn-interactive px-3 py-1.5 rounded-xl text-xs font-black bg-gradient-to-r from-purple-500 to-pink-600 hover:from-purple-400 hover:to-pink-500 text-white shadow-sm disabled:opacity-40" ${coins < 200 ? 'disabled' : ''} onclick="window.game.buyUpgrade('buy_card_rouletteFavor')">
-              200 🪙
-            </button>
-          </div>
-
-          <!-- Doble o Nada Alquímico -->
+          <!-- Ruleta: Ojo de Oro -->
           <div class="bg-slate-800/90 border border-amber-500/30 rounded-2xl p-3 flex items-center justify-between gap-2 shadow-md">
             <div>
               <div class="flex items-center gap-1.5 font-bold text-xs text-white">
-                <span>⚡ Doble o Nada</span>
-                <span class="text-[10px] px-1.5 py-0.2 rounded bg-amber-500/20 text-amber-300 font-mono">x${(state.cards && state.cards.doubleOrNothing) || 0}</span>
+                <span>👁️ Ojo de Oro (Ruleta)</span>
+                <span class="text-[10px] px-1.5 py-0.2 rounded bg-amber-500/20 text-amber-300 font-mono">x${(state.cards && state.cards.goldenEye) || 0}</span>
               </div>
-              <p class="text-[11px] text-slate-400 mt-0.5">Ruleta simplificada a 2 colores (50% prob) a x2.0 o perder todo.</p>
+              <p class="text-[11px] text-slate-400 mt-0.5">Duplica el tamaño de la Zona Oro y ralentiza la aguja de la Ruleta.</p>
             </div>
-            <button class="btn-interactive px-3 py-1.5 rounded-xl text-xs font-black bg-gradient-to-r from-amber-500 to-orange-600 hover:from-amber-400 hover:to-orange-500 text-slate-950 font-bold shadow-sm disabled:opacity-40" ${coins < 200 ? 'disabled' : ''} onclick="window.game.buyUpgrade('buy_card_doubleOrNothing')">
-              200 🪙
+            <button class="btn-interactive px-3 py-1.5 rounded-xl text-xs font-black bg-gradient-to-r from-amber-500 to-yellow-500 hover:from-amber-400 hover:to-yellow-400 text-slate-950 font-bold shadow-sm disabled:opacity-40" ${coins < 50 ? 'disabled' : ''} onclick="window.game.buyUpgrade('buy_card_goldenEye')">
+              50 🪙
             </button>
           </div>
 
-          <!-- Calma Atmosférica -->
+          <!-- Diana: Sin Viento -->
           <div class="bg-slate-800/90 border border-teal-500/30 rounded-2xl p-3 flex items-center justify-between gap-2 shadow-md">
             <div>
               <div class="flex items-center gap-1.5 font-bold text-xs text-white">
-                <span>🍃 Calma Atmosférica</span>
+                <span>🍃 Calma Viento (Diana)</span>
                 <span class="text-[10px] px-1.5 py-0.2 rounded bg-teal-500/20 text-teal-300 font-mono">x${(state.cards && state.cards.calmAtmosphere) || 0}</span>
               </div>
-              <p class="text-[11px] text-slate-400 mt-0.5">Diana: beneficio de Sin Viento, medidor lento o tiro extra de respaldo.</p>
+              <p class="text-[11px] text-slate-400 mt-0.5">Elimina por completo el viento (0.0 m/s) en la Diana Clásica.</p>
             </div>
-            <button class="btn-interactive px-3 py-1.5 rounded-xl text-xs font-black bg-gradient-to-r from-teal-500 to-emerald-600 hover:from-teal-400 hover:to-emerald-500 text-white shadow-sm disabled:opacity-40" ${coins < 200 ? 'disabled' : ''} onclick="window.game.buyUpgrade('buy_card_calmAtmosphere')">
-              200 🪙
+            <button class="btn-interactive px-3 py-1.5 rounded-xl text-xs font-black bg-gradient-to-r from-teal-500 to-emerald-600 hover:from-teal-400 hover:to-emerald-500 text-white shadow-sm disabled:opacity-40" ${coins < 50 ? 'disabled' : ''} onclick="window.game.buyUpgrade('buy_card_calmAtmosphere')">
+              50 🪙
+            </button>
+          </div>
+
+          <!-- Diana: Guía de Trayectoria -->
+          <div class="bg-slate-800/90 border border-indigo-500/30 rounded-2xl p-3 flex items-center justify-between gap-2 shadow-md">
+            <div>
+              <div class="flex items-center gap-1.5 font-bold text-xs text-white">
+                <span>🔮 Guía Parábola (Diana)</span>
+                <span class="text-[10px] px-1.5 py-0.2 rounded bg-indigo-500/20 text-indigo-300 font-mono">x${(state.cards && state.cards.trajectorySight) || 0}</span>
+              </div>
+              <p class="text-[11px] text-slate-400 mt-0.5">Muestra la parábola de trayectoria base del tiro en la Diana Clásica.</p>
+            </div>
+            <button class="btn-interactive px-3 py-1.5 rounded-xl text-xs font-black bg-gradient-to-r from-indigo-500 to-purple-600 hover:from-indigo-400 hover:to-purple-500 text-white shadow-sm disabled:opacity-40" ${coins < 50 ? 'disabled' : ''} onclick="window.game.buyUpgrade('buy_card_trajectorySight')">
+              50 🪙
+            </button>
+          </div>
+
+          <!-- Tiro al Blanco: Cámara Lenta + Dardo Extra -->
+          <div class="bg-slate-800/90 border border-purple-500/30 rounded-2xl p-3 flex items-center justify-between gap-2 shadow-md sm:col-span-2">
+            <div>
+              <div class="flex items-center gap-1.5 font-bold text-xs text-white">
+                <span>⏳ Foco Móvil (Tiro al Blanco)</span>
+                <span class="text-[10px] px-1.5 py-0.2 rounded bg-purple-500/20 text-purple-300 font-mono">x${(state.cards && state.cards.movingSlow) || 0}</span>
+              </div>
+              <p class="text-[11px] text-slate-400 mt-0.5">Ralentiza un 35% las dianas móviles y otorga +1 dardo adicional (4 dardos en total).</p>
+            </div>
+            <button class="btn-interactive px-3 py-1.5 rounded-xl text-xs font-black bg-gradient-to-r from-purple-500 to-pink-600 hover:from-purple-400 hover:to-pink-500 text-white shadow-sm disabled:opacity-40" ${coins < 50 ? 'disabled' : ''} onclick="window.game.buyUpgrade('buy_card_movingSlow')">
+              50 🪙
             </button>
           </div>
         </div>

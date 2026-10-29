@@ -33,11 +33,16 @@ const DEFAULT_STATE = {
     rouletteBoostExpires: null // Timestamp de expiración del seguro (30 minutos)
   },
   cards: {
-    dianaFavor: 2,       // +80% prob de Diana
-    rouletteFavor: 2,    // +80% prob de Ruleta
-    doubleOrNothing: 2,  // Ruleta: 2 colores, x2.0, todo o nada
-    calmAtmosphere: 2,   // Diana: Viento 0, Medidor Lento o Tiro Extra
-    trajectorySight: 2   // Diana: Predicción de parábola (sin viento)
+    // Cartas de Probabilidad 90% durante 5 bonus en Modo Historia (50 🪙 c/u)
+    dianaFavor: 1,       // 90% prob de Diana Clásica por 5 bonus
+    rouletteFavor: 1,    // 90% prob de Ruleta de la Fortuna por 5 bonus
+    movingFavor: 1,      // 90% prob de Tiro al Blanco Móvil por 5 bonus
+    // Cartas específicas de cada minijuego (50 🪙 c/u)
+    doubleOrNothing: 1,  // Ruleta: Duplica multiplicadores
+    goldenEye: 1,        // Ruleta: Ojo de Oro (duplica ancho de Zona Oro y frena aguja)
+    calmAtmosphere: 1,   // Diana: Sin Viento (0.0 m/s)
+    trajectorySight: 1,  // Diana: Parábola visible de trayectoria
+    movingSlow: 1        // Tiro al Blanco: Ralentiza blancos móviles + +1 dardo extra
   },
   progress: {
     unlockedLevel: 1,
@@ -1114,17 +1119,28 @@ class StateManager {
       return { success: false, msg: 'Monedas insuficientes (Costo: 1200🪙)' };
     }
 
-    // Compra de Cartas Alquímicas de Fortuna (200 monedas c/u)
+    // Compra de Cartas Alquímicas de Fortuna (50 monedas c/u)
     if (upgradeType.startsWith('buy_card_')) {
       const cardId = upgradeType.replace('buy_card_', '');
-      const cost = 200;
+      const cost = 50;
       if (this.spendCoins(cost)) {
-        if (!this.state.cards) this.state.cards = { dianaFavor: 0, rouletteFavor: 0, doubleOrNothing: 0, calmAtmosphere: 0 };
+        if (!this.state.cards) {
+          this.state.cards = {
+            dianaFavor: 0,
+            rouletteFavor: 0,
+            movingFavor: 0,
+            doubleOrNothing: 0,
+            goldenEye: 0,
+            calmAtmosphere: 0,
+            trajectorySight: 0,
+            movingSlow: 0
+          };
+        }
         this.state.cards[cardId] = (this.state.cards[cardId] || 0) + 1;
         this.saveState();
         return { success: true, cardId, count: this.state.cards[cardId] };
       }
-      return { success: false, msg: 'Monedas insuficientes (Costo: 200🪙)' };
+      return { success: false, msg: 'Monedas insuficientes (Costo: 50🪙)' };
     }
 
     if (upgradeType === 'buy_life') {
@@ -1182,7 +1198,16 @@ class StateManager {
   }
 
   getCards() {
-    return this.state.cards || { dianaFavor: 0, rouletteFavor: 0, doubleOrNothing: 0, calmAtmosphere: 0 };
+    return this.state.cards || {
+      dianaFavor: 0,
+      rouletteFavor: 0,
+      movingFavor: 0,
+      doubleOrNothing: 0,
+      goldenEye: 0,
+      calmAtmosphere: 0,
+      trajectorySight: 0,
+      movingSlow: 0
+    };
   }
 
   consumeCard(cardId) {
@@ -1223,13 +1248,6 @@ class StateManager {
     // Bolsa equilibrada con 2 fichas de Diana, 2 de Ruleta y 2 de Tiro al Blanco (Dianas Móviles)
     const newTokens = ['diana', 'diana', 'roulette', 'roulette', 'moving_targets', 'moving_targets'];
 
-    // Si hay una carta de favor activa con usos restantes, se añaden fichas extras para mantener la ventaja
-    if (this.state.minigameBag.activeCard === 'dianaFavor' && this.state.minigameBag.cardUsesRemaining > 0) {
-      newTokens.push('diana', 'diana', 'diana');
-    } else if (this.state.minigameBag.activeCard === 'rouletteFavor' && this.state.minigameBag.cardUsesRemaining > 0) {
-      newTokens.push('roulette', 'roulette', 'roulette');
-    }
-
     this.state.minigameBag.tokens = newTokens;
     this.state.minigameBag.migratedMovingTargets = true;
     this.saveState();
@@ -1243,12 +1261,43 @@ class StateManager {
     }
 
     const tokens = this.state.minigameBag.tokens;
-    const randomIndex = Math.floor(Math.random() * tokens.length);
-    const chosen = tokens.splice(randomIndex, 1)[0];
+    let chosen = null;
 
-    // Decrementar usos de la carta de favor activa si está vigente
+    // Si hay una de las 3 cartas de probabilidad activa (duración 5 bonus en Modo Historia),
+    // garantizar exactamente un 90% de probabilidades de que salga el minijuego asociado
+    const currentActiveCard = this.state.minigameBag.activeCard;
+    const hasActiveFavor = currentActiveCard && this.state.minigameBag.cardUsesRemaining > 0 &&
+      (currentActiveCard === 'dianaFavor' || currentActiveCard === 'rouletteFavor' || currentActiveCard === 'movingFavor');
+
+    if (hasActiveFavor) {
+      const favoredMap = {
+        dianaFavor: 'diana',
+        rouletteFavor: 'roulette',
+        movingFavor: 'moving_targets'
+      };
+      const favoredMode = favoredMap[currentActiveCard];
+      const otherModes = ['diana', 'roulette', 'moving_targets'].filter(m => m !== favoredMode);
+
+      if (Math.random() < 0.90) {
+        chosen = favoredMode;
+      } else {
+        chosen = otherModes[Math.floor(Math.random() * otherModes.length)];
+      }
+
+      // Si en la bolsa hay una ficha de ese tipo, extraerla para mantener el conteo sincronizado
+      const idxInBag = tokens.indexOf(chosen);
+      if (idxInBag >= 0) {
+        tokens.splice(idxInBag, 1);
+      } else if (tokens.length > 0) {
+        tokens.pop();
+      }
+    } else {
+      const randomIndex = Math.floor(Math.random() * tokens.length);
+      chosen = tokens.splice(randomIndex, 1)[0];
+    }
+
+    // Decrementar usos de la carta de favor activa si está vigente (dura 5 bonus jugados)
     let cardJustExpired = false;
-    let currentActiveCard = this.state.minigameBag.activeCard;
     if (this.state.minigameBag.activeCard && this.state.minigameBag.cardUsesRemaining > 0) {
       this.state.minigameBag.cardUsesRemaining--;
       if (this.state.minigameBag.cardUsesRemaining <= 0) {
@@ -1298,12 +1347,6 @@ class StateManager {
 
     this.state.minigameBag.activeCard = cardId;
     this.state.minigameBag.cardUsesRemaining = uses;
-
-    // Agregar 5 fichas de la modalidad favorecida directamente a la bolsa
-    const bonusType = (cardId === 'dianaFavor') ? 'diana' : 'roulette';
-    for (let i = 0; i < 5; i++) {
-      this.state.minigameBag.tokens.push(bonusType);
-    }
 
     this.saveState();
     return {

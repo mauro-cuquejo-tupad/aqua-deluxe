@@ -52,7 +52,7 @@ class MinigameEngine {
     // --- DIANAS MÓVILES (3 DIANAS FLOTANTES EN MOVIMIENTO) ---
     this.movingTargets = [];
     this.movingTargetsAnimId = null;
-    this.movingDartsLeft = 4;
+    this.movingDartsLeft = 3;
     this.movingHitsCount = 0;
 
     // Elementos DOM
@@ -115,7 +115,7 @@ class MinigameEngine {
       btn.addEventListener('click', (e) => {
         e.stopPropagation();
         if (this.fromVictory) return;
-        const isMovingInProgress = (this.currentMode === 'moving_targets' && this.movingDartsLeft < 4 && !this.isRoundOver);
+        const isMovingInProgress = (this.currentMode === 'moving_targets' && this.movingDartsLeft < (this.activeCard === 'movingSlow' ? 4 : 3) && !this.isRoundOver);
         if (this.isSpinning || this.isDartFlying || isMovingInProgress) return;
 
         const betVal = parseInt(btn.getAttribute('data-bet'), 10);
@@ -319,37 +319,51 @@ class MinigameEngine {
   }
 
   toggleCard(cardId) {
-    if (this.isSpinning || this.isDartFlying) return;
+    const isMovingInProgress = (this.currentMode === 'moving_targets' && this.movingDartsLeft < 3 && !this.isRoundOver);
+    if (this.isSpinning || this.isDartFlying || isMovingInProgress) return;
     if (window.audio) window.audio.init();
 
     const stateMgr = window.stateManager;
     if (!stateMgr) return;
     const bag = stateMgr.getMinigameBag();
 
+    const isFavorCard = (cardId === 'dianaFavor' || cardId === 'rouletteFavor' || cardId === 'movingFavor');
+
     // Comprobar si ya está activa para desactivar
     if (this.activeCard === cardId || (bag && bag.activeCard === cardId)) {
-      if (cardId === 'dianaFavor' || cardId === 'rouletteFavor') {
+      if (isFavorCard) {
         stateMgr.deactivateBonusFavorCard();
+        if (window.audio) window.audio.playSelect();
+        this.updateCardsUI();
+        this.updateBagIndicatorUI();
+        return;
       }
       this.activeCard = null;
       this.calmAtmosphereBenefit = null;
       this.extraShotAvailable = false;
       if (window.audio) window.audio.playSelect();
-      this.initRound();
+      this.shuffleSlices();
+      this.generateNewWind();
+      this.renderWheel();
+      this.resetDianaTarget();
+      this.resetMovingTargets();
+      this.updateCardsUI();
+      this.updateRulesText();
+      if (this.currentMode === 'roulette') this.startTimingBar();
+      if (this.currentMode === 'moving_targets') this.startMovingTargetsAnim();
       return;
     }
 
     // Verificar si el jugador tiene la carta en inventario
     const cards = stateMgr.getCards();
     if (!cards[cardId] || cards[cardId] <= 0) {
-      alert('No dispones de esta carta en tu inventario. Puedes adquirirla en la Tienda Alquímica.');
+      alert('No dispones de esta carta en tu inventario. Puedes adquirirla por 50 🪙 en la Tienda del Alquimista.');
       return;
     }
 
-    if (cardId === 'dianaFavor' || cardId === 'rouletteFavor') {
+    if (isFavorCard) {
       const act = stateMgr.activateBonusFavorCard(cardId, 5);
       if (act.success) {
-        this.activeCard = cardId;
         if (window.audio) window.audio.playUnlock();
         this.updateCardsUI();
         this.updateBagIndicatorUI();
@@ -363,18 +377,23 @@ class MinigameEngine {
 
     if (cardId === 'doubleOrNothing') {
       this.shuffleSlices();
+      this.renderWheel();
+    } else if (cardId === 'goldenEye') {
+      this.startTimingBar();
     } else if (cardId === 'calmAtmosphere') {
       this.windSpeed = 0.0;
       this.windAngle = 0;
       this.updateBreezeVisual();
+      this.resetDianaTarget();
     } else if (cardId === 'trajectorySight') {
       this.resetDianaTarget();
+    } else if (cardId === 'movingSlow') {
+      this.resetMovingTargets();
+      this.startMovingTargetsAnim();
     }
 
     this.updateCardsUI();
     this.updateRulesText();
-    this.renderWheel();
-    this.resetDianaTarget();
   }
 
   updateCardsUI() {
@@ -383,14 +402,24 @@ class MinigameEngine {
     const bag = stateMgr ? stateMgr.getMinigameBag() : null;
     const pill = document.getElementById('active-card-pill');
     const countBadge = document.getElementById('lbl-cards-available-count');
+    const favorStatusLbl = document.getElementById('lbl-active-favor-status');
 
-    let totalAvailable = 0;
+    let applicableAvailable = 0;
     document.querySelectorAll('.btn-alchemy-card').forEach(btn => {
       const cardId = btn.getAttribute('data-card');
+      const cardMinigame = btn.getAttribute('data-minigame');
       const countEl = btn.querySelector('.card-count');
       const count = cards[cardId] || 0;
-      totalAvailable += count;
       if (countEl) countEl.textContent = `x${count}`;
+
+      // En Modo Historia: mostrar solo las cartas aplicables al minijuego actual + las 3 cartas de probabilidad (favor)
+      const isApplicable = !cardMinigame || cardMinigame === 'favor' || cardMinigame === this.currentMode;
+      if (isApplicable) {
+        btn.classList.remove('hidden');
+        applicableAvailable += count;
+      } else {
+        btn.classList.add('hidden');
+      }
 
       const isBagActive = (bag && bag.activeCard === cardId && bag.cardUsesRemaining > 0);
       const isRoundActive = (this.activeCard === cardId);
@@ -403,25 +432,46 @@ class MinigameEngine {
     });
 
     if (countBadge) {
-      countBadge.textContent = `(${totalAvailable} disponibles)`;
+      countBadge.textContent = `(${applicableAvailable} aplicables)`;
+    }
+
+    if (favorStatusLbl) {
+      if (bag && bag.activeCard === 'dianaFavor' && bag.cardUsesRemaining > 0) {
+        favorStatusLbl.textContent = `🎯 90% Diana (${bag.cardUsesRemaining}/5)`;
+      } else if (bag && bag.activeCard === 'rouletteFavor' && bag.cardUsesRemaining > 0) {
+        favorStatusLbl.textContent = `🎡 90% Ruleta (${bag.cardUsesRemaining}/5)`;
+      } else if (bag && bag.activeCard === 'movingFavor' && bag.cardUsesRemaining > 0) {
+        favorStatusLbl.textContent = `🎪 90% Móvil (${bag.cardUsesRemaining}/5)`;
+      } else {
+        favorStatusLbl.textContent = 'Sin favor activo';
+      }
     }
 
     if (pill) {
-      if (bag && bag.activeCard === 'dianaFavor' && bag.cardUsesRemaining > 0) {
-        pill.textContent = `✨ Favor Diana Activo (${bag.cardUsesRemaining})`;
-        pill.className = 'text-[10px] text-sky-300 font-bold px-2 py-0.5 rounded-full bg-sky-500/20 border border-sky-400 animate-pulse';
-      } else if (bag && bag.activeCard === 'rouletteFavor' && bag.cardUsesRemaining > 0) {
-        pill.textContent = `✨ Ojo Alquímico Activo (Margen x2)`;
-        pill.className = 'text-[10px] text-amber-300 font-bold px-2 py-0.5 rounded-full bg-amber-500/20 border border-amber-400 animate-pulse';
-      } else if (this.activeCard === 'doubleOrNothing') {
-        pill.textContent = '✨ Doble o Nada (Multiplicadores x2)';
+      if (this.activeCard === 'doubleOrNothing') {
+        pill.textContent = '⚡ Doble o Nada (x2)';
         pill.className = 'text-[10px] text-rose-300 font-bold px-2 py-0.5 rounded-full bg-rose-500/20 border border-rose-400';
+      } else if (this.activeCard === 'goldenEye') {
+        pill.textContent = '👁️ Ojo de Oro (Zona x2)';
+        pill.className = 'text-[10px] text-amber-300 font-bold px-2 py-0.5 rounded-full bg-amber-500/20 border border-amber-400';
       } else if (this.activeCard === 'calmAtmosphere') {
-        pill.textContent = '✨ Calma Viento (0.0 m/s)';
+        pill.textContent = '🍃 Sin Viento (0.0 m/s)';
         pill.className = 'text-[10px] text-emerald-300 font-bold px-2 py-0.5 rounded-full bg-emerald-500/20 border border-emerald-400';
       } else if (this.activeCard === 'trajectorySight') {
-        pill.textContent = '👁️ Trayectoria Activa (Sin viento)';
+        pill.textContent = '🔮 Guía Parábola Activa';
         pill.className = 'text-[10px] text-purple-300 font-bold px-2 py-0.5 rounded-full bg-purple-500/20 border border-purple-400';
+      } else if (this.activeCard === 'movingSlow') {
+        pill.textContent = '⏳ Foco Móvil Activo';
+        pill.className = 'text-[10px] text-purple-300 font-bold px-2 py-0.5 rounded-full bg-purple-500/20 border border-purple-400';
+      } else if (bag && bag.activeCard === 'dianaFavor' && bag.cardUsesRemaining > 0) {
+        pill.textContent = `🎯 90% Diana (${bag.cardUsesRemaining})`;
+        pill.className = 'text-[10px] text-sky-300 font-bold px-2 py-0.5 rounded-full bg-sky-500/20 border border-sky-400 animate-pulse';
+      } else if (bag && bag.activeCard === 'rouletteFavor' && bag.cardUsesRemaining > 0) {
+        pill.textContent = `🎡 90% Ruleta (${bag.cardUsesRemaining})`;
+        pill.className = 'text-[10px] text-amber-300 font-bold px-2 py-0.5 rounded-full bg-amber-500/20 border border-amber-400 animate-pulse';
+      } else if (bag && bag.activeCard === 'movingFavor' && bag.cardUsesRemaining > 0) {
+        pill.textContent = `🎪 90% Móvil (${bag.cardUsesRemaining})`;
+        pill.className = 'text-[10px] text-purple-300 font-bold px-2 py-0.5 rounded-full bg-purple-500/20 border border-purple-400 animate-pulse';
       } else {
         pill.textContent = '🃏 Toca para activar';
         pill.className = 'text-[10px] text-amber-300 font-semibold px-2 py-0.5 rounded-full bg-amber-500/10 border border-amber-500/30';
@@ -436,19 +486,19 @@ class MinigameEngine {
       pool = [
         { id: 'mult2_4', label: 'x2.4', value: 2.4, hex: '#38bdf8', isWin: true },
         { id: 'mult4_0', label: 'x4.0', value: 4.0, hex: '#f59e0b', isWin: true },
-        { id: 'mult_neg1_0', label: '-1.0 💀', value: -1.0, hex: '#be123c', isWin: false, isNegative: true },
+        { id: 'mult_neg0_5', label: 'x -0.5 💀', value: -0.5, hex: '#be123c', isWin: false, isNegative: true },
         { id: 'mult3_0', label: 'x3.0', value: 3.0, hex: '#10b981', isWin: true },
         { id: 'mult6_0', label: 'x6.0 ★', value: 6.0, hex: '#c084fc', isWin: true },
-        { id: 'mult0_0', label: 'x0 ✕', value: 0.0, hex: '#475569', isWin: false }
+        { id: 'mult_neg1_0', label: 'x -1 💀', value: -1.0, hex: '#881337', isWin: false, isNegative: true }
       ];
     } else {
       pool = [
         { id: 'mult1_2', label: 'x1.2', value: 1.2, hex: '#38bdf8', isWin: true },
         { id: 'mult2_0', label: 'x2.0', value: 2.0, hex: '#f59e0b', isWin: true },
-        { id: 'mult_neg0_5', label: '-0.5 💀', value: -0.5, hex: '#be123c', isWin: false, isNegative: true },
+        { id: 'mult_neg0_5', label: 'x -0.5 💀', value: -0.5, hex: '#be123c', isWin: false, isNegative: true },
         { id: 'mult1_5', label: 'x1.5', value: 1.5, hex: '#10b981', isWin: true },
         { id: 'mult3_0', label: 'x3.0 ★', value: 3.0, hex: '#8b5cf6', isWin: true },
-        { id: 'mult0_0', label: 'x0 ✕', value: 0.0, hex: '#475569', isWin: false }
+        { id: 'mult_neg1_0', label: 'x -1 💀', value: -1.0, hex: '#881337', isWin: false, isNegative: true }
       ];
     }
 
@@ -492,9 +542,9 @@ class MinigameEngine {
     if (!subLbl) return;
 
     if (this.currentMode === 'roulette') {
-      subLbl.innerHTML = `🎡 Clava la aguja en la <strong>Zona Dorada</strong> para eliminar el sector negativo • ¡Toca en cualquier parte para girar!`;
+      subLbl.innerHTML = `🎡 Clava la aguja en la <strong>Zona Oro</strong> para eliminar <strong>x -0.5</strong> y <strong>x -1</strong> • ¡Toca para girar!`;
     } else if (this.currentMode === 'moving_targets') {
-      subLbl.innerHTML = `🎪 <strong>Dianas Móviles:</strong> Acierta las 3 dianas flotantes para llevarte el Gran Bono <strong>x3.5</strong>.`;
+      subLbl.innerHTML = `🎪 <strong>Tiro al Blanco:</strong> Anticipa el movimiento • <strong>1🎯=x1</strong> • <strong>2🎯=x2</strong> • <strong>3🎯=x3</strong> (0🎯 pierde el pozo)`;
     } else {
       const currentLvl = window.game ? (window.game.currentLevel || 1) : 1;
       const isSec1 = currentLvl <= 10;
@@ -511,7 +561,7 @@ class MinigameEngine {
           : ' • <span class="text-amber-300/80 font-bold">⚠️ Guía oculta (Tiro a ciegas)</span>';
       }
 
-      subLbl.innerHTML = `🎯 <strong>Diana:</strong> Arrastra en cualquier parte • Centro: <strong>x3.0</strong>${windNote}${trajNote}`;
+      subLbl.innerHTML = `🎯 <strong>Diana:</strong> Centro <strong>x3.0</strong> (Fuera pierde el pozo)${windNote}${trajNote}`;
     }
   }
 
@@ -585,8 +635,8 @@ class MinigameEngine {
 
     // Jitter aleatorio de +-5% respecto del centro
     this.goldCenter = 0.50 + ((Math.random() - 0.5) * 0.10);
-    // Carta Ojo Alquímico duplica el margen del tiro perfecto
-    const isEyeActive = (this.activeCard === 'rouletteFavor' || (window.stateManager?.getMinigameBag()?.activeCard === 'rouletteFavor'));
+    // Carta Ojo de Oro duplica el margen del tiro perfecto y ralentiza la aguja
+    const isEyeActive = (this.activeCard === 'goldenEye');
     this.goldWidth = isEyeActive ? 0.16 : 0.08;
     this.timingSpeed = isEyeActive ? 0.55 : 0.95;
 
@@ -708,14 +758,14 @@ class MinigameEngine {
     if (timingResult === 'perfect') {
       if (this.timingNeedle) this.timingNeedle.classList.add('locked-gold');
       if (this.timingFeedbackLbl) {
-        this.timingFeedbackLbl.innerHTML = '⭐ <strong class="text-amber-300">¡TIRO PERFECTO!</strong> Se eliminó el sector negativo y quiebras x0 ⭐';
+        this.timingFeedbackLbl.innerHTML = '⭐ <strong class="text-amber-300">¡TIRO PERFECTO!</strong> Se eliminaron los sectores x -0.5 y x -1 ⭐';
         this.timingFeedbackLbl.className = 'text-center text-[11px] font-black text-amber-300 mt-1 min-h-[16px] animate-pulse';
       }
       
       // Animación especial al acertar al centro ANTES de girar la ruleta
       this.triggerPerfectCelebration("¡TIRO PERFECTO! 🌟", "¡Centro Dorado! Eliminadas las pérdidas");
 
-      // Ventaja inmediata: convertir sector negativo y x0 en sectores ganadores de x2.0
+      // Ventaja inmediata: convertir ambos sectores negativos (x -0.5 y x -1) en sectores ganadores de x2.0
       this.sliceValues = this.sliceValues.map(s => {
         if (!s.isWin || s.isNegative) {
           return { id: 'mult2_0_gold', label: 'x2.0 ★', value: 2.0, hex: '#f59e0b', isWin: true };
@@ -1063,9 +1113,9 @@ class MinigameEngine {
     const windPushX = Math.cos(windRad) * (this.windSpeed * 14.0);
     const windPushY = Math.sin(windRad) * (this.windSpeed * 9.5);
 
-    // El punto de impacto real sufre la desviación del viento
-    const impactX = Math.round(Math.max(20, Math.min(280, aimTargetX + windPushX)));
-    const impactY = Math.round(Math.max(20, Math.min(265, aimTargetY + windPushY)));
+    // El punto de impacto real sufre la desviación del viento (rango amplio para permitir salir fuera de la diana de r=115)
+    const impactX = Math.round(Math.max(10, Math.min(290, aimTargetX + windPushX)));
+    const impactY = Math.round(Math.max(10, Math.min(275, aimTargetY + windPushY)));
     this.currentImpactPoint = { x: impactX, y: impactY };
 
     // Punto de control de la curva para que la trayectoria se combe visiblemente con el viento
@@ -1394,9 +1444,10 @@ class MinigameEngine {
         }, 500);
       }, 3000);
     } else {
-      // Sin tiro extra: finaliza la ronda con penalización normal
+      // Sin tiro extra: finaliza la ronda perdiendo el monto en juego
       const modalBox = document.querySelector('#modal-roulette .modal-content');
       if (modalBox) modalBox.classList.add('roulette-lose-glow');
+      const hasBoost = window.stateManager ? (typeof window.stateManager.hasRouletteBoost === 'function' ? window.stateManager.hasRouletteBoost() : window.stateManager.state.upgrades.rouletteBoost) : false;
 
       setTimeout(() => {
         overlay.classList.add('fade-out');
@@ -1404,13 +1455,13 @@ class MinigameEngine {
           overlay.remove();
           this.isDartFlying = false;
           this.isReverseShot = false;
-          this.applyAndAnimateBonusCoins(0.5, hasBoost);
+          this.applyAndAnimateBonusCoins(-1.0, hasBoost);
           if (hintEl) {
             if (hasBoost) {
               hintEl.innerHTML = '🛡️ ¡Autogolpe! • ¡Seguro activo!';
               hintEl.className = 'text-center text-xs font-black text-sky-300 mt-1 mb-2';
             } else {
-              hintEl.innerHTML = '❌ "La próxima apuntá para el otro lado..." (÷2)';
+              hintEl.innerHTML = '❌ "La próxima apuntá para el otro lado..." (Pierde el pozo)';
               hintEl.className = 'text-center text-xs font-black text-rose-400 mt-1 mb-2';
             }
           }
@@ -1430,18 +1481,19 @@ class MinigameEngine {
     let multiplier = 0;
     let label = 'Fuera';
 
-    if (dist <= 28) {
+    // Diana achicada ~10% (Centro: r=25, Plata: r=67, Bronce: r=115)
+    if (dist <= 25) {
       multiplier = 3.0;
       label = '⭐ ¡CENTRO DE ORO! (x3.0)';
-    } else if (dist <= 75) {
+    } else if (dist <= 67) {
       multiplier = 1.5;
       label = '✨ ¡ANILLO DE PLATA! (x1.5)';
-    } else if (dist <= 130) {
+    } else if (dist <= 115) {
       multiplier = 1.2;
       label = '🎯 ¡ANILLO DE BRONCE! (x1.2)';
     } else {
       multiplier = 0;
-      label = '❌ ¡TIRO FUERA DE LA DIANA! (÷2)';
+      label = '❌ ¡TIRO FUERA DE LA DIANA! (Pierde el pozo)';
     }
 
     if (this.extraShotAvailable && multiplier < 1.5) {
@@ -1466,7 +1518,7 @@ class MinigameEngine {
     if (dianaCont) dianaCont.style.pointerEvents = 'none';
 
     if (multiplier > 0) {
-      if (dist <= 28 || multiplier >= 3.0) {
+      if (dist <= 25 || multiplier >= 3.0) {
         this.triggerPerfectCelebration("¡DIANA DE ORO! 🎯", "¡Impacto Perfecto al Centro!");
       } else {
         if (window.audio) {
@@ -1489,11 +1541,11 @@ class MinigameEngine {
       if (window.audio) window.audio.playDisappointedCrowd();
 
       const hasBoost = window.stateManager ? (typeof window.stateManager.hasRouletteBoost === 'function' ? window.stateManager.hasRouletteBoost() : window.stateManager.state.upgrades.rouletteBoost) : false;
-      this.applyAndAnimateBonusCoins(0.5, hasBoost);
+      this.applyAndAnimateBonusCoins(-1.0, hasBoost);
 
       if (hintEl) {
         if (hasBoost) {
-          hintEl.textContent = '🛡️ ¡Desviado! • ¡Seguro activo!';
+          hintEl.textContent = '🛡️ ¡Fuera de la diana! • ¡Seguro activo!';
           hintEl.className = 'text-center text-xs font-black text-sky-300 mt-1 mb-2';
         } else {
           hintEl.textContent = `${label}`;
@@ -1506,7 +1558,8 @@ class MinigameEngine {
   }
 
   resetMovingTargets() {
-    this.movingDartsLeft = 4;
+    const hasSlowCard = (this.activeCard === 'movingSlow');
+    this.movingDartsLeft = hasSlowCard ? 4 : 3;
     this.movingHitsCount = 0;
     this.isMovingFinished = false;
     this.isDartFlying = false;
@@ -1536,14 +1589,26 @@ class MinigameEngine {
 
     const hintEl = document.getElementById('moving-gesture-hint');
     if (hintEl) {
-      hintEl.textContent = '👇 Arrastra hacia abajo o arriba para apuntar a los blancos en movimiento';
+      hintEl.textContent = '🎯 Anticipa el recorrido: apunta adonde estará la diana al llegar la bola';
       hintEl.className = 'text-center text-[11px] font-bold text-slate-300 mt-1 mb-2';
     }
 
+    // Acelerar +5% las dianas móviles y aplicar variación aleatoria de +/-5% a cada una
+    // para que el jugador no pueda memorizar velocidades fijas y deba calcular el tiro anticipado
+    const slowFactor = hasSlowCard ? 0.65 : 1.0;
+    const calcTargetSpeed = (baseSpeed, dirSign) => {
+      const randVariation = 0.95 + (Math.random() * 0.10); // +/- 5% (0.95 a 1.05)
+      return +(baseSpeed * 1.05 * randVariation * slowFactor * dirSign).toFixed(3);
+    };
+
+    const dir0 = Math.random() < 0.5 ? 1 : -1;
+    const dir1 = -dir0;
+    const dir2 = Math.random() < 0.5 ? 1 : -1;
+
     this.movingTargets = [
-      { id: 0, x: 150, y: 65, r: 16, vx: 1.3, minX: 45, maxX: 255, hit: false, mult: 3.0, name: 'Oro', color: '#facc15' },
-      { id: 1, x: 100, y: 125, r: 20, vx: -1.6, minX: 40, maxX: 260, hit: false, mult: 2.0, name: 'Plata', color: '#e2e8f0' },
-      { id: 2, x: 180, y: 185, r: 24, vx: 1.1, minX: 35, maxX: 265, hit: false, mult: 1.5, name: 'Bronce', color: '#f59e0b' }
+      { id: 0, x: 75 + Math.floor(Math.random() * 150), y: 65, r: 16, vx: calcTargetSpeed(1.3, dir0), minX: 45, maxX: 255, hit: false, mult: 3.0, name: 'Oro', color: '#facc15' },
+      { id: 1, x: 70 + Math.floor(Math.random() * 160), y: 125, r: 20, vx: calcTargetSpeed(1.6, dir1), minX: 40, maxX: 260, hit: false, mult: 2.0, name: 'Plata', color: '#e2e8f0' },
+      { id: 2, x: 65 + Math.floor(Math.random() * 170), y: 185, r: 24, vx: calcTargetSpeed(1.1, dir2), minX: 35, maxX: 265, hit: false, mult: 1.5, name: 'Bronce', color: '#f59e0b' }
     ];
     this.renderMovingTargetsDOM();
     this.updateMovingTargetsHUD();
@@ -1742,7 +1807,9 @@ class MinigameEngine {
 
     const dartsGroup = document.getElementById('moving-darts-anim-group');
     const impactsGroup = document.getElementById('moving-impacts-group');
-    const duration = 290;
+    // Reducir la velocidad de la pelotita un 10% (mayor tiempo de vuelo)
+    // para que el jugador tenga que anticipar adónde pasará la diana al llegar la bola al final de su camino
+    const duration = 325;
     const startTime = performance.now();
 
     const finishShot = (hitTarget, finalX, finalY) => {
@@ -1793,7 +1860,7 @@ class MinigameEngine {
         }
 
         if (hintEl) {
-          hintEl.innerHTML = `⭐ ¡IMPACTO EN DIANA ${hitTarget.name.toUpperCase()}! (${this.movingHitsCount}/3)`;
+          hintEl.innerHTML = `⭐ ¡IMPACTO EN DIANA ${hitTarget.name.toUpperCase()}! (${this.movingHitsCount}/3 • x${this.movingHitsCount})`;
           hintEl.className = 'text-center text-xs font-black text-amber-300 mt-1 mb-2 animate-bounce';
         }
 
@@ -1820,7 +1887,7 @@ class MinigameEngine {
           }, 550);
         }
         if (hintEl) {
-          hintEl.innerHTML = `💨 ¡Blanco esquivado! Quedan ${this.movingDartsLeft} dardos`;
+          hintEl.innerHTML = `💨 ¡Pasó de largo! Anticipa el movimiento (Quedan ${this.movingDartsLeft} tiros)`;
           hintEl.className = 'text-center text-xs font-bold text-slate-400 mt-1 mb-2';
         }
       }
@@ -1851,28 +1918,16 @@ class MinigameEngine {
         `;
       }
 
-      // En el tramo final del vuelo (cuando la pelota llega al plano del objetivo), comprobar colisión real
-      if (t >= 0.82) {
-        for (const target of this.movingTargets) {
-          if (!target.hit) {
-            const distToTarget = Math.hypot(curX - target.x, curY - target.y);
-            const aimDistY = Math.abs(hitPos.y - target.y);
-            if (distToTarget <= target.r + 6 && aimDistY <= target.r + 14) {
-              finishShot(target, curX, curY);
-              return;
-            }
-          }
-        }
-      }
-
       if (t < 1) {
         requestAnimationFrame(animateFlight);
       } else {
+        // Solo evaluar impacto cuando la pelota llega exactamente al final de su camino (hitPos.x, hitPos.y).
+        // Si el usuario tiró tarde, la diana ya habrá pasado de largo antes de que llegue la bola.
         let hitTarget = null;
         for (const target of this.movingTargets) {
           if (!target.hit) {
             const dist = Math.hypot(hitPos.x - target.x, hitPos.y - target.y);
-            if (dist <= target.r + 8) {
+            if (dist <= target.r + 5) {
               hitTarget = target;
               break;
             }
@@ -1904,21 +1959,26 @@ class MinigameEngine {
     const modalBox = document.querySelector('#modal-roulette .modal-content');
     const hintEl = document.getElementById('moving-gesture-hint');
 
-    let mult = 1.0;
+    // Reglas de multiplicador de Tiro al Blanco:
+    // 0 aciertos -> pierde el pozo en juego (-1.0)
+    // 1 acierto  -> mantiene el pozo en juego (x1.0)
+    // 2 aciertos -> duplica el pozo en juego (x2.0)
+    // 3 aciertos -> triplica el pozo en juego (x3.0)
+    let mult = -1.0;
     if (isPleno || this.movingHitsCount >= 3) {
-      mult = 3.5;
+      mult = 3.0;
     } else if (this.movingHitsCount === 2) {
       mult = 2.0;
     } else if (this.movingHitsCount === 1) {
-      mult = 1.4;
+      mult = 1.0;
     } else {
-      mult = 0.5;
+      mult = -1.0;
     }
 
-    if (mult >= 1.4) {
+    if (this.movingHitsCount >= 1) {
       if (isPleno || this.movingHitsCount >= 3) {
-        this.triggerPerfectCelebration("¡PLENO PERFECTO! 🎯", "¡3 de 3 Blancos Acertados!");
-      } else {
+        this.triggerPerfectCelebration("¡PLENO PERFECTO! 🎯", "¡3 de 3 Blancos Acertados! (x3.0)");
+      } else if (this.movingHitsCount === 2) {
         if (window.audio) {
           window.audio.playWinFanfare();
           window.audio.playCrowdCheer();
@@ -1926,27 +1986,36 @@ class MinigameEngine {
         if (typeof confetti === 'function') {
           confetti({ particleCount: 90, spread: 75, origin: { y: 0.6 } });
         }
+      } else {
+        if (window.audio) {
+          window.audio.playSelect();
+        }
       }
 
       this.applyAndAnimateBonusCoins(mult, false);
 
       if (hintEl) {
-        hintEl.innerHTML = `🏆 ¡${this.movingHitsCount}/3 DIANAS ACERTADAS! (x${mult})`;
-        hintEl.className = 'text-center text-sm font-black text-emerald-400 mt-1 mb-2';
+        if (this.movingHitsCount === 1) {
+          hintEl.innerHTML = `🎯 1/3 Dianas acertadas • Mantienes el pozo (x1.0)`;
+          hintEl.className = 'text-center text-xs font-black text-sky-300 mt-1 mb-2';
+        } else {
+          hintEl.innerHTML = `🏆 ¡${this.movingHitsCount}/3 DIANAS ACERTADAS! (x${mult}.0)`;
+          hintEl.className = 'text-center text-sm font-black text-emerald-400 mt-1 mb-2';
+        }
       }
     } else {
       if (modalBox) modalBox.classList.add('roulette-lose-glow');
       if (window.audio) window.audio.playDisappointedCrowd();
 
       const hasBoost = window.stateManager ? (typeof window.stateManager.hasRouletteBoost === 'function' ? window.stateManager.hasRouletteBoost() : window.stateManager.state.upgrades.rouletteBoost) : false;
-      this.applyAndAnimateBonusCoins(mult, hasBoost);
+      this.applyAndAnimateBonusCoins(-1.0, hasBoost);
 
       if (hintEl) {
         if (hasBoost) {
-          hintEl.textContent = `🛡️ ${this.movingHitsCount}/3 aciertos • ¡Seguro activo!`;
+          hintEl.textContent = `🛡️ 0/3 aciertos • ¡Seguro activo!`;
           hintEl.className = 'text-center text-xs font-black text-sky-300 mt-1 mb-2';
         } else {
-          hintEl.textContent = `❌ ${this.movingHitsCount}/3 aciertos (÷2)`;
+          hintEl.textContent = `❌ 0/3 aciertos • Pierdes el pozo en juego`;
           hintEl.className = 'text-center text-xs font-black text-rose-400 mt-1 mb-2';
         }
       }
@@ -2120,7 +2189,7 @@ class MinigameEngine {
         let finalLvl;
         if (effectiveMult < 0) {
           const lossRatio = Math.min(1, Math.abs(effectiveMult));
-          finalLvl = -Math.round(base * lossRatio);
+          finalLvl = Math.max(0, Math.round(base * (1 - lossRatio)));
         } else {
           finalLvl = Math.round(base * effectiveMult);
         }
