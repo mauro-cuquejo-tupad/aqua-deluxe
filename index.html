@@ -46,10 +46,10 @@
   <link rel="icon" type="image/svg+xml" href="icons/icon.svg">
 
   <!--Modular Stylesheets -->
-  <link rel="stylesheet" href="css/main.css?v=97">
-  <link rel="stylesheet" href="css/tubes.css?v=97">
-  <link rel="stylesheet" href="css/roulette.css?v=97">
-  <link rel="stylesheet" href="css/accessibility.css?v=97">
+  <link rel="stylesheet" href="css/main.css?v=98">
+  <link rel="stylesheet" href="css/tubes.css?v=98">
+  <link rel="stylesheet" href="css/roulette.css?v=98">
+  <link rel="stylesheet" href="css/accessibility.css?v=98">
 </head>
 <body class="min-h-screen flex flex-col justify-between select-none relative">
 
@@ -1819,6 +1819,16 @@
           <span data-i18n="pause.restart">Reiniciar Nivel (-1 ❤️)</span>
         </button>
 
+        <button id="btn-pause-sandbox-regenerate" class="btn-interactive w-full py-2.5 bg-gradient-to-r from-emerald-600/30 to-teal-600/30 hover:from-emerald-600/50 hover:to-teal-600/50 text-emerald-300 border border-emerald-500/40 font-bold text-xs rounded-xl flex items-center justify-center gap-2 hidden">
+          <i data-lucide="shuffle" class="w-4 h-4 text-emerald-400"></i>
+          <span>Regenerar Nivel (Nuevo Puzle) 🎲</span>
+        </button>
+
+        <button id="btn-pause-sandbox-menu" class="btn-interactive w-full py-2.5 bg-slate-800 hover:bg-slate-700 text-cyan-300 border border-cyan-500/40 font-bold text-xs rounded-xl flex items-center justify-center gap-2 hidden">
+          <i data-lucide="sliders" class="w-4 h-4 text-cyan-400"></i>
+          <span>Ajustes del Modo Sandbox ⚙️</span>
+        </button>
+
         <button id="btn-pause-shop" class="btn-interactive w-full py-2.5 bg-amber-500/15 hover:bg-amber-500/25 border border-amber-500/30 text-amber-300 font-bold text-xs rounded-xl flex items-center justify-center gap-2">
           <i data-lucide="shopping-bag" class="w-4 h-4 text-amber-400"></i>
           <span data-i18n="pause.shop">Tienda de Mejoras</span>
@@ -3246,20 +3256,20 @@
   <input type="file" id="input-save-file" accept=".json" class="hidden">
 
   <!-- Scripts modulares -->
-  <script src="js/i18n.js?v=97"></script>
-  <script src="js/firebase-config.js?v=97"></script>
-  <script src="js/cloud-sync.js?v=97"></script>
-  <script src="js/audio.js?v=97"></script>
-  <script src="js/palette.js?v=97"></script>
-  <script src="js/levels.js?v=97"></script>
-  <script src="js/challenges.js?v=97"></script>
-  <script src="js/honor.js?v=97"></script>
-  <script src="js/state.js?v=97"></script>
-  <script src="js/achievements.js?v=97"></script>
-  <script src="js/leaderboard.js?v=97"></script>
-  <script src="js/roulette.js?v=97"></script>
-  <script src="js/story.js?v=97"></script>
-  <script src="js/game.js?v=97"></script>
+  <script src="js/i18n.js?v=98"></script>
+  <script src="js/firebase-config.js?v=98"></script>
+  <script src="js/cloud-sync.js?v=98"></script>
+  <script src="js/audio.js?v=98"></script>
+  <script src="js/palette.js?v=98"></script>
+  <script src="js/levels.js?v=98"></script>
+  <script src="js/challenges.js?v=98"></script>
+  <script src="js/honor.js?v=98"></script>
+  <script src="js/state.js?v=98"></script>
+  <script src="js/achievements.js?v=98"></script>
+  <script src="js/leaderboard.js?v=98"></script>
+  <script src="js/roulette.js?v=98"></script>
+  <script src="js/story.js?v=98"></script>
+  <script src="js/game.js?v=98"></script>
 
   <!-- Registro de Service Worker PWA -->
   <script>
@@ -3272,7 +3282,7 @@
         }
       });
       window.addEventListener('load', () => {
-        navigator.serviceWorker.register('./sw.js?v=97', { updateViaCache: 'none' }).then((reg) => {
+        navigator.serviceWorker.register('./sw.js?v=98', { updateViaCache: 'none' }).then((reg) => {
           reg.update();
           console.log('AlcheMix PWA ServiceWorker activo:', reg.scope);
         }).catch((err) => {

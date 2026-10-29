@@ -1337,6 +1337,38 @@ class GameController {
       cbSuggest.checked = window.stateManager ? window.stateManager.isSandboxPublishPromptEnabled() : true;
     }
 
+    if (this.casualSandboxConfig) {
+      const cfg = this.casualSandboxConfig;
+      if (cfg.tubeCount) {
+        const inpTubes = document.getElementById('input-sandbox-tubes');
+        const lblTubes = document.getElementById('lbl-val-sandbox-tubes');
+        if (inpTubes) inpTubes.value = cfg.tubeCount;
+        if (lblTubes) lblTubes.textContent = cfg.tubeCount;
+      }
+      if (cfg.colorCount) {
+        const inpColors = document.getElementById('input-sandbox-colors');
+        const lblColors = document.getElementById('lbl-val-sandbox-colors');
+        if (inpColors) inpColors.value = cfg.colorCount;
+        if (lblColors) lblColors.textContent = cfg.colorCount;
+      }
+      if (cfg.mechanics) {
+        ['mystery', 'giant', 'lock', 'narrow', 'glued', 'chameleon', 'fragile'].forEach(k => {
+          const cb = document.getElementById(`cb-sandbox-${k}`);
+          if (cb) cb.checked = !!cfg.mechanics[k];
+        });
+      }
+      if (cfg.mechanicCounts) {
+        ['mystery', 'giant', 'lock', 'narrow', 'glued', 'chameleon', 'fragile'].forEach(k => {
+          const slider = document.getElementById(`input-sandbox-count-${k}`);
+          const lbl = document.getElementById(`lbl-val-sandbox-${k}`);
+          if (slider && cfg.mechanicCounts[k] !== undefined) {
+            slider.value = cfg.mechanicCounts[k];
+            if (lbl) lbl.textContent = cfg.mechanicCounts[k] === 0 ? 'Auto' : String(cfg.mechanicCounts[k]);
+          }
+        });
+      }
+    }
+
     const sm = window.stateManager;
     const unlocked = sm ? (sm.state.progress.unlockedLevel || 1) : 1;
     const mechUnlocks = [
@@ -3625,6 +3657,20 @@ class GameController {
         }, 250);
       }
       if (window.audio) window.audio.playWinFanfare();
+
+      if (this.isCasualSandbox) {
+        const canSuggestPublish = window.stateManager ? window.stateManager.isSandboxPublishPromptEnabled() : true;
+        if (!canSuggestPublish) {
+          // Si el usuario deshabilitó la sugerencia de publicación en el menú Sandbox:
+          // Tras la animación de corchos y confeti, avanzar automáticamente a un nuevo nivel
+          // generado a partir de las opciones establecidas por el usuario
+          setTimeout(() => {
+            this.showToast('🎉 ¡Nivel Casual superado! Generando siguiente nivel...', 'success');
+            this.nextCasualSandboxLevel();
+          }, 600);
+          return;
+        }
+      }
 
       this.showVictoryModal(elapsedSecs, combo, starCount, recordResult, scoreData);
     }, this.tubes.length * 320 + 400);
@@ -5941,11 +5987,25 @@ class GameController {
 
     const btnCancelPublish = document.getElementById('btn-cancel-publish');
     if (btnCancelPublish) {
-      this.bindTapOrClick(btnCancelPublish, () => this.hideModal(this.modalPublishLevel));
+      this.bindTapOrClick(btnCancelPublish, () => {
+        const wasSandbox = this.isCasualSandbox;
+        this.hideModal(this.modalPublishLevel);
+        this.pendingPublishLevel = null;
+        if (wasSandbox) {
+          this.nextCasualSandboxLevel();
+        }
+      });
     }
 
     if (this.modalPublishLevel) {
-      this.setupBackdropClose(this.modalPublishLevel, () => this.hideModal(this.modalPublishLevel));
+      this.setupBackdropClose(this.modalPublishLevel, () => {
+        const wasSandbox = this.isCasualSandbox;
+        this.hideModal(this.modalPublishLevel);
+        this.pendingPublishLevel = null;
+        if (wasSandbox) {
+          this.nextCasualSandboxLevel();
+        }
+      });
     }
 
     // Soporte e Instalación de App Móvil (PWA)
@@ -6666,6 +6726,23 @@ class GameController {
       });
     }
 
+    const btnPauseSandboxRegen = document.getElementById('btn-pause-sandbox-regenerate');
+    if (btnPauseSandboxRegen) {
+      this.bindTapOrClick(btnPauseSandboxRegen, () => {
+        this.closePauseModal();
+        this.nextCasualSandboxLevel();
+        if (window.audio) window.audio.playSelect();
+      });
+    }
+
+    const btnPauseSandboxMenu = document.getElementById('btn-pause-sandbox-menu');
+    if (btnPauseSandboxMenu) {
+      this.bindTapOrClick(btnPauseSandboxMenu, () => {
+        this.closePauseModal();
+        this.openCasualSandboxModal();
+      });
+    }
+
     const btnPauseShop = document.getElementById('btn-pause-shop');
     if (btnPauseShop) {
       this.bindTapOrClick(btnPauseShop, () => {
@@ -6906,6 +6983,8 @@ class GameController {
     const btnExitHome = document.getElementById('btn-pause-exit-home');
     const btnExitMap = document.getElementById('btn-pause-exit-map');
     const btnRestart = document.getElementById('btn-pause-restart');
+    const btnSandboxRegen = document.getElementById('btn-pause-sandbox-regenerate');
+    const btnSandboxMenu = document.getElementById('btn-pause-sandbox-menu');
 
     if (this.isCommunityPlay) {
       if (pauseInfo) pauseInfo.textContent = `🧪 Comunidad: ${this.customLevelTesting?.name || 'Nivel'}`;
@@ -6918,6 +6997,8 @@ class GameController {
       if (btnRestart) {
         btnRestart.innerHTML = '<i data-lucide="refresh-cw" class="w-4 h-4 text-purple-400"></i><span>Reiniciar Nivel</span>';
       }
+      if (btnSandboxRegen) btnSandboxRegen.classList.add('hidden');
+      if (btnSandboxMenu) btnSandboxMenu.classList.add('hidden');
     } else if (this.isCasualSandbox) {
       if (pauseInfo) pauseInfo.textContent = '🎲 Modo Casual Infinito';
       if (btnExitHome) {
@@ -6927,7 +7008,13 @@ class GameController {
         btnExitMap.classList.add('hidden');
       }
       if (btnRestart) {
-        btnRestart.innerHTML = '<i data-lucide="refresh-cw" class="w-4 h-4 text-cyan-400"></i><span>Reiniciar Nivel (Sin perder ❤️)</span>';
+        btnRestart.innerHTML = '<i data-lucide="rotate-ccw" class="w-4 h-4 text-cyan-400"></i><span>Reiniciar Nivel (Sin perder ❤️)</span>';
+      }
+      if (btnSandboxRegen) {
+        btnSandboxRegen.classList.remove('hidden');
+      }
+      if (btnSandboxMenu) {
+        btnSandboxMenu.classList.remove('hidden');
       }
     } else {
       if (pauseInfo) pauseInfo.textContent = `Nivel ${this.currentLevel}`;
@@ -6940,6 +7027,8 @@ class GameController {
       if (btnRestart) {
         btnRestart.innerHTML = '<i data-lucide="refresh-cw" class="w-4 h-4 text-rose-400"></i><span>Reiniciar Nivel (-1 ❤️)</span>';
       }
+      if (btnSandboxRegen) btnSandboxRegen.classList.add('hidden');
+      if (btnSandboxMenu) btnSandboxMenu.classList.add('hidden');
     }
     const list = document.getElementById('pause-challenges-list');
     if (list) {
@@ -8283,11 +8372,16 @@ class GameController {
     }
 
     this.hideModal(this.modalPublishLevel);
+    const wasSandbox = this.isCasualSandbox;
     this.pendingPublishLevel = null;
 
     if (window.audio) window.audio.playWinFanfare();
     this.updateCommunityBadgeCount();
     alert(`🚀 ¡Éxito! Tu nivel '${name}' ha sido publicado en la Biblioteca de la Comunidad.\n\n🪙 ¡Recompensa obtenida: +50 Monedas!`);
+
+    if (wasSandbox) {
+      this.nextCasualSandboxLevel();
+    }
   }
 
   openCommunityLevelsModal(filter = 'all') {
