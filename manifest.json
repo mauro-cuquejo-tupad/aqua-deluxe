@@ -1,6 +1,6 @@
 {
-  "name": "AquaSort Master Deluxe",
-  "short_name": "AquaSort",
+  "name": "AlcheMix Master Deluxe",
+  "short_name": "AlcheMix",
   "description": "Desafío Alquímico de Clasificación de Fluidos - Desafíos y Modo Honor",
   "start_url": "./index.html",
   "scope": "./",

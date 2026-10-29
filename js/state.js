@@ -986,7 +986,7 @@ class StateManager {
 
     const a = document.createElement('a');
     a.href = url;
-    a.download = `aquasort_partida_nivel${this.state.progress.unlockedLevel || 1}.json`;
+    a.download = `alchemix_partida_nivel${this.state.progress.unlockedLevel || 1}.json`;
     document.body.appendChild(a);
     a.click();
     document.body.removeChild(a);
@@ -1027,7 +1027,7 @@ class StateManager {
             onLoadedCallback(this.state);
           }
         } else {
-          alert('El archivo seleccionado no tiene el formato válido de partida de AquaSort.');
+          alert('El archivo seleccionado no tiene el formato válido de partida de AlcheMix.');
         }
       } catch (err) {
         alert('Error al leer el archivo de partida: ' + err.message);

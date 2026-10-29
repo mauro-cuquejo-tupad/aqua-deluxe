@@ -199,7 +199,7 @@ class GameController {
 
     // Catálogo de Mecánicas y Guía de Tutoriales (Espaciadas cada 10 niveles)
     this.mechanicsCatalog = [
-      { id: 'basic', title: 'Básico', fullName: 'Reglas Básicas de AquaSort', level: 1, icon: 'droplets' },
+      { id: 'basic', title: 'Básico', fullName: 'Reglas Básicas de AlcheMix', level: 1, icon: 'droplets' },
       { id: 'mystery', title: "Líquidos '?'", fullName: "Líquidos Ocultos '?'", level: 11, icon: 'help-circle' },
       { id: 'giant', title: 'Gigante', fullName: 'Frasco Gigante (Capacidad 6)', level: 21, icon: 'maximize-2' },
       { id: 'lock', title: 'Candado', fullName: 'Candado Alquímico con Llave', level: 31, icon: 'lock' },
@@ -5838,7 +5838,7 @@ class GameController {
       deferredInstallPrompt = e;
       if (btnInstallApp) {
         btnInstallApp.classList.remove('hidden');
-        if (btnInstallAppText) btnInstallAppText.textContent = '📲 Instalar AquaSort en tu Celular';
+        if (btnInstallAppText) btnInstallAppText.textContent = '📲 Instalar AlcheMix en tu Celular';
       }
     });
 
@@ -5864,7 +5864,7 @@ class GameController {
 
     window.addEventListener('appinstalled', () => {
       if (btnInstallApp) btnInstallApp.classList.add('hidden');
-      console.log('AquaSort Deluxe PWA instalada exitosamente');
+      console.log('AlcheMix PWA instalada exitosamente');
     });
 
     // Modal Tienda botones internos
@@ -7167,7 +7167,7 @@ class GameController {
   renderTutorialContent(mechanicId, isNewAnnouncement = false) {
     const tutorials = {
       basic: {
-        title: 'Reglas Básicas de AquaSort',
+        title: 'Reglas Básicas de AlcheMix',
         desc: 'Toca un frasco para levantarlo y luego toca otro para verter su líquido. Solo puedes verter si el frasco de destino tiene espacio libre y el líquido superior coincide en color (¡o si el frasco está totalmente vacío!). Agrupa cada color en su propio frasco para ganar el nivel.',
         icon: 'droplets',
         svg: `
@@ -9711,7 +9711,7 @@ class GameController {
             ${autoPrompt ? '¡Premio por entrar hoy al juego!' : 'Tu cofre diario de hoy está listo'}
           </h3>
           <p class="text-xs text-slate-300 max-w-sm mx-auto leading-relaxed">
-            Cada día al entrar a AquaSort te recompensamos con monedas mágicas. Ábrelo ahora para sumar <strong class="text-amber-300 font-bold">75 monedas</strong> a tu reserva.
+            Cada día al entrar a AlcheMix te recompensamos con monedas mágicas. Ábrelo ahora para sumar <strong class="text-amber-300 font-bold">75 monedas</strong> a tu reserva.
           </p>
         </div>
 
