@@ -393,6 +393,35 @@ class I18nManager {
     if (selectEl) {
       this.populateLanguageSelect(selectEl);
     }
+    this.renderLanguageButtons();
+  }
+
+  renderLanguageButtons() {
+    const groupEl = document.getElementById('language-buttons-group');
+    if (!groupEl) return;
+
+    const langs = this.getAvailableLanguages();
+    groupEl.innerHTML = '';
+
+    langs.forEach((l) => {
+      const isSelected = l.code === this.currentLang;
+      const btn = document.createElement('button');
+      btn.type = 'button';
+      btn.id = `btn-lang-${l.code}`;
+      btn.setAttribute('data-lang', l.code);
+      btn.className = isSelected
+        ? 'btn-lang-choice btn-interactive py-2 px-3 rounded-xl text-xs font-black bg-sky-500 text-slate-950 border border-sky-300 shadow-md flex items-center justify-center gap-1.5 transition-all'
+        : 'btn-lang-choice btn-interactive py-2 px-3 rounded-xl text-xs font-bold bg-slate-900 text-slate-300 hover:text-white border border-slate-700 flex items-center justify-center gap-1.5 transition-all';
+      btn.innerHTML = `<span>${l.flag}</span><span>${l.name}</span>`;
+      btn.addEventListener('click', (e) => {
+        e.stopPropagation();
+        if (window.audio && typeof window.audio.playSelect === 'function') {
+          window.audio.playSelect();
+        }
+        this.setLanguage(l.code);
+      });
+      groupEl.appendChild(btn);
+    });
   }
 
   populateLanguageSelect(selectEl) {
@@ -422,6 +451,7 @@ class I18nManager {
         this.setLanguage(e.target.value);
       });
     }
+    this.renderLanguageButtons();
   }
 }
 
@@ -433,3 +463,4 @@ if (document.readyState === 'loading') {
 } else {
   window.i18n.init();
 }
+

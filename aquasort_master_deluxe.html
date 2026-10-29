@@ -46,10 +46,10 @@
   <link rel="icon" type="image/svg+xml" href="icons/icon.svg">
 
   <!--Modular Stylesheets -->
-  <link rel="stylesheet" href="css/main.css?v=86">
-  <link rel="stylesheet" href="css/tubes.css?v=86">
-  <link rel="stylesheet" href="css/roulette.css?v=86">
-  <link rel="stylesheet" href="css/accessibility.css?v=86">
+  <link rel="stylesheet" href="css/main.css?v=87">
+  <link rel="stylesheet" href="css/tubes.css?v=87">
+  <link rel="stylesheet" href="css/roulette.css?v=87">
+  <link rel="stylesheet" href="css/accessibility.css?v=87">
 </head>
 <body class="min-h-screen flex flex-col justify-between select-none relative">
 
@@ -353,7 +353,7 @@
 
       <div class="flex-1 overflow-y-auto space-y-4 pr-1">
         <!-- Selector de Idioma / Traducción Personalizada (i18n) -->
-        <div class="bg-slate-800/50 border border-slate-700/80 rounded-2xl p-3.5 flex items-center justify-between gap-3">
+        <div class="bg-slate-800/50 border border-slate-700/80 rounded-2xl p-3.5 space-y-2.5">
           <div>
             <div class="text-sm font-bold text-white flex items-center gap-1.5">
               <i data-lucide="globe" class="w-4 h-4 text-sky-400"></i>
@@ -361,7 +361,17 @@
             </div>
             <p class="text-[11px] text-slate-400" data-i18n="settings.languageDesc">Cambia el idioma de la interfaz o usa este archivo (js/i18n.js) para crear tu propia traducción.</p>
           </div>
-          <select id="sel-game-language" class="bg-slate-900 border border-slate-600 rounded-xl px-3 py-1.5 text-xs font-bold text-sky-200 focus:outline-none focus:border-sky-400 cursor-pointer shrink-0">
+          <div id="language-buttons-group" class="grid grid-cols-2 gap-2">
+            <button type="button" id="btn-lang-es" data-lang="es" class="btn-lang-choice btn-interactive py-2 px-3 rounded-xl text-xs font-black bg-sky-500 text-slate-950 border border-sky-300 shadow-md flex items-center justify-center gap-1.5 transition-all">
+              <span>🇪🇸</span>
+              <span>Español</span>
+            </button>
+            <button type="button" id="btn-lang-en" data-lang="en" class="btn-lang-choice btn-interactive py-2 px-3 rounded-xl text-xs font-bold bg-slate-900 text-slate-300 hover:text-white border border-slate-700 flex items-center justify-center gap-1.5 transition-all">
+              <span>🇺🇸</span>
+              <span>English</span>
+            </button>
+          </div>
+          <select id="sel-game-language" class="hidden">
             <option value="es">🇪🇸 Español</option>
             <option value="en">🇺🇸 English</option>
           </select>
@@ -3097,20 +3107,20 @@
   <input type="file" id="input-save-file" accept=".json" class="hidden">
 
   <!-- Scripts modulares -->
-  <script src="js/i18n.js?v=86"></script>
-  <script src="js/firebase-config.js?v=86"></script>
-  <script src="js/cloud-sync.js?v=86"></script>
-  <script src="js/audio.js?v=86"></script>
-  <script src="js/palette.js?v=86"></script>
-  <script src="js/levels.js?v=86"></script>
-  <script src="js/challenges.js?v=86"></script>
-  <script src="js/honor.js?v=86"></script>
-  <script src="js/state.js?v=86"></script>
-  <script src="js/achievements.js?v=86"></script>
-  <script src="js/leaderboard.js?v=86"></script>
-  <script src="js/roulette.js?v=86"></script>
-  <script src="js/story.js?v=86"></script>
-  <script src="js/game.js?v=86"></script>
+  <script src="js/i18n.js?v=87"></script>
+  <script src="js/firebase-config.js?v=87"></script>
+  <script src="js/cloud-sync.js?v=87"></script>
+  <script src="js/audio.js?v=87"></script>
+  <script src="js/palette.js?v=87"></script>
+  <script src="js/levels.js?v=87"></script>
+  <script src="js/challenges.js?v=87"></script>
+  <script src="js/honor.js?v=87"></script>
+  <script src="js/state.js?v=87"></script>
+  <script src="js/achievements.js?v=87"></script>
+  <script src="js/leaderboard.js?v=87"></script>
+  <script src="js/roulette.js?v=87"></script>
+  <script src="js/story.js?v=87"></script>
+  <script src="js/game.js?v=87"></script>
 
   <!-- Registro de Service Worker PWA -->
   <script>
@@ -3123,7 +3133,7 @@
         }
       });
       window.addEventListener('load', () => {
-        navigator.serviceWorker.register('./sw.js?v=86', { updateViaCache: 'none' }).then((reg) => {
+        navigator.serviceWorker.register('./sw.js?v=87', { updateViaCache: 'none' }).then((reg) => {
           reg.update();
           console.log('AlcheMix PWA ServiceWorker activo:', reg.scope);
         }).catch((err) => {
