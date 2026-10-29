@@ -154,7 +154,8 @@ class MinigameEngine {
       }
     }
 
-    const isMovingInProgress = (this.currentMode === 'moving_targets' && this.movingDartsLeft < 4 && !this.isRoundOver);
+    const maxMovingDarts = (this.activeCard === 'movingSlow' ? 4 : 3);
+    const isMovingInProgress = (this.currentMode === 'moving_targets' && this.movingDartsLeft < maxMovingDarts && !this.isRoundOver);
     const isBusy = this.isSpinning || this.isDartFlying || isMovingInProgress;
 
     const betButtons = document.querySelectorAll('.btn-minigame-bet');
@@ -321,7 +322,8 @@ class MinigameEngine {
   }
 
   toggleCard(cardId) {
-    const isMovingInProgress = (this.currentMode === 'moving_targets' && this.movingDartsLeft < 3 && !this.isRoundOver);
+    const maxMovingDarts = (this.activeCard === 'movingSlow' ? 4 : 3);
+    const isMovingInProgress = (this.currentMode === 'moving_targets' && this.movingDartsLeft < maxMovingDarts && !this.isRoundOver);
     if (this.isSpinning || this.isDartFlying || isMovingInProgress) return;
     if (window.audio) window.audio.init();
 
