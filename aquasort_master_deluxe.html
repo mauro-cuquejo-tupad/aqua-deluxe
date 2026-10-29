@@ -45,11 +45,11 @@
   <link rel="apple-touch-icon" href="icons/icon-192.png">
   <link rel="icon" type="image/svg+xml" href="icons/icon.svg">
 
-  <!-- Modular Stylesheets -->
-  <link rel="stylesheet" href="css/main.css?v=83">
-  <link rel="stylesheet" href="css/tubes.css?v=83">
-  <link rel="stylesheet" href="css/roulette.css?v=83">
-  <link rel="stylesheet" href="css/accessibility.css?v=83">
+  <!--Modular Stylesheets -->
+  <link rel="stylesheet" href="css/main.css?v=84">
+  <link rel="stylesheet" href="css/tubes.css?v=84">
+  <link rel="stylesheet" href="css/roulette.css?v=84">
+  <link rel="stylesheet" href="css/accessibility.css?v=84">
 </head>
 <body class="min-h-screen flex flex-col justify-between select-none relative">
 
@@ -65,7 +65,7 @@
           AlcheMix <span class="text-[9px] sm:text-[10px] px-1.5 sm:px-2 py-0.5 rounded-full bg-sky-500/20 text-sky-300 border border-sky-400/40 font-mono">DELUXE</span>
         </h1>
         <div class="text-[11px] text-slate-400 flex items-center gap-1 font-medium">
-          <span>Nivel <strong id="lbl-level" class="text-sky-300 font-bold">1</strong></span>
+          <span><span data-i18n="hud.level">Nivel</span> <strong id="lbl-level" class="text-sky-300 font-bold">1</strong></span>
           <span class="text-slate-600 hidden sm:inline">•</span>
           <span id="lbl-mechanic-tag" class="text-emerald-400 font-semibold truncate max-w-[100px] sm:max-w-none hidden sm:inline">Básico</span>
           <button id="btn-quick-help" class="p-0.5 text-slate-400 hover:text-sky-300 transition-colors hidden sm:inline" title="Ver tutorial/guía de esta mecánica">
@@ -153,7 +153,7 @@
 
         <!-- Movimientos (Óptimo eliminado del HUD, queda como info interna) -->
         <div class="text-xs text-slate-300">
-          Movs: <strong id="lbl-moves" class="text-sky-300 text-sm font-extrabold">0</strong>
+          <span data-i18n="hud.moves">Movs:</span> <strong id="lbl-moves" class="text-sky-300 text-sm font-extrabold">0</strong>
           <span id="lbl-optimal-moves" class="hidden">--</span>
         </div>
 
@@ -167,17 +167,17 @@
 
       <!-- Botones de Acción (Deshacer solo icono, +Botella, Desafíos badge x/3) -->
       <div class="flex items-center gap-1.5 sm:gap-2">
-        <button id="btn-undo" class="btn-interactive p-2 bg-slate-800/90 hover:bg-slate-700 active:scale-95 border border-slate-700/90 rounded-xl text-xs font-bold text-slate-200 transition-all disabled:opacity-40 disabled:pointer-events-none" title="Deshacer último movimiento">
+        <button id="btn-undo" class="btn-interactive p-2 bg-slate-800/90 hover:bg-slate-700 active:scale-95 border border-slate-700/90 rounded-xl text-xs font-bold text-slate-200 transition-all disabled:opacity-40 disabled:pointer-events-none" title="Deshacer último movimiento" data-i18n-title="hud.undoTitle">
           <i data-lucide="rotate-ccw" class="w-4 h-4 text-sky-400"></i>
         </button>
 
-        <button id="btn-add-tube" class="btn-interactive flex items-center gap-1 px-3 py-1.5 bg-emerald-500/20 hover:bg-emerald-500/30 active:scale-95 border border-emerald-500/40 rounded-xl text-xs font-bold text-emerald-300 transition-all disabled:opacity-40 disabled:pointer-events-none" title="Añadir una botella vacía auxiliar (cuesta 1 vida)">
+        <button id="btn-add-tube" class="btn-interactive flex items-center gap-1 px-3 py-1.5 bg-emerald-500/20 hover:bg-emerald-500/30 active:scale-95 border border-emerald-500/40 rounded-xl text-xs font-bold text-emerald-300 transition-all disabled:opacity-40 disabled:pointer-events-none" title="Añadir una botella vacía auxiliar (cuesta 1 vida)" data-i18n-title="hud.addTubeTitle">
           <i data-lucide="plus-circle" class="w-4 h-4 text-emerald-400"></i>
-          <span id="lbl-add-tube-text">+ Botella (❤️)</span>
+          <span id="lbl-add-tube-text" data-i18n="hud.addTube">+ Botella (❤️)</span>
         </button>
 
         <!-- Botón Badge de Cantidad de Desafíos (x/3 sin texto desafíos) -->
-        <button id="btn-challenges-badge" class="btn-interactive flex items-center gap-1.5 px-3 py-1.5 bg-purple-500/20 hover:bg-purple-500/30 active:scale-95 border border-purple-400/50 rounded-xl text-xs font-black text-purple-300 transition-all shadow-sm" title="Ver desafíos del nivel">
+        <button id="btn-challenges-badge" class="btn-interactive flex items-center gap-1.5 px-3 py-1.5 bg-purple-500/20 hover:bg-purple-500/30 active:scale-95 border border-purple-400/50 rounded-xl text-xs font-black text-purple-300 transition-all shadow-sm" title="Ver desafíos del nivel" data-i18n-title="hud.challengesTitle">
           <span>🎯</span>
           <span id="lbl-challenges-badge-count">0/3</span>
         </button>
@@ -213,7 +213,7 @@
 
     <!-- BARRA INFERIOR DE PIE DE PÁGINA -->
     <div class="w-full flex items-center justify-center text-xs text-slate-500 mt-2 border-t border-slate-800/80 pt-2.5">
-      <div class="text-[11px] text-slate-400">
+      <div class="text-[11px] text-slate-400" data-i18n="app.footer">
         AlcheMix Master Deluxe • Accesible y Dinámico
       </div>
     </div>
@@ -228,18 +228,18 @@
         <div>
           <h2 class="text-lg sm:text-xl font-black text-white flex items-center gap-2">
             <i data-lucide="map" class="w-5 h-5 text-sky-400"></i>
-            Mapa de Niveles
+            <span data-i18n="map.title">Mapa de Niveles</span>
           </h2>
-          <p class="text-xs text-slate-400">Selecciona cualquier nivel para jugar o superar tus récords anteriores.</p>
+          <p class="text-xs text-slate-400" data-i18n="map.subtitle">Selecciona cualquier nivel para jugar o superar tus récords anteriores.</p>
         </div>
         <div class="flex items-center gap-2">
           <button id="btn-map-story-gallery" class="btn-interactive px-2.5 py-1.5 rounded-xl bg-purple-500/20 hover:bg-purple-500/30 text-purple-300 border border-purple-400/40 text-xs font-bold flex items-center gap-1.5 shadow-sm" title="Galería de animaciones y cinemáticas del modo historia">
             <i data-lucide="film" class="w-3.5 h-3.5 text-purple-400"></i>
-            <span class="hidden sm:inline">Cinemáticas 📜</span>
+            <span class="hidden sm:inline" data-i18n="map.cinematics">Cinemáticas 📜</span>
           </button>
           <button id="btn-map-endings" class="btn-interactive px-2.5 py-1.5 rounded-xl bg-amber-500/20 hover:bg-amber-500/30 text-amber-300 border border-amber-400/40 text-xs font-bold flex items-center gap-1.5 shadow-sm" title="Ver epílogos y cinemáticas del final">
             <i data-lucide="clapperboard" class="w-3.5 h-3.5 text-amber-400"></i>
-            <span class="hidden sm:inline">Finales 🎭</span>
+            <span class="hidden sm:inline" data-i18n="map.endings">Finales 🎭</span>
           </button>
           <button id="btn-close-map" class="p-2 text-slate-400 hover:text-white rounded-xl bg-slate-800">
             <i data-lucide="x" class="w-5 h-5"></i>
@@ -342,9 +342,9 @@
         <div>
           <h2 class="text-lg sm:text-xl font-black text-white flex items-center gap-2">
             <i data-lucide="sliders-horizontal" class="w-5 h-5 text-sky-400"></i>
-            Opciones y Accesibilidad
+            <span data-i18n="settings.title">Opciones y Accesibilidad</span>
           </h2>
-          <p class="text-xs text-slate-400">Configura modos para baja visión y personaliza todos los colores.</p>
+          <p class="text-xs text-slate-400" data-i18n="settings.subtitle">Configura modos para baja visión y personaliza todos los colores.</p>
         </div>
         <button id="btn-close-settings" class="p-2 text-slate-400 hover:text-white rounded-xl bg-slate-800">
           <i data-lucide="x" class="w-5 h-5"></i>
@@ -352,18 +352,33 @@
       </div>
 
       <div class="flex-1 overflow-y-auto space-y-4 pr-1">
+        <!-- Selector de Idioma / Traducción Personalizada (i18n) -->
+        <div class="bg-slate-800/50 border border-slate-700/80 rounded-2xl p-3.5 flex items-center justify-between gap-3">
+          <div>
+            <div class="text-sm font-bold text-white flex items-center gap-1.5">
+              <i data-lucide="globe" class="w-4 h-4 text-sky-400"></i>
+              <span data-i18n="settings.languageTitle">Idioma / Language</span>
+            </div>
+            <p class="text-[11px] text-slate-400" data-i18n="settings.languageDesc">Cambia el idioma de la interfaz o usa este archivo (js/i18n.js) para crear tu propia traducción.</p>
+          </div>
+          <select id="sel-game-language" class="bg-slate-900 border border-slate-600 rounded-xl px-3 py-1.5 text-xs font-bold text-sky-200 focus:outline-none focus:border-sky-400 cursor-pointer shrink-0">
+            <option value="es">🇪🇸 Español</option>
+            <option value="en">🇺🇸 English</option>
+          </select>
+        </div>
+
         <!-- Personalización de Color de Fondo de la Mesa -->
         <div class="bg-slate-800/50 border border-slate-700/80 rounded-2xl p-3.5 flex items-center justify-between">
           <div>
             <div class="text-sm font-bold text-white flex items-center gap-1.5">
               <i data-lucide="palette" class="w-4 h-4 text-sky-400"></i>
-              <span>Color de Fondo de la Mesa</span>
+              <span data-i18n="settings.bgColorTitle">Color de Fondo de la Mesa</span>
             </div>
-            <p class="text-[11px] text-slate-400">Personaliza el tono del laboratorio de alquimia a tu gusto.</p>
+            <p class="text-[11px] text-slate-400" data-i18n="settings.bgColorDesc">Personaliza el tono del laboratorio de alquimia a tu gusto.</p>
           </div>
           <div class="flex items-center gap-2">
             <input type="color" id="bg-color-picker" value="#0b1329" class="w-8 h-8 rounded-xl cursor-pointer border border-slate-600 bg-transparent" title="Elegir color de fondo">
-            <button id="btn-reset-bg" class="px-2.5 py-1 text-[11px] font-bold text-slate-300 hover:text-white bg-slate-700 hover:bg-slate-600 rounded-lg border border-slate-600 transition-colors">Restablecer</button>
+            <button id="btn-reset-bg" class="px-2.5 py-1 text-[11px] font-bold text-slate-300 hover:text-white bg-slate-700 hover:bg-slate-600 rounded-lg border border-slate-600 transition-colors" data-i18n="settings.resetBtn">Restablecer</button>
           </div>
         </div>
 
@@ -575,8 +590,8 @@
         <i data-lucide="award" class="w-8 h-8"></i>
       </div>
 
-      <h2 id="vic-modal-title" class="text-2xl font-black text-white mb-1">¡Nivel Completado!</h2>
-      <p id="vic-modal-subtitle" class="text-xs text-slate-400 mb-3">Todos los colores han sido clasificados con maestría.</p>
+      <h2 id="vic-modal-title" class="text-2xl font-black text-white mb-1" data-i18n="victory.title">¡Nivel Completado!</h2>
+      <p id="vic-modal-subtitle" class="text-xs text-slate-400 mb-3" data-i18n="victory.subtitle">Todos los colores han sido clasificados con maestría.</p>
 
       <!-- Badge de Campaña Superada -->
       <div id="lbl-vic-completion-badge" class="hidden mb-3 inline-flex items-center gap-1.5 bg-gradient-to-r from-amber-500 via-yellow-400 to-amber-500 text-slate-950 text-xs font-black px-3.5 py-1.5 rounded-full shadow-lg shadow-amber-500/30 animate-bounce">
@@ -614,19 +629,19 @@
       <!-- Resumen de Métricas -->
       <div class="bg-slate-800/80 border border-slate-700/80 rounded-2xl p-3.5 mb-3 text-left space-y-2 text-xs">
         <div class="flex justify-between items-center text-slate-300">
-          <span>Tiempo empleado:</span>
+          <span data-i18n="victory.timeSpent">Tiempo empleado:</span>
           <strong id="lbl-vic-time" class="text-emerald-400 font-mono text-sm">00:00</strong>
         </div>
         <div class="flex justify-between items-center text-slate-300">
-          <span>Movimientos realizados:</span>
+          <span data-i18n="victory.movesMade">Movimientos realizados:</span>
           <strong id="lbl-vic-moves" class="text-white text-sm">0</strong>
         </div>
         <div class="flex justify-between items-center text-slate-300">
-          <span>Combo Consecutivo:</span>
+          <span data-i18n="victory.combo">Combo Consecutivo:</span>
           <strong id="lbl-vic-combo" class="text-amber-400 font-mono text-sm">--</strong>
         </div>
         <div class="border-t border-slate-700/60 pt-2 flex justify-between items-center text-white font-black text-sm">
-          <span>Monedas Ganadas:</span>
+          <span data-i18n="victory.coinsEarned">Monedas Ganadas:</span>
           <span id="lbl-vic-total-coins" class="text-amber-300 text-base">0 🪙</span>
         </div>
       </div>
@@ -691,16 +706,16 @@
       <div class="flex flex-col gap-2">
         <button id="btn-vic-roulette" class="btn-interactive w-full py-3.5 bg-gradient-to-r from-amber-500 to-orange-500 hover:from-amber-400 hover:to-orange-400 text-slate-950 font-black rounded-2xl shadow-lg shadow-orange-500/30 flex items-center justify-center gap-2 transition-all">
           <i data-lucide="sparkles" class="w-5 h-5"></i>
-          <span>Jugar Minijuego de Bonus (🎯 / 🎡 / 🎪)</span>
+          <span data-i18n="victory.playBonusBtn">Jugar Minijuego de Bonus (🎯 / 🎡 / 🎪)</span>
         </button>
 
         <div class="grid grid-cols-2 gap-2">
           <button id="btn-vic-replay" class="btn-interactive py-3 bg-slate-800 hover:bg-slate-700 text-slate-200 border border-slate-600 font-bold rounded-2xl transition-all flex items-center justify-center gap-1.5 shadow-md text-xs sm:text-sm">
             <i data-lucide="rotate-ccw" class="w-4 h-4 text-sky-400"></i>
-            <span>Rehacer Nivel</span>
+            <span data-i18n="victory.replayBtn">Rehacer Nivel</span>
           </button>
           <button id="btn-vic-next" class="btn-interactive py-3 bg-sky-600 hover:bg-sky-500 text-white font-bold rounded-2xl transition-all flex items-center justify-center gap-1.5 shadow-md text-xs sm:text-sm">
-            <span>Siguiente Nivel</span>
+            <span data-i18n="victory.nextLevelBtn">Siguiente Nivel</span>
             <i data-lucide="arrow-right" class="w-4 h-4"></i>
           </button>
         </div>
@@ -721,36 +736,36 @@
         <i data-lucide="gamepad-2" class="w-7 h-7"></i>
       </div>
 
-      <h3 class="text-xl font-black text-white mb-1">Minijuegos</h3>
-      <p class="text-xs text-slate-400 mb-4">Elige un desafío para practicar o apostar tus monedas</p>
+      <h3 class="text-xl font-black text-white mb-1" data-i18n="minigames.menuTitle">Minijuegos</h3>
+      <p class="text-xs text-slate-400 mb-4" data-i18n="minigames.menuSubtitle">Elige un desafío para practicar o apostar tus monedas</p>
 
       <div class="grid grid-cols-2 gap-2.5 mb-4">
         <button id="btn-menu-mg-roulette" type="button" class="btn-interactive p-3.5 rounded-2xl bg-gradient-to-br from-amber-500/20 to-orange-600/20 hover:from-amber-500/35 hover:to-orange-600/35 border border-amber-400/40 flex flex-col items-center justify-center gap-1.5 shadow-md transition-all">
           <span class="text-2xl">🎡</span>
-          <span class="text-sm font-black text-amber-300">Ruleta</span>
-          <span class="text-[10px] text-slate-400 leading-tight">Aguja de precisión y multiplicadores</span>
+          <span class="text-sm font-black text-amber-300" data-i18n="minigames.rouletteTitle">Ruleta</span>
+          <span class="text-[10px] text-slate-400 leading-tight" data-i18n="minigames.rouletteDesc">Aguja de precisión y multiplicadores</span>
         </button>
 
         <button id="btn-menu-mg-diana" type="button" class="btn-interactive p-3.5 rounded-2xl bg-gradient-to-br from-sky-500/20 to-indigo-600/20 hover:from-sky-500/35 hover:to-indigo-600/35 border border-sky-400/40 flex flex-col items-center justify-center gap-1.5 shadow-md transition-all">
           <span class="text-2xl">🎯</span>
-          <span class="text-sm font-black text-sky-300">Diana</span>
-          <span class="text-[10px] text-slate-400 leading-tight">Tiro con honda y desvío por viento</span>
+          <span class="text-sm font-black text-sky-300" data-i18n="minigames.dianaTitle">Diana</span>
+          <span class="text-[10px] text-slate-400 leading-tight" data-i18n="minigames.dianaDesc">Tiro con honda y desvío por viento</span>
         </button>
 
         <button id="btn-menu-mg-moving" type="button" class="btn-interactive p-3.5 rounded-2xl bg-gradient-to-br from-purple-500/20 to-pink-600/20 hover:from-purple-500/35 hover:to-pink-600/35 border border-purple-400/40 flex flex-col items-center justify-center gap-1.5 shadow-md transition-all">
           <span class="text-2xl">🎪</span>
-          <span class="text-sm font-black text-purple-300">Tiro al blanco</span>
-          <span class="text-[10px] text-slate-400 leading-tight">3 blancos móviles en movimiento</span>
+          <span class="text-sm font-black text-purple-300" data-i18n="minigames.movingTitle">Tiro al blanco</span>
+          <span class="text-[10px] text-slate-400 leading-tight" data-i18n="minigames.movingDesc">3 blancos móviles en movimiento</span>
         </button>
 
         <button id="btn-menu-mg-random" type="button" class="btn-interactive p-3.5 rounded-2xl bg-gradient-to-br from-emerald-500/20 to-teal-600/20 hover:from-emerald-500/35 hover:to-teal-600/35 border border-emerald-400/40 flex flex-col items-center justify-center gap-1.5 shadow-md transition-all">
           <span class="text-2xl">🎲</span>
-          <span class="text-sm font-black text-emerald-300">Al azar</span>
-          <span class="text-[10px] text-slate-400 leading-tight">Rota entre los 3 juegos al azar</span>
+          <span class="text-sm font-black text-emerald-300" data-i18n="minigames.randomTitle">Al azar</span>
+          <span class="text-[10px] text-slate-400 leading-tight" data-i18n="minigames.randomDesc">Rota entre los 3 juegos al azar</span>
         </button>
       </div>
 
-      <button id="btn-back-minigames-menu" type="button" class="btn-interactive w-full py-2.5 bg-slate-800 hover:bg-slate-700 text-slate-300 font-bold rounded-xl border border-slate-700 text-xs transition-all">
+      <button id="btn-back-minigames-menu" type="button" class="btn-interactive w-full py-2.5 bg-slate-800 hover:bg-slate-700 text-slate-300 font-bold rounded-xl border border-slate-700 text-xs transition-all" data-i18n="minigames.backHome">
         Volver al Menú Principal
       </button>
     </div>
@@ -1199,28 +1214,28 @@
       <h2 class="brand-font text-2xl sm:text-3xl font-black text-transparent bg-clip-text bg-gradient-to-r from-sky-300 via-cyan-200 to-amber-200 mb-1">
         AlcheMix <span class="text-xs px-2 py-0.5 rounded-full bg-sky-500/20 text-sky-300 border border-sky-400/40 font-mono align-middle">DELUXE</span>
       </h2>
-      <p class="text-xs text-slate-400 mb-5">Desafío Alquímico de Clasificación de Fluidos</p>
+      <p class="text-xs text-slate-400 mb-5" data-i18n="app.subtitle">Desafío Alquímico de Clasificación de Fluidos</p>
 
       <!-- Resumen del Estado del Jugador -->
       <div class="grid grid-cols-3 gap-2.5 bg-slate-800/70 border border-slate-700/60 rounded-2xl p-3 mb-5">
         <div class="text-center">
-          <div class="text-[10px] text-slate-400 uppercase font-bold">Nivel Actual</div>
+          <div class="text-[10px] text-slate-400 uppercase font-bold" data-i18n="home.currentLevel">Nivel Actual</div>
           <div id="home-stat-level" class="text-base sm:text-lg font-black text-sky-300">1</div>
         </div>
         <div class="text-center border-x border-slate-700/60">
-          <div class="text-[10px] text-slate-400 uppercase font-bold">Monedas</div>
+          <div class="text-[10px] text-slate-400 uppercase font-bold" data-i18n="home.coins">Monedas</div>
           <div id="home-stat-coins" class="text-base sm:text-lg font-black text-amber-300">0 🪙</div>
         </div>
         <div class="text-center">
-          <div class="text-[10px] text-slate-400 uppercase font-bold">Botella Extra</div>
-          <div id="home-stat-cooldown" class="text-xs sm:text-sm font-black text-emerald-400 mt-1">Lista</div>
+          <div class="text-[10px] text-slate-400 uppercase font-bold" data-i18n="home.extraBottle">Botella Extra</div>
+          <div id="home-stat-cooldown" class="text-xs sm:text-sm font-black text-emerald-400 mt-1" data-i18n="home.ready">Lista</div>
         </div>
       </div>
 
       <!-- Chip de Estado de la Nube de Google -->
       <div id="home-cloud-status-container" class="mb-2.5 flex items-center justify-center">
         <button id="home-cloud-status-pill" class="btn-interactive px-3.5 py-1.5 rounded-full bg-slate-800/90 border border-slate-700/80 hover:border-sky-500/50 hover:bg-slate-800 transition-all flex items-center gap-2 shadow-sm text-xs">
-          <span>☁️ Guardar en Google</span>
+          <span data-i18n="home.cloudSave">☁️ Guardar en Google</span>
         </button>
       </div>
 
@@ -1237,47 +1252,47 @@
         <div class="space-y-1.5">
           <button id="btn-home-play" class="btn-interactive w-full py-3.5 bg-gradient-to-r from-sky-500 via-cyan-500 to-indigo-600 hover:from-sky-400 hover:to-indigo-500 text-white font-black text-sm rounded-2xl shadow-lg shadow-sky-500/30 flex items-center justify-center gap-2">
             <i data-lucide="play" class="w-5 h-5 fill-white"></i>
-            <span id="btn-home-play-text">Jugar</span>
+            <span id="btn-home-play-text" data-i18n="home.play">Jugar</span>
           </button>
           <button id="btn-home-map" class="btn-interactive w-full py-2 bg-slate-800/90 hover:bg-slate-700 border border-slate-700 text-sky-300 font-bold text-xs rounded-xl flex items-center justify-center gap-1.5">
             <i data-lucide="map" class="w-4 h-4 text-sky-400"></i>
-            <span>Mapa y Selección de Niveles</span>
+            <span data-i18n="home.levelMap">Mapa y Selección de Niveles</span>
           </button>
         </div>
 
         <!-- 2. MODO CASUAL -->
         <button id="btn-home-casual" class="btn-interactive w-full py-3 bg-gradient-to-r from-emerald-600/30 via-teal-600/30 to-emerald-600/30 hover:from-emerald-600/50 hover:to-teal-600/50 border border-emerald-400/40 text-emerald-200 font-bold text-xs sm:text-sm rounded-2xl flex items-center justify-center gap-2 shadow-sm">
           <i data-lucide="infinity" class="w-4 h-4 text-emerald-400"></i>
-          <span>Modo Casual Infinito (Sandbox) 🎲</span>
+          <span data-i18n="home.casualMode">Modo Casual Infinito (Sandbox) 🎲</span>
         </button>
 
         <!-- 3. MODO CONTRARRELOJ -->
         <button id="btn-home-time-attack" class="btn-interactive w-full py-3 bg-gradient-to-r from-orange-600/30 via-amber-600/30 to-orange-600/30 hover:from-orange-600/50 hover:to-amber-600/50 border border-orange-400/40 text-amber-200 font-bold text-xs sm:text-sm rounded-2xl flex items-center justify-center gap-2 shadow-sm">
           <i data-lucide="hourglass" class="w-4 h-4 text-orange-400"></i>
-          <span>Modo Contrarreloj (Alquimia Viva) ⏳</span>
+          <span data-i18n="home.timeAttackMode">Modo Contrarreloj (Alquimia Viva) ⏳</span>
         </button>
 
         <!-- 4. MINIJUEGOS -->
         <button id="btn-home-minigame" class="btn-interactive w-full py-3 bg-gradient-to-r from-rose-500/25 via-amber-500/30 to-yellow-500/25 hover:from-rose-500/40 hover:to-yellow-500/40 border border-amber-400/40 text-amber-300 font-bold text-xs sm:text-sm rounded-2xl flex items-center justify-center gap-2 shadow-sm">
           <i data-lucide="target" class="w-4 h-4 text-rose-400"></i>
-          <span>Minijuegos</span>
+          <span data-i18n="home.minigames">Minijuegos</span>
         </button>
 
         <!-- 5. EXTRAS Y COLECCIONES -->
         <button id="btn-home-extras" class="btn-interactive w-full py-3 bg-gradient-to-r from-purple-600/25 via-violet-600/30 to-indigo-600/25 hover:from-purple-600/40 hover:to-indigo-600/40 border border-purple-400/40 text-purple-200 font-bold text-xs sm:text-sm rounded-2xl flex items-center justify-center gap-2 shadow-sm">
           <i data-lucide="sparkles" class="w-4 h-4 text-purple-300"></i>
-          <span>Extras, Desafíos y Logros ✨</span>
+          <span data-i18n="home.extras">Extras, Desafíos y Logros ✨</span>
         </button>
 
         <!-- Utilidades Rápidas: Tienda y Ajustes -->
         <div class="grid grid-cols-2 gap-2 pt-1 border-t border-slate-800">
           <button id="btn-home-shop" class="btn-interactive py-2.5 bg-slate-800 hover:bg-slate-700/90 border border-slate-700 text-amber-300 font-bold text-xs rounded-xl flex items-center justify-center gap-1.5">
             <i data-lucide="shopping-bag" class="w-4 h-4 text-amber-400"></i>
-            <span>Tienda</span>
+            <span data-i18n="home.shop">Tienda</span>
           </button>
           <button id="btn-home-settings" class="btn-interactive py-2.5 bg-slate-800 hover:bg-slate-700/90 border border-slate-700 text-sky-300 font-bold text-xs rounded-xl flex items-center justify-center gap-1.5">
             <i data-lucide="sliders-horizontal" class="w-4 h-4 text-sky-400"></i>
-            <span>Ajustes</span>
+            <span data-i18n="home.settings">Ajustes</span>
           </button>
         </div>
       </div>
@@ -1297,8 +1312,8 @@
             <i data-lucide="sparkles" class="w-5 h-5"></i>
           </div>
           <div class="text-left">
-            <h3 class="text-base sm:text-lg font-black text-white">Extras y Colecciones</h3>
-            <p class="text-[11px] text-slate-400">Modos secundarios, logros y utilidades</p>
+            <h3 class="text-base sm:text-lg font-black text-white" data-i18n="extras.title">Extras y Colecciones</h3>
+            <p class="text-[11px] text-slate-400" data-i18n="extras.subtitle">Modos secundarios, logros y utilidades</p>
           </div>
         </div>
         <button id="btn-close-extras" class="p-1.5 text-slate-400 hover:text-white rounded-xl bg-slate-800">
@@ -1319,7 +1334,7 @@
             <button id="btn-open-daily" class="btn-interactive w-full py-2.5 px-3.5 bg-gradient-to-r from-amber-500/20 to-yellow-500/20 hover:from-amber-500/30 hover:to-yellow-500/30 border border-amber-400/40 text-amber-200 font-bold text-xs rounded-xl flex items-center justify-between shadow-sm">
               <div class="flex items-center gap-2">
                 <span class="text-base">👑</span>
-                <span>Desafío de Nivel Diario</span>
+                <span data-i18n="extras.dailyChallenge">Desafío de Nivel Diario</span>
               </div>
               <span class="text-[10px] bg-amber-500/20 text-amber-300 px-2 py-0.5 rounded-full font-mono">1 por día</span>
             </button>
@@ -1328,7 +1343,7 @@
             <button id="btn-home-story" class="btn-interactive w-full py-2.5 px-3.5 bg-violet-600/20 hover:bg-violet-600/35 border border-violet-400/30 text-violet-200 font-bold text-xs rounded-xl flex items-center justify-between">
               <div class="flex items-center gap-2">
                 <i data-lucide="book-open" class="w-4 h-4 text-violet-300"></i>
-                <span>Crónicas del Alquimista (Lore)</span>
+                <span data-i18n="extras.storyLore">Crónicas del Alquimista (Lore)</span>
               </div>
               <span class="text-xs">📜</span>
             </button>
@@ -1337,7 +1352,7 @@
             <button id="btn-home-endings" class="btn-interactive w-full py-2.5 px-3.5 bg-slate-800 hover:bg-slate-700/80 border border-slate-700 text-amber-300 font-bold text-xs rounded-xl flex items-center justify-between">
               <div class="flex items-center gap-2">
                 <i data-lucide="clapperboard" class="w-4 h-4 text-amber-400"></i>
-                <span>Epílogos y Finales</span>
+                <span data-i18n="extras.endings">Epílogos y Finales</span>
               </div>
               <span class="text-xs">🎭</span>
             </button>
@@ -1354,13 +1369,13 @@
             <!-- Salón de Logros -->
             <button id="btn-home-achievements" class="btn-interactive py-2.5 px-3 bg-amber-500/15 hover:bg-amber-500/25 border border-amber-400/30 text-amber-200 font-bold text-xs rounded-xl flex items-center justify-center gap-1.5">
               <i data-lucide="award" class="w-4 h-4 text-amber-400"></i>
-              <span>Salón de Logros</span>
+              <span data-i18n="extras.achievements">Salón de Logros</span>
             </button>
 
             <!-- Tabla de Récords -->
             <button id="btn-home-leaderboard" class="btn-interactive py-2.5 px-3 bg-slate-800 hover:bg-slate-700 border border-slate-700 text-slate-200 font-bold text-xs rounded-xl flex items-center justify-center gap-1.5">
               <i data-lucide="trophy" class="w-4 h-4 text-amber-400"></i>
-              <span>Tabla de Récords</span>
+              <span data-i18n="extras.leaderboard">Tabla de Récords</span>
             </button>
           </div>
         </div>
@@ -1376,7 +1391,7 @@
             <button id="btn-home-tutorials" class="btn-interactive w-full py-2.5 px-3.5 bg-sky-500/15 hover:bg-sky-500/25 border border-sky-400/30 text-sky-200 font-bold text-xs rounded-xl flex items-center justify-between">
               <div class="flex items-center gap-2">
                 <i data-lucide="flask-conical" class="w-4 h-4 text-sky-400"></i>
-                <span>Guía y Tutoriales de Tubos</span>
+                <span data-i18n="extras.tutorials">Guía y Tutoriales de Tubos</span>
               </div>
               <span class="text-xs">📖</span>
             </button>
@@ -1385,7 +1400,7 @@
             <button id="btn-open-community-levels" class="btn-interactive w-full py-2.5 px-3.5 bg-gradient-to-r from-purple-600/30 via-indigo-600/30 to-purple-600/30 hover:from-purple-600/45 hover:to-indigo-600/45 border border-purple-400/40 text-purple-200 font-bold text-xs rounded-xl flex items-center justify-between shadow-sm">
               <div class="flex items-center gap-2">
                 <i data-lucide="sparkles" class="w-4 h-4 text-purple-400"></i>
-                <span>Niveles de la Comunidad</span>
+                <span data-i18n="extras.communityLevels">Niveles de la Comunidad</span>
               </div>
               <span id="lbl-community-levels-badge" class="text-[10px] bg-purple-500/25 text-purple-300 px-2 py-0.5 rounded-full font-mono border border-purple-400/30">0 Niveles</span>
             </button>
@@ -1396,7 +1411,7 @@
         <div class="pt-2 border-t border-slate-800">
           <button id="btn-install-app" class="btn-interactive w-full py-2.5 bg-slate-800 hover:bg-slate-700 border border-slate-700 text-sky-200 font-bold text-xs rounded-xl flex items-center justify-center gap-2">
             <i data-lucide="smartphone" class="w-4 h-4 text-sky-300"></i>
-            <span id="btn-install-app-text">📲 Instalar como App Móvil</span>
+            <span id="btn-install-app-text" data-i18n="extras.installApp">📲 Instalar como App Móvil</span>
           </button>
         </div>
       </div>
@@ -1517,9 +1532,9 @@
         <div>
           <h2 class="text-lg sm:text-xl font-black text-white flex items-center gap-2">
             <i data-lucide="shopping-bag" class="w-5 h-5 text-amber-400"></i>
-            Tienda del Alquimista
+            <span data-i18n="shop.title">Tienda del Alquimista</span>
           </h2>
-          <p class="text-xs text-slate-400">Mejoras permanentes, vidas y recargas con tus monedas ganadas.</p>
+          <p class="text-xs text-slate-400" data-i18n="shop.subtitle">Mejoras permanentes, vidas y recargas con tus monedas ganadas.</p>
         </div>
         <div class="flex items-center gap-3">
           <div class="flex items-center gap-1.5 bg-amber-500/15 border border-amber-500/40 px-3 py-1.5 rounded-xl text-amber-300 font-black text-xs sm:text-sm shadow-inner">
@@ -1679,7 +1694,7 @@
             ⏸️
           </div>
           <div>
-            <h3 class="text-base sm:text-lg font-black text-white">Juego en Pausa</h3>
+            <h3 class="text-base sm:text-lg font-black text-white" data-i18n="pause.title">Juego en Pausa</h3>
             <p id="pause-level-info" class="text-xs text-slate-400">Nivel 1</p>
           </div>
         </div>
@@ -1692,7 +1707,7 @@
       <div class="flex items-center justify-between bg-amber-500/10 border border-amber-500/30 px-3.5 py-2.5 rounded-2xl mb-3 shadow-inner">
         <div class="flex items-center gap-2">
           <i data-lucide="coins" class="w-4 h-4 text-amber-400"></i>
-          <span class="text-xs text-slate-300 font-semibold">Monedas Alquímicas</span>
+          <span class="text-xs text-slate-300 font-semibold" data-i18n="pause.coinsLabel">Monedas Alquímicas</span>
         </div>
         <div class="flex items-center gap-2">
           <span id="pause-lbl-coins" class="text-amber-300 font-black text-sm">0</span>
@@ -1704,7 +1719,7 @@
       <div class="mb-4">
         <h4 class="text-xs font-black text-purple-300 uppercase tracking-wider mb-2 flex items-center gap-1.5">
           <i data-lucide="target" class="w-3.5 h-3.5 text-purple-400"></i>
-          <span>Estado de los Desafíos</span>
+          <span data-i18n="pause.challengesStatus">Estado de los Desafíos</span>
         </h4>
         <div id="pause-challenges-list" class="space-y-2 max-h-44 overflow-y-auto pr-1">
           <!-- Renderizado dinámico de estado en vivo de desafíos -->
@@ -1715,32 +1730,32 @@
       <div class="space-y-2 pt-2 border-t border-slate-800">
         <button id="btn-pause-resume" class="btn-interactive w-full py-3 bg-gradient-to-r from-emerald-500 to-teal-600 hover:from-emerald-400 hover:to-teal-500 text-slate-950 font-black text-xs sm:text-sm rounded-xl shadow-md shadow-emerald-500/20 flex items-center justify-center gap-2">
           <i data-lucide="play" class="w-4 h-4 fill-slate-950"></i>
-          <span>Reanudar Partida</span>
+          <span data-i18n="pause.resume">Reanudar Partida</span>
         </button>
 
         <button id="btn-pause-restart" class="btn-interactive w-full py-2.5 bg-slate-800 hover:bg-slate-700 text-rose-300 border border-rose-500/30 font-bold text-xs rounded-xl flex items-center justify-center gap-2">
           <i data-lucide="refresh-cw" class="w-4 h-4 text-rose-400"></i>
-          <span>Reiniciar Nivel (-1 ❤️)</span>
+          <span data-i18n="pause.restart">Reiniciar Nivel (-1 ❤️)</span>
         </button>
 
         <button id="btn-pause-shop" class="btn-interactive w-full py-2.5 bg-amber-500/15 hover:bg-amber-500/25 border border-amber-500/30 text-amber-300 font-bold text-xs rounded-xl flex items-center justify-center gap-2">
           <i data-lucide="shopping-bag" class="w-4 h-4 text-amber-400"></i>
-          <span>Tienda de Mejoras</span>
+          <span data-i18n="pause.shop">Tienda de Mejoras</span>
         </button>
 
         <button id="btn-pause-settings" class="btn-interactive w-full py-2.5 bg-slate-800 hover:bg-slate-700 text-sky-300 border border-sky-500/30 font-bold text-xs rounded-xl flex items-center justify-center gap-2">
           <i data-lucide="sliders-horizontal" class="w-4 h-4 text-sky-400"></i>
-          <span>Ajustes y Accesibilidad</span>
+          <span data-i18n="pause.settings">Ajustes y Accesibilidad</span>
         </button>
 
         <button id="btn-pause-exit-map" class="btn-interactive w-full py-2.5 bg-slate-800/80 hover:bg-slate-700 text-slate-400 hover:text-white font-medium text-xs rounded-xl flex items-center justify-center gap-2">
           <i data-lucide="map" class="w-4 h-4 text-sky-400"></i>
-          <span>Salir al Mapa</span>
+          <span data-i18n="pause.exitMap">Salir al Mapa</span>
         </button>
 
         <button id="btn-pause-exit-home" class="btn-interactive w-full py-2.5 bg-slate-800/80 hover:bg-slate-700 text-amber-300 hover:text-white font-medium text-xs rounded-xl flex items-center justify-center gap-2">
           <i data-lucide="home" class="w-4 h-4 text-amber-400"></i>
-          <span>Salir al Menú Principal</span>
+          <span data-i18n="pause.exitHome">Salir al Menú Principal</span>
         </button>
       </div>
     </div>
@@ -3083,19 +3098,20 @@
   <input type="file" id="input-save-file" accept=".json" class="hidden">
 
   <!-- Scripts modulares -->
-  <script src="js/firebase-config.js?v=83"></script>
-  <script src="js/cloud-sync.js?v=83"></script>
-  <script src="js/audio.js?v=83"></script>
-  <script src="js/palette.js?v=83"></script>
-  <script src="js/levels.js?v=83"></script>
-  <script src="js/challenges.js?v=83"></script>
-  <script src="js/honor.js?v=83"></script>
-  <script src="js/state.js?v=83"></script>
-  <script src="js/achievements.js?v=83"></script>
-  <script src="js/leaderboard.js?v=83"></script>
-  <script src="js/roulette.js?v=83"></script>
-  <script src="js/story.js?v=83"></script>
-  <script src="js/game.js?v=83"></script>
+  <script src="js/i18n.js?v=84"></script>
+  <script src="js/firebase-config.js?v=84"></script>
+  <script src="js/cloud-sync.js?v=84"></script>
+  <script src="js/audio.js?v=84"></script>
+  <script src="js/palette.js?v=84"></script>
+  <script src="js/levels.js?v=84"></script>
+  <script src="js/challenges.js?v=84"></script>
+  <script src="js/honor.js?v=84"></script>
+  <script src="js/state.js?v=84"></script>
+  <script src="js/achievements.js?v=84"></script>
+  <script src="js/leaderboard.js?v=84"></script>
+  <script src="js/roulette.js?v=84"></script>
+  <script src="js/story.js?v=84"></script>
+  <script src="js/game.js?v=84"></script>
 
   <!-- Registro de Service Worker PWA -->
   <script>
@@ -3108,7 +3124,7 @@
         }
       });
       window.addEventListener('load', () => {
-        navigator.serviceWorker.register('./sw.js?v=83', { updateViaCache: 'none' }).then((reg) => {
+        navigator.serviceWorker.register('./sw.js?v=84', { updateViaCache: 'none' }).then((reg) => {
           reg.update();
           console.log('AlcheMix PWA ServiceWorker activo:', reg.scope);
         }).catch((err) => {
