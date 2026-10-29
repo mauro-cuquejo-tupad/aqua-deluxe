@@ -37,7 +37,9 @@ class MinigameEngine {
     this.timingAnimId = null;
     this.lastTimingNow = 0;
     this.goldCenter = 0.50; // Jitter +-5% (0.45 a 0.55)
-    this.goldWidth = 0.08;   // Achicado al 8% (más costoso)
+    this.goldWidth = 0.10;   // 10% en el centro (+2% sumado desde el azul)
+    this.innerRedSpan = 0.05; // 5% de zona roja a izquierda y derecha del oro
+    this.blueSpan = 0.19;     // 19% de zona azul a cada lado (-1% cedido al oro)
 
     // --- DIANA DE DARDOS (SLINGSHOT / RESORTE TÁCTIL) ---
     this.windSpeed = 2.8; // m/s
@@ -681,7 +683,7 @@ class MinigameEngine {
     }
   }
 
-  // --- BARRA DE TIMING ACTIVO (ZONA DORADA ACHICADA AL 8% CON JITTER +-5%) ---
+  // --- BARRA DE TIMING ACTIVO (ZONA DORADA 10% FLANQUEADA POR 5% ROJO INTERNO Y 19% AZUL) ---
   startTimingBar() {
     this.stopTimingBar();
     this.timingActive = true;
@@ -693,10 +695,12 @@ class MinigameEngine {
     this.goldCenter = 0.50 + ((Math.random() - 0.5) * 0.10);
     // Carta Ojo de Oro duplica el margen del tiro perfecto y ralentiza la aguja
     const isEyeActive = (this.activeCard === 'goldenEye');
-    this.goldWidth = isEyeActive ? 0.16 : 0.08;
+    this.goldWidth = isEyeActive ? 0.20 : 0.10;
+    this.innerRedSpan = 0.05;
+    this.blueSpan = 0.19;
     this.timingSpeed = isEyeActive ? 0.55 : 0.95;
 
-    // Actualizar ancho y posición de las 5 zonas en el medidor
+    // Actualizar ancho y posición de las 7 zonas en el medidor
     this.updateTimingMeterSegments();
 
     if (this.timingNeedle) {
@@ -733,27 +737,39 @@ class MinigameEngine {
   }
 
   updateTimingMeterSegments() {
-    const goldMin = Math.max(0.08, this.goldCenter - (this.goldWidth / 2));
-    const goldMax = Math.min(0.92, this.goldCenter + (this.goldWidth / 2));
-    const blueSpan = 0.20;
+    const innerRedSpan = this.innerRedSpan || 0.05;
+    const blueSpan = this.blueSpan || 0.19;
 
-    const blueLeftMin = Math.max(0.05, goldMin - blueSpan);
+    const goldMin = Math.max(0.28, this.goldCenter - (this.goldWidth / 2));
+    const goldMax = Math.min(0.72, this.goldCenter + (this.goldWidth / 2));
+
+    const innerRedLeftMin = Math.max(0.21, goldMin - innerRedSpan);
+    const innerRedRightMax = Math.min(0.79, goldMax + innerRedSpan);
+
+    const blueLeftMin = Math.max(0.02, innerRedLeftMin - blueSpan);
+    const blueRightMax = Math.min(0.98, innerRedRightMax + blueSpan);
+
     const redLeftWidth = blueLeftMin;
-    const blueLeftWidth = goldMin - blueLeftMin;
+    const blueLeftWidth = innerRedLeftMin - blueLeftMin;
+    const innerRedLeftWidth = goldMin - innerRedLeftMin;
     const goldWidthActual = goldMax - goldMin;
-    const blueRightMax = Math.min(0.95, goldMax + blueSpan);
-    const blueRightWidth = blueRightMax - goldMax;
+    const innerRedRightWidth = innerRedRightMax - goldMax;
+    const blueRightWidth = blueRightMax - innerRedRightMax;
     const redRightWidth = 1.0 - blueRightMax;
 
     const zRedLeft = document.getElementById('timing-zone-red-left');
     const zBlueLeft = document.getElementById('timing-zone-blue-left');
+    const zRedInnerLeft = document.getElementById('timing-zone-red-inner-left');
     const zGold = document.getElementById('timing-zone-gold');
+    const zRedInnerRight = document.getElementById('timing-zone-red-inner-right');
     const zBlueRight = document.getElementById('timing-zone-blue-right');
     const zRedRight = document.getElementById('timing-zone-red-right');
 
     if (zRedLeft) zRedLeft.style.width = `${redLeftWidth * 100}%`;
     if (zBlueLeft) zBlueLeft.style.width = `${blueLeftWidth * 100}%`;
+    if (zRedInnerLeft) zRedInnerLeft.style.width = `${innerRedLeftWidth * 100}%`;
     if (zGold) zGold.style.width = `${goldWidthActual * 100}%`;
+    if (zRedInnerRight) zRedInnerRight.style.width = `${innerRedRightWidth * 100}%`;
     if (zBlueRight) zBlueRight.style.width = `${blueRightWidth * 100}%`;
     if (zRedRight) zRedRight.style.width = `${redRightWidth * 100}%`;
   }
@@ -798,16 +814,22 @@ class MinigameEngine {
     if (touchHint) touchHint.classList.add('hidden');
     const pos = this.timingPos;
 
-    const goldMin = this.goldCenter - (this.goldWidth / 2);
-    const goldMax = this.goldCenter + (this.goldWidth / 2);
-    const blueSpan = 0.20;
-    const blueMin = goldMin - blueSpan;
-    const blueMax = goldMax + blueSpan;
+    const innerRedSpan = this.innerRedSpan || 0.05;
+    const blueSpan = this.blueSpan || 0.19;
 
-    let timingResult = 'normal';
+    const goldMin = Math.max(0.28, this.goldCenter - (this.goldWidth / 2));
+    const goldMax = Math.min(0.72, this.goldCenter + (this.goldWidth / 2));
+    const innerRedLeftMin = Math.max(0.21, goldMin - innerRedSpan);
+    const innerRedRightMax = Math.min(0.79, goldMax + innerRedSpan);
+    const blueLeftMin = Math.max(0.02, innerRedLeftMin - blueSpan);
+    const blueRightMax = Math.min(0.98, innerRedRightMax + blueSpan);
+
+    let timingResult = 'fail';
     if (pos >= goldMin && pos <= goldMax) {
       timingResult = 'perfect';
-    } else if (pos < blueMin || pos > blueMax) {
+    } else if ((pos >= blueLeftMin && pos < innerRedLeftMin) || (pos > innerRedRightMax && pos <= blueRightMax)) {
+      timingResult = 'normal';
+    } else {
       timingResult = 'fail';
     }
 
@@ -848,10 +870,41 @@ class MinigameEngine {
     } else if (timingResult === 'fail') {
       if (this.timingNeedle) this.timingNeedle.classList.add('locked-red');
       if (this.timingFeedbackLbl) {
-        this.timingFeedbackLbl.innerHTML = '⚠️ <strong class="text-rose-400">Tiro a Destiempo:</strong> riesgo elevado de quiebra ⚠️';
+        this.timingFeedbackLbl.innerHTML = '⚠️ <strong class="text-rose-400">Zona Roja:</strong> +5% a cada sector negativo (-5% a 💰x 2 y 💰x 3) ⚠️';
         this.timingFeedbackLbl.className = 'text-center text-[11px] font-black text-rose-400 mt-1 min-h-[16px]';
       }
       if (window.audio) window.audio.playFailSound();
+
+      // Al caer en Zona Roja: cada sector negativo aumenta +5% (+10% en total),
+      // restándole -5% a 💰x 2 (Verde) y -5% a 💰x 3 (Dorado):
+      // • Negro  (💰x 0, 10% total = 36°) : 2 porciones de 18° c/u (5% c/u)
+      // • Rojo   (💰/ 2, 15% total = 54°) : 2 porciones de 27° c/u (7.5% c/u)
+      // • Azul   (💰x 1, 40% total = 144°): 4 porciones de 36° c/u (10% c/u)
+      // • Verde  (💰x 2, 25% total = 90°) : 3 porciones de 30° c/u (8.33% c/u)
+      // • Dorado (💰x 3, 10% total = 36°) : 1 porción de 36° (10%)
+      const isDouble = (this.activeCard === 'doubleOrNothing');
+      const failPool = [
+        // 2x Negro (10% total = 36°)
+        { id: 'bankrupt_f1', type: 'bankrupt', label: '💰x 0', value: -1.0, spanDeg: 18, hex: '#09090b', isWin: false, isNegative: true },
+        { id: 'bankrupt_f2', type: 'bankrupt', label: '💰x 0', value: -1.0, spanDeg: 18, hex: '#09090b', isWin: false, isNegative: true },
+        // 2x Rojo (15% total = 54°)
+        { id: 'half_loss_f1', type: 'half_loss', label: isDouble ? '💰x 0' : '💰/ 2', value: isDouble ? -1.0 : -0.5, spanDeg: 27, hex: '#dc2626', isWin: false, isNegative: true },
+        { id: 'half_loss_f2', type: 'half_loss', label: isDouble ? '💰x 0' : '💰/ 2', value: isDouble ? -1.0 : -0.5, spanDeg: 27, hex: '#dc2626', isWin: false, isNegative: true },
+        // 4x Azul (40% total = 144°)
+        { id: 'keep_f1', type: 'keep', label: isDouble ? '💰x 2' : '💰x 1', value: isDouble ? 2.0 : 1.0, spanDeg: 36, hex: '#2563eb', isWin: true, isNegative: false },
+        { id: 'keep_f2', type: 'keep', label: isDouble ? '💰x 2' : '💰x 1', value: isDouble ? 2.0 : 1.0, spanDeg: 36, hex: '#2563eb', isWin: true, isNegative: false },
+        { id: 'keep_f3', type: 'keep', label: isDouble ? '💰x 2' : '💰x 1', value: isDouble ? 2.0 : 1.0, spanDeg: 36, hex: '#2563eb', isWin: true, isNegative: false },
+        { id: 'keep_f4', type: 'keep', label: isDouble ? '💰x 2' : '💰x 1', value: isDouble ? 2.0 : 1.0, spanDeg: 36, hex: '#2563eb', isWin: true, isNegative: false },
+        // 3x Verde (25% total = 90°)
+        { id: 'double_f1', type: 'double', label: isDouble ? '💰x 4' : '💰x 2', value: isDouble ? 4.0 : 2.0, spanDeg: 30, hex: '#16a34a', isWin: true, isNegative: false },
+        { id: 'double_f2', type: 'double', label: isDouble ? '💰x 4' : '💰x 2', value: isDouble ? 4.0 : 2.0, spanDeg: 30, hex: '#16a34a', isWin: true, isNegative: false },
+        { id: 'double_f3', type: 'double', label: isDouble ? '💰x 4' : '💰x 2', value: isDouble ? 4.0 : 2.0, spanDeg: 30, hex: '#16a34a', isWin: true, isNegative: false },
+        // 1x Dorado (10% total = 36°)
+        { id: 'triple_f1', type: 'triple', label: isDouble ? '💰x 6' : '💰x 3', value: isDouble ? 6.0 : 3.0, spanDeg: 36, hex: '#eab308', isWin: true, isNegative: false }
+      ];
+      const distributedFail = this.distributeSlicesAvoidingAdjacents(failPool);
+      this.assignSliceAngles(distributedFail);
+      this.renderWheel();
     } else {
       if (this.timingFeedbackLbl) {
         this.timingFeedbackLbl.innerHTML = '🎯 <strong class="text-sky-300">Tiro Estándar:</strong> giro sin penalización';
@@ -879,30 +932,13 @@ class MinigameEngine {
     this.isSpinning = true;
     if (this.btnSpin) this.btnSpin.disabled = true;
 
-    // Seleccionar el ángulo de parada (eff en [0, 360)) respetando las áreas proporcionales de cada sector
+    // Seleccionar el ángulo de parada (eff en [0, 360)) 100% proporcional a los porcentajes actuales de la rueda (360°)
     let targetSector = 0;
-    if (timingResult === 'fail' && Math.random() < 0.65) {
-      // En fallo de barra roja, mayor probabilidad de caer en los sectores negativos ponderados por su tamaño
-      const loseSlices = this.sliceValues.map((s, idx) => ({ s, idx })).filter(item => !item.s.isWin);
-      if (loseSlices.length > 0) {
-        const totalLoseDeg = loseSlices.reduce((acc, item) => acc + item.s.spanDeg, 0);
-        let r = Math.random() * totalLoseDeg;
-        for (const item of loseSlices) {
-          if (r <= item.s.spanDeg) {
-            targetSector = item.idx;
-            break;
-          }
-          r -= item.s.spanDeg;
-        }
-      }
-    } else {
-      // En tiro estándar o perfecto: selección 100% proporcional a los porcentajes de la rueda (360°)
-      const randDeg = Math.random() * 360;
-      for (let i = 0; i < this.sliceValues.length; i++) {
-        if (randDeg >= this.sliceValues[i].startDeg && randDeg < this.sliceValues[i].endDeg) {
-          targetSector = i;
-          break;
-        }
+    const randDeg = Math.random() * 360;
+    for (let i = 0; i < this.sliceValues.length; i++) {
+      if (randDeg >= this.sliceValues[i].startDeg && randDeg < this.sliceValues[i].endDeg) {
+        targetSector = i;
+        break;
       }
     }
 

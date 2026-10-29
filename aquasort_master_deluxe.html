@@ -46,10 +46,10 @@
   <link rel="icon" type="image/svg+xml" href="icons/icon.svg">
 
   <!--Modular Stylesheets -->
-  <link rel="stylesheet" href="css/main.css?v=88">
-  <link rel="stylesheet" href="css/tubes.css?v=88">
-  <link rel="stylesheet" href="css/roulette.css?v=88">
-  <link rel="stylesheet" href="css/accessibility.css?v=88">
+  <link rel="stylesheet" href="css/main.css?v=89">
+  <link rel="stylesheet" href="css/tubes.css?v=89">
+  <link rel="stylesheet" href="css/roulette.css?v=89">
+  <link rel="stylesheet" href="css/accessibility.css?v=89">
 </head>
 <body class="min-h-screen flex flex-col justify-between select-none relative">
 
@@ -1131,27 +1131,33 @@
 
         <!-- BARRA DE TIMING ACTIVO (RIESGO VS. RECOMPENSA) -->
         <div id="roulette-timing-section" class="w-full mb-2">
-          <div class="flex items-center justify-between text-[10px] font-black uppercase tracking-wider mb-1 px-1">
+          <div class="flex items-center justify-between text-[9px] sm:text-[10px] font-black uppercase tracking-wider mb-1 px-1">
             <span class="text-rose-400">⚠️ Fallo</span>
             <span class="text-sky-300">Estándar</span>
-            <span class="text-amber-300 animate-pulse">⭐ PERFECTO ⭐</span>
+            <span class="text-rose-400">⚠️</span>
+            <span class="text-amber-300 animate-pulse">⭐ ORO ⭐</span>
+            <span class="text-rose-400">⚠️</span>
             <span class="text-sky-300">Estándar</span>
             <span class="text-rose-400">⚠️ Fallo</span>
           </div>
 
           <div id="timing-meter-container" class="timing-meter-container relative w-full h-7 rounded-xl overflow-hidden border border-slate-600/80 shadow-inner flex">
-            <!-- 1. Zona Roja Izquierda -->
-            <div id="timing-zone-red-left" class="h-full bg-gradient-to-r from-rose-700 to-rose-600 border-r border-rose-900/60" style="width: 21%;"></div>
-            <!-- 2. Zona Azul Izquierda -->
-            <div id="timing-zone-blue-left" class="h-full bg-gradient-to-r from-sky-600 to-blue-500 border-r border-sky-800/60" style="width: 25%;"></div>
-            <!-- 3. Zona Dorada Centro (8% con jitter dinámico +-5%) -->
-            <div id="timing-zone-gold" class="h-full bg-gradient-to-r from-amber-400 via-yellow-300 to-amber-400 shadow-[0_0_15px_#fde047] z-10 flex items-center justify-center border-x-2 border-yellow-200" style="width: 8%;">
+            <!-- 1. Zona Roja Externa Izquierda (16%) -->
+            <div id="timing-zone-red-left" class="h-full bg-gradient-to-r from-rose-700 to-rose-600 border-r border-rose-900/60" style="width: 16%;"></div>
+            <!-- 2. Zona Azul Izquierda (19%) -->
+            <div id="timing-zone-blue-left" class="h-full bg-gradient-to-r from-sky-600 to-blue-500 border-r border-sky-800/60" style="width: 19%;"></div>
+            <!-- 3. Zona Roja Interna Izquierda (5% junto al Oro) -->
+            <div id="timing-zone-red-inner-left" class="h-full bg-gradient-to-r from-rose-600 to-rose-700 border-r border-rose-900/60" style="width: 5%;"></div>
+            <!-- 4. Zona Dorada Centro (10% con jitter dinámico +-5%) -->
+            <div id="timing-zone-gold" class="h-full bg-gradient-to-r from-amber-400 via-yellow-300 to-amber-400 shadow-[0_0_15px_#fde047] z-10 flex items-center justify-center border-x-2 border-yellow-200" style="width: 10%;">
               <span class="text-[8px] font-black text-slate-950 uppercase tracking-tighter">ORO</span>
             </div>
-            <!-- 4. Zona Azul Derecha -->
-            <div id="timing-zone-blue-right" class="h-full bg-gradient-to-r from-blue-500 to-sky-600 border-l border-sky-800/60" style="width: 25%;"></div>
-            <!-- 5. Zona Roja Derecha -->
-            <div id="timing-zone-red-right" class="h-full bg-gradient-to-r from-rose-600 to-rose-700 border-l border-rose-900/60" style="width: 21%;"></div>
+            <!-- 5. Zona Roja Interna Derecha (5% junto al Oro) -->
+            <div id="timing-zone-red-inner-right" class="h-full bg-gradient-to-r from-rose-700 to-rose-600 border-l border-rose-900/60" style="width: 5%;"></div>
+            <!-- 6. Zona Azul Derecha (19%) -->
+            <div id="timing-zone-blue-right" class="h-full bg-gradient-to-r from-blue-500 to-sky-600 border-l border-sky-800/60" style="width: 19%;"></div>
+            <!-- 7. Zona Roja Externa Derecha (16%) -->
+            <div id="timing-zone-red-right" class="h-full bg-gradient-to-r from-rose-600 to-rose-700 border-l border-rose-900/60" style="width: 16%;"></div>
 
             <!-- Aguja oscilante marcadora -->
             <div id="timing-needle" class="absolute top-0 bottom-0 w-1.5 bg-white rounded-full shadow-[0_0_10px_#ffffff,0_0_16px_#38bdf8] pointer-events-none transform -translate-x-1/2 z-20" style="left: 50%;">
@@ -3107,20 +3113,20 @@
   <input type="file" id="input-save-file" accept=".json" class="hidden">
 
   <!-- Scripts modulares -->
-  <script src="js/i18n.js?v=88"></script>
-  <script src="js/firebase-config.js?v=88"></script>
-  <script src="js/cloud-sync.js?v=88"></script>
-  <script src="js/audio.js?v=88"></script>
-  <script src="js/palette.js?v=88"></script>
-  <script src="js/levels.js?v=88"></script>
-  <script src="js/challenges.js?v=88"></script>
-  <script src="js/honor.js?v=88"></script>
-  <script src="js/state.js?v=88"></script>
-  <script src="js/achievements.js?v=88"></script>
-  <script src="js/leaderboard.js?v=88"></script>
-  <script src="js/roulette.js?v=88"></script>
-  <script src="js/story.js?v=88"></script>
-  <script src="js/game.js?v=88"></script>
+  <script src="js/i18n.js?v=89"></script>
+  <script src="js/firebase-config.js?v=89"></script>
+  <script src="js/cloud-sync.js?v=89"></script>
+  <script src="js/audio.js?v=89"></script>
+  <script src="js/palette.js?v=89"></script>
+  <script src="js/levels.js?v=89"></script>
+  <script src="js/challenges.js?v=89"></script>
+  <script src="js/honor.js?v=89"></script>
+  <script src="js/state.js?v=89"></script>
+  <script src="js/achievements.js?v=89"></script>
+  <script src="js/leaderboard.js?v=89"></script>
+  <script src="js/roulette.js?v=89"></script>
+  <script src="js/story.js?v=89"></script>
+  <script src="js/game.js?v=89"></script>
 
   <!-- Registro de Service Worker PWA -->
   <script>
@@ -3133,7 +3139,7 @@
         }
       });
       window.addEventListener('load', () => {
-        navigator.serviceWorker.register('./sw.js?v=88', { updateViaCache: 'none' }).then((reg) => {
+        navigator.serviceWorker.register('./sw.js?v=89', { updateViaCache: 'none' }).then((reg) => {
           reg.update();
           console.log('AlcheMix PWA ServiceWorker activo:', reg.scope);
         }).catch((err) => {
