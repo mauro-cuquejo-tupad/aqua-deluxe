@@ -341,6 +341,86 @@ class HonorManager {
 
     let tubes = [];
 
+    // Para la Sección 1 ("El Crisol de los Fundamentos"), aplicar el layout diseñado a medida (16 movimientos óptimos)
+    if (sectionId === 1) {
+      // Mapear los 5 colores según la paleta activa del jugador:
+      // Verde, Azul, Morado/Violeta, Rojo, Amarillo/Oro
+      const colGreen = activeColors.find(c => c.name.toLowerCase().includes('verde')) || activeColors[2] || activeColors[0];
+      const colBlue = activeColors.find(c => c.name.toLowerCase().includes('azul') || c.name.toLowerCase().includes('cielo')) || activeColors[1] || activeColors[0];
+      const colPurple = activeColors.find(c => c.name.toLowerCase().includes('violeta') || c.name.toLowerCase().includes('púrpura') || c.name.toLowerCase().includes('morad')) || activeColors[4] || activeColors[0];
+      const colRed = activeColors.find(c => c.name.toLowerCase().includes('rojo') || c.name.toLowerCase().includes('carmesí') || c.name.toLowerCase().includes('bermejo')) || activeColors[0];
+      const colYellow = activeColors.find(c => c.name.toLowerCase().includes('amarillo') || c.name.toLowerCase().includes('oro') || c.name.toLowerCase().includes('mostaza')) || activeColors[3] || activeColors[0];
+
+      const toLiquid = (c) => ({
+        colorIndex: c.id,
+        color: c.hex,
+        name: c.name,
+        shape: c.shape,
+        pattern: c.pattern || null,
+        textHex: c.textHex || '#ffffff',
+        isMystery: false,
+        isChameleon: false
+      });
+
+      // Frascos con líquidos ordenados de fondo a superficie (liquids[0] = fondo, liquids[3] = superficie):
+      // Frasco 1: Fondo Rojo, Morado, Azul, Verde (superficie)
+      // Frasco 2: Fondo Amarillo, Azul, Amarillo, Verde (superficie)
+      // Frasco 3: Fondo Amarillo, Verde, Azul, Verde (superficie)
+      // Frasco 4: Fondo Morado, Amarillo, Rojo, Rojo (superficie)
+      // Frasco 5: Fondo Morado, Rojo, Azul, Morado (superficie)
+      // Frasco 6: Vacío
+      const layoutData = [
+        [colRed, colPurple, colBlue, colGreen],
+        [colYellow, colBlue, colYellow, colGreen],
+        [colYellow, colGreen, colBlue, colGreen],
+        [colPurple, colYellow, colRed, colRed],
+        [colPurple, colRed, colBlue, colPurple],
+        []
+      ];
+
+      tubes = layoutData.map((liqArr, idx) => ({
+        id: idx,
+        capacity: 4,
+        liquids: liqArr.map(toLiquid),
+        isLocked: false,
+        keyColor: null,
+        isNarrow: false,
+        isGlued: false,
+        isFragile: false,
+        isAffinity: false,
+        isSuperFragile: false,
+        cracks: 0,
+        maxCracks: null,
+        isBroken: false,
+        allowedColors: [],
+        allowedColorNames: []
+      }));
+
+      return {
+        isHonorChallenge: true,
+        sectionId: 1,
+        sectionName: sec.name,
+        level: `Honor 1`,
+        title: cfg.title,
+        desc: cfg.desc,
+        tubes: tubes,
+        colorCount: cfg.colorCount,
+        mechanicTag: `🏅 Desafío de Honor: ${sec.name}`,
+        primaryMechanicId: sec.primaryMechanicId,
+        optimalMoves: 16,
+        maxMoves: Math.max(cfg.maxMoves, 22),
+        timeLimitSecs: cfg.timeLimitSecs,
+        coinsReward: cfg.coinsReward,
+        hasMystery: false,
+        hasGiant: false,
+        hasLock: false,
+        hasNarrow: false,
+        hasGlued: false,
+        hasChameleon: false,
+        hasFragile: false
+      };
+    }
+
     // 1. Frascos de colores
     for (let i = 0; i < cfg.colorCount; i++) {
       const col = activeColors[i];

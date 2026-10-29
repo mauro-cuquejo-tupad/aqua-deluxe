@@ -3,7 +3,7 @@
    Soporte Offline, Caché Rápida y Experiencia de App Nativa Móvil
    ========================================================================== */
 
-const CACHE_NAME = 'aquasort-deluxe-v10.1';
+const CACHE_NAME = 'aquasort-deluxe-v10.2';
 
 const PRECACHE_ASSETS = [
   './',
