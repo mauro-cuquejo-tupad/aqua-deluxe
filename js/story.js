@@ -175,31 +175,40 @@ class StoryManager {
 
           <!-- Cuna / alfombra -->
           <ellipse cx="53" cy="148" rx="35" ry="6" fill="#1e293b" opacity="0.6"/>
-          <rect x="25" y="118" width="56" height="28" rx="4" fill="#1e293b" stroke="#334155" stroke-width="1.5"/>
-          <!-- Barrotes cuna -->
-          <line x1="33" y1="118" x2="33" y2="146" stroke="#475569" stroke-width="1.5"/>
-          <line x1="43" y1="118" x2="43" y2="146" stroke="#475569" stroke-width="1.5"/>
-          <line x1="53" y1="118" x2="53" y2="146" stroke="#475569" stroke-width="1.5"/>
-          <line x1="63" y1="118" x2="63" y2="146" stroke="#475569" stroke-width="1.5"/>
-          <line x1="73" y1="118" x2="73" y2="146" stroke="#475569" stroke-width="1.5"/>
+          <!-- Respaldo posterior de la cuna -->
+          <rect x="25" y="112" width="56" height="34" rx="4" fill="#1e293b" stroke="#334155" stroke-width="1.5"/>
+          <!-- Colchón y mantita suave dentro de la cuna -->
+          <rect x="27" y="130" width="52" height="14" rx="3" fill="#38bdf8" opacity="0.4"/>
 
-          <!-- Bebé Alquimista -->
-          <g class="story-anim-ch0-baby" transform="translate(38, 92)">
+          <!-- Bebé Alquimista (acogedoramente sentado DENTRO de la cuna) -->
+          <g class="story-anim-ch0-baby" transform="translate(36, 114)">
             <!-- Gorrito / pañuelo azul de bebé -->
-            <ellipse cx="14" cy="12" rx="10" ry="11" fill="#fed7aa"/>
-            <path d="M 6 8 Q 14 -2 22 8 Z" fill="#38bdf8"/>
-            <circle cx="14" cy="-2" r="2.5" fill="#facc15"/>
+            <ellipse cx="14" cy="11" rx="9.5" ry="10" fill="#fed7aa"/>
+            <path d="M 6 7 Q 14 -3 22 7 Z" fill="#38bdf8"/>
+            <circle cx="14" cy="-2.5" r="2.5" fill="#facc15"/>
             <!-- Ojos sonrientes pillos -->
-            <path d="M 10 11 Q 12 8 14 11" stroke="#0f172a" stroke-width="1.5" fill="none"/>
-            <path d="M 16 11 Q 18 8 20 11" stroke="#0f172a" stroke-width="1.5" fill="none"/>
+            <path d="M 10 10 Q 12 7.5 14 10" stroke="#0f172a" stroke-width="1.5" fill="none"/>
+            <path d="M 16 10 Q 18 7.5 20 10" stroke="#0f172a" stroke-width="1.5" fill="none"/>
             <!-- Chupete / sonrisa -->
-            <circle cx="15" cy="17" r="3" fill="#f43f5e"/>
-            <!-- Manitas mágicas -->
-            <circle cx="6" cy="22" r="3.5" fill="#fed7aa"/>
-            <circle cx="24" cy="20" r="3.5" fill="#fed7aa"/>
-            <!-- Destellitos de chispa saliendo del dedito -->
-            <circle cx="27" cy="18" r="2" fill="#facc15"/>
+            <circle cx="15" cy="15.5" r="3" fill="#f43f5e"/>
+            <!-- Pijama de bebé dentro de la cuna -->
+            <rect x="7" y="19" width="16" height="10" rx="3" fill="#0284c7" opacity="0.85"/>
+            <!-- Manitas mágicas asomando sobre la cuna -->
+            <circle cx="5" cy="18" r="3" fill="#fed7aa"/>
+            <circle cx="23" cy="16" r="3" fill="#fed7aa"/>
+            <!-- Destellitos de chispa saliendo del dedito hacia el juguete -->
+            <circle cx="26" cy="14" r="2" fill="#facc15"/>
           </g>
+
+          <!-- Baranda frontal y barrotes de la cuna (delante del bebé para sensación de profundidad) -->
+          <line x1="25" y1="126" x2="81" y2="126" stroke="#475569" stroke-width="2"/>
+          <line x1="31" y1="126" x2="31" y2="146" stroke="#475569" stroke-width="1.5"/>
+          <line x1="39" y1="126" x2="39" y2="146" stroke="#475569" stroke-width="1.5"/>
+          <line x1="47" y1="126" x2="47" y2="146" stroke="#475569" stroke-width="1.5"/>
+          <line x1="55" y1="126" x2="55" y2="146" stroke="#475569" stroke-width="1.5"/>
+          <line x1="63" y1="126" x2="63" y2="146" stroke="#475569" stroke-width="1.5"/>
+          <line x1="71" y1="126" x2="71" y2="146" stroke="#475569" stroke-width="1.5"/>
+          <line x1="79" y1="126" x2="79" y2="146" stroke="#475569" stroke-width="1.5"/>
 
           <!-- Osito de peluche / Juguete explotando en confeti -->
           <g transform="translate(70, 118)">
