@@ -1268,23 +1268,27 @@ body.screen-apocalypse-rumble {
    ========================================================================== */
 
 /* --- PRÓLOGO / CAPÍTULO 0: LA INFANCIA DEL ALQUIMISTA --- */
+/* Las viñetas inician totalmente ocultas (opacity: 0) hasta que les toca su turno */
+/* Viñeta 1 (0s - 3s): El bebé y el juguete */
+/* Viñeta 2 (3s - 6s): El niño y el puré (se suma la viñeta 2 al lado de la 1) */
+/* Viñeta 3 (6s - 8s): El adolescente y la iluminación del colegio a lo lejos */
+/* Al final quedan las tres viñetas visibles como una historieta completa */
 @keyframes ch0Panel1Fade {
-  0%, 26% { opacity: 1; transform: scale(1); }
-  29%, 100% { opacity: 0.25; filter: grayscale(0.5); transform: scale(0.97); }
+  0% { opacity: 0; transform: scale(0.95); }
+  6%, 100% { opacity: 1; transform: scale(1); }
 }
 @keyframes ch0Panel2Fade {
-  0%, 27% { opacity: 0.35; filter: grayscale(0.6); transform: scale(0.97); }
-  31%, 60% { opacity: 1; filter: grayscale(0); transform: scale(1.02); }
-  63%, 100% { opacity: 0.25; filter: grayscale(0.5); transform: scale(0.97); }
+  0%, 34% { opacity: 0; pointer-events: none; transform: scale(0.95); }
+  40%, 100% { opacity: 1; pointer-events: auto; transform: scale(1); }
 }
 @keyframes ch0Panel3Fade {
-  0%, 61% { opacity: 0.35; filter: grayscale(0.6); transform: scale(0.97); }
-  65%, 100% { opacity: 1; filter: grayscale(0); transform: scale(1.02); }
+  0%, 68% { opacity: 0; pointer-events: none; transform: scale(0.95); }
+  74%, 100% { opacity: 1; pointer-events: auto; transform: scale(1); }
 }
 @keyframes ch0ToyBoom {
-  0%, 12% { transform: scale(0); opacity: 0; }
-  15% { transform: scale(1.4); opacity: 1; }
-  24%, 100% { transform: scale(1); opacity: 0.85; }
+  0%, 10% { transform: scale(0); opacity: 0; }
+  14% { transform: scale(1.4); opacity: 1; }
+  22%, 100% { transform: scale(1); opacity: 0.85; }
 }
 @keyframes ch0FoodBoom {
   0%, 42% { transform: scale(0); opacity: 0; }
@@ -1292,17 +1296,12 @@ body.screen-apocalypse-rumble {
   56%, 100% { transform: scale(1); opacity: 0.85; }
 }
 @keyframes ch0SchoolGlow {
-  0%, 64% { transform: scale(0.95); opacity: 0.7; filter: drop-shadow(0 0 0 rgba(250, 204, 21, 0)); }
-  72%, 100% { transform: scale(1); opacity: 1; filter: drop-shadow(0 0 14px rgba(250, 204, 21, 0.8)); }
+  0%, 72% { transform: scale(0.95); opacity: 0.6; filter: drop-shadow(0 0 0 rgba(250, 204, 21, 0)); }
+  80%, 100% { transform: scale(1); opacity: 1; filter: drop-shadow(0 0 12px rgba(250, 204, 21, 0.9)); }
 }
 @keyframes ch0BabyBounce {
   0%, 100% { transform: translateY(0); }
   50% { transform: translateY(-3px); }
-}
-@keyframes ch0SparksFly {
-  0%, 10% { opacity: 0; transform: translateY(0) scale(0.5); }
-  16% { opacity: 1; transform: translateY(-8px) scale(1.2); }
-  24%, 100% { opacity: 0; transform: translateY(-16px) scale(0.2); }
 }
 
 .story-anim-ch0-panel-1 {
@@ -1310,24 +1309,26 @@ body.screen-apocalypse-rumble {
   transform-origin: 52px 90px;
 }
 .story-anim-ch0-panel-2 {
+  opacity: 0;
   animation: ch0Panel2Fade 8.0s ease-out 1 forwards;
   transform-origin: 160px 90px;
 }
 .story-anim-ch0-panel-3 {
+  opacity: 0;
   animation: ch0Panel3Fade 8.0s ease-out 1 forwards;
   transform-origin: 268px 90px;
 }
 .story-anim-ch0-toy-boom {
   animation: ch0ToyBoom 8.0s cubic-bezier(0.34, 1.56, 0.64, 1) 1 forwards;
-  transform-origin: 68px 125px;
+  transform-origin: 76px 122px;
 }
 .story-anim-ch0-food-boom {
   animation: ch0FoodBoom 8.0s cubic-bezier(0.34, 1.56, 0.64, 1) 1 forwards;
-  transform-origin: 172px 115px;
+  transform-origin: 172px 98px;
 }
 .story-anim-ch0-school-glow {
   animation: ch0SchoolGlow 8.0s ease-out 1 forwards;
-  transform-origin: 300px 115px;
+  transform-origin: 288px 115px;
 }
 .story-anim-ch0-baby {
   animation: ch0BabyBounce 1.8s infinite ease-in-out;

@@ -243,13 +243,14 @@ class StoryManager {
           <g transform="translate(125, 96)">
             <!-- Cuerpo niño -->
             <rect x="8" y="24" width="16" height="24" rx="3" fill="#0284c7"/>
-            <!-- Cabeza tiznada con sonrisa traviesa -->
-            <circle cx="16" cy="12" rx="9" ry="9.5" fill="#fed7aa"/>
+            <!-- Cabeza con color de piel sólido #fed7aa y cabello -->
+            <ellipse cx="16" cy="12" rx="9" ry="9.5" fill="#fed7aa"/>
             <path d="M 8 10 Q 16 0 24 10 Z" fill="#64748b"/>
-            <!-- Cara con mancha de hollín -->
-            <circle cx="18" cy="11" r="3" fill="#1e293b" opacity="0.7"/>
+            <!-- Ojos pícaros -->
             <circle cx="13" cy="11" r="1.5" fill="#0f172a"/>
             <circle cx="19" cy="11" r="1.5" fill="#0f172a"/>
+            <!-- Mancha cómica de hollín en la mejilla -->
+            <circle cx="19" cy="14" r="2.5" fill="#1e293b" opacity="0.6"/>
             <!-- Sonrisa de orgullo travieso -->
             <path d="M 13 16 Q 16 20 20 16" stroke="#0f172a" stroke-width="1.5" fill="none"/>
             <!-- Cuchara / matraz infantil en mano -->
@@ -293,63 +294,55 @@ class StoryManager {
             <path d="M 7 5 Q 12 0 16 5 Z" fill="#64748b"/>
             <!-- Ojos emocionados mirando a la derecha -->
             <circle cx="15" cy="5" r="1.5" fill="#fde047"/>
-            <!-- Brazo señalando hacia la derecha (al colegio) -->
+            <!-- Brazo señalando hacia la derecha (al colegio) a la altura (22, 11) -->
             <line x1="12" y1="16" x2="22" y2="11" stroke="#fed7aa" stroke-width="2" stroke-linecap="round"/>
             <text x="12" y="38" font-size="6.5" font-weight="900" fill="#a7f3d0" text-anchor="middle">¡Mi destino!</text>
           </g>
 
-          <!-- Gran Colegio de Alquimia al fondo a la DERECHA en el horizonte iluminado -->
-          <!-- (Utiliza el mismo modelo de fachada, torre con reloj, chimenea y banderita que en el Cap 1) -->
-          <g class="story-anim-ch0-school-glow" transform="translate(262, 70) scale(0.55)">
-            <!-- Resplandor místico celestial de vocación -->
-            <circle cx="75" cy="75" r="70" fill="#facc15" opacity="0.22" filter="blur(8px)"/>
+          <!-- Gran Colegio de Alquimia a lo lejos en el horizonte iluminado -->
+          <!-- Posicionado a la derecha, a la altura exacta hacia donde apunta el dedo (x: 275, y: 100), con tamaño contenido de lejanía -->
+          <g class="story-anim-ch0-school-glow">
+            <!-- Resplandor místico celestial de vocación sobre la escuela -->
+            <circle cx="288" cy="118" r="22" fill="#facc15" opacity="0.28" filter="blur(4px)"/>
 
             <!-- Sombra en la base -->
-            <ellipse cx="75" cy="150" rx="55" ry="7" fill="#020617" opacity="0.6"/>
+            <ellipse cx="288" cy="132" rx="18" ry="3" fill="#020617" opacity="0.6"/>
             <!-- Estructura principal de mampostería -->
-            <rect x="25" y="75" width="100" height="75" rx="4" fill="#334155" stroke="#64748b" stroke-width="2.5"/>
+            <rect x="272" y="108" width="32" height="24" rx="2" fill="#334155" stroke="#64748b" stroke-width="1"/>
             <!-- Zócalo de piedra -->
-            <rect x="22" y="142" width="106" height="8" rx="2" fill="#1e293b"/>
+            <rect x="271" y="129" width="34" height="3" rx="1" fill="#1e293b"/>
             <!-- Techo a dos aguas con tejas -->
-            <polygon points="18,75 75,30 132,75" fill="#475569" stroke="#94a3b8" stroke-width="2.5"/>
-            <line x1="75" y1="30" x2="75" y2="75" stroke="#334155" stroke-width="1.5" stroke-dasharray="2,2"/>
+            <polygon points="270,108 288,94 306,108" fill="#475569" stroke="#94a3b8" stroke-width="1"/>
             
             <!-- Chimenea de ventilación química -->
-            <rect x="104" y="24" width="12" height="20" rx="1.5" fill="#334155" stroke="#64748b" stroke-width="2"/>
-            <rect x="102" y="22" width="16" height="4" rx="1" fill="#475569"/>
+            <rect x="297" y="92" width="4" height="6" rx="0.5" fill="#334155" stroke="#64748b" stroke-width="0.75"/>
 
             <!-- Torre del reloj / campana escolar -->
-            <rect x="65" y="14" width="20" height="18" rx="2" fill="#334155" stroke="#64748b" stroke-width="2"/>
-            <polygon points="61,14 75,2 89,14" fill="#64748b" stroke="#94a3b8" stroke-width="2"/>
-            <circle cx="75" cy="23" r="5" fill="#fef08a" stroke="#334155" stroke-width="1.5"/>
+            <rect x="285" y="88" width="6" height="7" rx="1" fill="#334155" stroke="#64748b" stroke-width="0.75"/>
+            <polygon points="284,88 288,84 292,88" fill="#64748b" stroke="#94a3b8" stroke-width="0.75"/>
+            <circle cx="288" cy="91" r="1.5" fill="#fef08a"/>
             <!-- Banderita escolar ondeando -->
-            <line x1="75" y1="2" x2="75" y2="-4" stroke="#cbd5e1" stroke-width="2"/>
-            <polygon points="75,-4 85,-1 75,2" fill="#38bdf8"/>
+            <line x1="288" y1="84" x2="288" y2="81" stroke="#cbd5e1" stroke-width="1"/>
+            <polygon points="288,81 292,82.5 288,84" fill="#38bdf8"/>
 
-            <!-- Ventana Izquierda iluminada -->
-            <rect x="35" y="88" width="20" height="24" rx="2" fill="#0f172a" stroke="#64748b" stroke-width="2"/>
-            <rect x="37" y="100" width="16" height="10" fill="#06b6d4" opacity="0.9"/>
-            <line x1="45" y1="88" x2="45" y2="112" stroke="#64748b" stroke-width="1.5"/>
-            <line x1="35" y1="100" x2="55" y2="100" stroke="#64748b" stroke-width="1.5"/>
+            <!-- Ventana Izquierda iluminada cian -->
+            <rect x="275" y="112" width="6" height="7" rx="1" fill="#0f172a" stroke="#64748b" stroke-width="0.75"/>
+            <rect x="275.5" y="115.5" width="5" height="3" fill="#06b6d4"/>
 
-            <!-- Ventana Derecha iluminada -->
-            <rect x="95" y="88" width="20" height="24" rx="2" fill="#0f172a" stroke="#64748b" stroke-width="2"/>
-            <rect x="97" y="100" width="16" height="10" fill="#a855f7" opacity="0.9"/>
-            <line x1="105" y1="88" x2="105" y2="112" stroke="#64748b" stroke-width="1.5"/>
-            <line x1="95" y1="100" x2="115" y2="100" stroke="#64748b" stroke-width="1.5"/>
+            <!-- Ventana Derecha iluminada púrpura -->
+            <rect x="295" y="112" width="6" height="7" rx="1" fill="#0f172a" stroke="#64748b" stroke-width="0.75"/>
+            <rect x="295.5" y="115.5" width="5" height="3" fill="#a855f7"/>
 
             <!-- Buhardilla / Ventana circular superior -->
-            <circle cx="75" cy="54" r="9" fill="#0f172a" stroke="#64748b" stroke-width="2"/>
-            <circle cx="75" cy="54" r="7" fill="#f59e0b" opacity="0.95"/>
+            <circle cx="288" cy="101" r="2.5" fill="#f59e0b" stroke="#64748b" stroke-width="0.75"/>
 
             <!-- Puerta del colegio y cartel -->
-            <rect x="65" y="112" width="20" height="30" rx="2" fill="#1e293b" stroke="#64748b" stroke-width="2"/>
-            <circle cx="80" cy="127" r="1.5" fill="#facc15"/>
-            <rect x="61" y="102" width="28" height="7" rx="1.5" fill="#f59e0b" opacity="0.95"/>
-            <text x="75" y="107.5" font-size="4" font-weight="900" fill="#0f172a" text-anchor="middle" letter-spacing="0.5">ALQUIMIA</text>
+            <rect x="285" y="120" width="6" height="9" rx="1" fill="#1e293b" stroke="#64748b" stroke-width="0.75"/>
+            <circle cx="289.5" cy="124.5" r="0.5" fill="#facc15"/>
+            <rect x="283.5" y="117.5" width="9" height="2.5" rx="0.5" fill="#f59e0b"/>
 
             <!-- Destellos mágicos en la cúspide -->
-            <text x="75" y="-7" font-size="12" fill="#fde047" text-anchor="middle">✨</text>
+            <text x="288" y="78" font-size="8" fill="#fde047" text-anchor="middle">✨</text>
           </g>
         </g>
       </svg>
