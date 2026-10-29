@@ -161,6 +161,7 @@ class GameController {
     this.modalMap = document.getElementById('modal-map');
     this.modalVictory = document.getElementById('modal-victory');
     this.modalRoulette = document.getElementById('modal-roulette');
+    this.modalMinigamesMenu = document.getElementById('modal-minigames-menu');
     this.modalLeaderboard = document.getElementById('modal-leaderboard');
     this.modalSettings = document.getElementById('modal-settings');
     this.modalHome = document.getElementById('modal-home');
@@ -4234,7 +4235,11 @@ class GameController {
       return;
     }
 
-    // 2. Si venía del menú de inicio (Modo Libre / Entrenamiento)
+    // 2. Si venía del menú de minijuegos / modo libre, regresar al selector de Minijuegos
+    if (this.modalMinigamesMenu) {
+      this.openMinigamesMenuModal();
+      return;
+    }
     if (this.navigationSource === 'home') {
       this.openHomeModal();
       return;
@@ -4891,6 +4896,38 @@ class GameController {
     }
   }
 
+  // --- MENÚ DE SELECCIÓN DE MINIJUEGOS (RULETA / DIANA / TIRO AL BLANCO / AL AZAR) ---
+  openMinigamesMenuModal() {
+    if (this.modalHome) this.hideModal(this.modalHome);
+    if (this.modalRoulette) this.hideModal(this.modalRoulette);
+    this.showModal(this.modalMinigamesMenu);
+    if (window.lucide) lucide.createIcons();
+    if (window.audio) window.audio.playSelect();
+  }
+
+  closeMinigamesMenuModal() {
+    this.hideModal(this.modalMinigamesMenu);
+    if (this.navigationSource === 'home') {
+      this.openHomeModal();
+    } else {
+      this.resumeGameMusic();
+    }
+  }
+
+  launchFreeMinigame(mode = 'random') {
+    this.hideModal(this.modalMinigamesMenu);
+    if (this.modalHome) this.hideModal(this.modalHome);
+    this.isBonusFromVictory = false;
+    if (window.rouletteEngine) {
+      window.rouletteEngine.openModal(0, false, mode);
+    } else if (window.minigameEngine) {
+      window.minigameEngine.openModal(0, false, mode);
+    } else {
+      this.showModal(this.modalRoulette);
+    }
+    if (window.audio) window.audio.playMusic('roulette');
+  }
+
   // --- MENÚ DE EXTRAS Y COLECCIONES ---
   openExtrasModal() {
     this.navigationSource = 'home';
@@ -5341,7 +5378,7 @@ class GameController {
 
   isModalOpen() {
     const modals = [
-      this.modalMap, this.modalVictory, this.modalRoulette, this.modalLeaderboard,
+      this.modalMap, this.modalVictory, this.modalRoulette, this.modalMinigamesMenu, this.modalLeaderboard,
       this.modalSettings, this.modalHome, this.modalShop, this.modalRestartConfirm,
       this.modalTutorial, this.modalEditor, this.modalChallengeIntro, this.modalPause,
       this.modalOutOfLives, this.modalShieldTutorial, this.modalExtras, this.modalExitModeConfirm
@@ -5447,7 +5484,7 @@ class GameController {
     const btnOpenMinigame = document.getElementById('btn-open-minigame');
     if (btnOpenMinigame) {
       this.bindTapOrClick(btnOpenMinigame, () => {
-        if (window.minigameEngine) window.minigameEngine.openModal();
+        this.openMinigamesMenuModal();
       });
     }
 
@@ -5685,15 +5722,37 @@ class GameController {
     if (btnHomeMinigame) {
       this.bindTapOrClick(btnHomeMinigame, () => {
         this.navigationSource = 'home';
-        this.hideModal(this.modalHome);
-        if (window.minigameEngine) {
-          window.minigameEngine.openModal();
-        } else if (window.rouletteEngine) {
-          window.rouletteEngine.openModal();
-        } else {
-          this.showModal(this.modalRoulette);
-        }
+        this.openMinigamesMenuModal();
       });
+    }
+
+    const btnCloseMinigamesMenu = document.getElementById('btn-close-minigames-menu');
+    if (btnCloseMinigamesMenu) {
+      this.bindTapOrClick(btnCloseMinigamesMenu, () => this.closeMinigamesMenuModal());
+    }
+    const btnBackMinigamesMenu = document.getElementById('btn-back-minigames-menu');
+    if (btnBackMinigamesMenu) {
+      this.bindTapOrClick(btnBackMinigamesMenu, () => this.closeMinigamesMenuModal());
+    }
+    if (this.modalMinigamesMenu) {
+      this.setupBackdropClose(this.modalMinigamesMenu, () => this.closeMinigamesMenuModal());
+    }
+
+    const btnMenuMgRoulette = document.getElementById('btn-menu-mg-roulette');
+    if (btnMenuMgRoulette) {
+      this.bindTapOrClick(btnMenuMgRoulette, () => this.launchFreeMinigame('roulette'));
+    }
+    const btnMenuMgDiana = document.getElementById('btn-menu-mg-diana');
+    if (btnMenuMgDiana) {
+      this.bindTapOrClick(btnMenuMgDiana, () => this.launchFreeMinigame('diana'));
+    }
+    const btnMenuMgMoving = document.getElementById('btn-menu-mg-moving');
+    if (btnMenuMgMoving) {
+      this.bindTapOrClick(btnMenuMgMoving, () => this.launchFreeMinigame('moving_targets'));
+    }
+    const btnMenuMgRandom = document.getElementById('btn-menu-mg-random');
+    if (btnMenuMgRandom) {
+      this.bindTapOrClick(btnMenuMgRandom, () => this.launchFreeMinigame('random'));
     }
 
     const btnHomeExtras = document.getElementById('btn-home-extras');

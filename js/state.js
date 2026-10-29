@@ -47,7 +47,7 @@ const DEFAULT_STATE = {
     seenTutorials: []          // Lista de tutoriales ya vistos
   },
   minigameBag: {
-    tokens: ['diana', 'diana', 'diana', 'roulette', 'roulette', 'roulette'],
+    tokens: ['diana', 'diana', 'roulette', 'roulette', 'moving_targets', 'moving_targets'],
     activeCard: null,         // 'dianaFavor' | 'rouletteFavor' | null
     cardUsesRemaining: 0     // Cantidad de minijuegos restantes con beneficio activo
   },
@@ -186,9 +186,10 @@ class StateManager {
             ...(parsed.sandboxStats || {})
           },
           minigameBag: {
-            tokens: (parsed.minigameBag && Array.isArray(parsed.minigameBag.tokens) && parsed.minigameBag.tokens.length > 0)
+            tokens: (parsed.minigameBag && Array.isArray(parsed.minigameBag.tokens) && parsed.minigameBag.tokens.length > 0 && parsed.minigameBag.migratedMovingTargets)
               ? parsed.minigameBag.tokens
-              : ['diana', 'diana', 'diana', 'roulette', 'roulette', 'roulette'],
+              : ['diana', 'diana', 'roulette', 'roulette', 'moving_targets', 'moving_targets'],
+            migratedMovingTargets: true,
             activeCard: parsed.minigameBag?.activeCard || null,
             cardUsesRemaining: typeof parsed.minigameBag?.cardUsesRemaining === 'number' ? parsed.minigameBag.cardUsesRemaining : 0
           },
@@ -1194,11 +1195,12 @@ class StateManager {
     return false;
   }
 
-  // --- BOLSA DE MINIJUEGOS Y CARTAS ALQUÍMICAS (DIANA / RULETA) ---
+  // --- BOLSA DE MINIJUEGOS Y CARTAS ALQUÍMICAS (DIANA / RULETA / TIRO AL BLANCO) ---
   getMinigameBag() {
     if (!this.state.minigameBag) {
       this.state.minigameBag = {
-        tokens: ['diana', 'diana', 'diana', 'roulette', 'roulette', 'roulette'],
+        tokens: ['diana', 'diana', 'roulette', 'roulette', 'moving_targets', 'moving_targets'],
+        migratedMovingTargets: true,
         activeCard: null,
         cardUsesRemaining: 0
       };
@@ -1213,12 +1215,13 @@ class StateManager {
     if (!this.state.minigameBag) {
       this.state.minigameBag = {
         tokens: [],
+        migratedMovingTargets: true,
         activeCard: null,
         cardUsesRemaining: 0
       };
     }
-    // Bolsa equilibrada con 3 fichas de Diana y 3 de Ruleta (50% de probabilidad equitativa)
-    const newTokens = ['diana', 'diana', 'diana', 'roulette', 'roulette', 'roulette'];
+    // Bolsa equilibrada con 2 fichas de Diana, 2 de Ruleta y 2 de Tiro al Blanco (Dianas Móviles)
+    const newTokens = ['diana', 'diana', 'roulette', 'roulette', 'moving_targets', 'moving_targets'];
 
     // Si hay una carta de favor activa con usos restantes, se añaden fichas extras para mantener la ventaja
     if (this.state.minigameBag.activeCard === 'dianaFavor' && this.state.minigameBag.cardUsesRemaining > 0) {
@@ -1228,6 +1231,7 @@ class StateManager {
     }
 
     this.state.minigameBag.tokens = newTokens;
+    this.state.minigameBag.migratedMovingTargets = true;
     this.saveState();
     return this.state.minigameBag.tokens;
   }
@@ -1264,6 +1268,7 @@ class StateManager {
 
     const remainingDiana = this.state.minigameBag.tokens.filter(t => t === 'diana').length;
     const remainingRoulette = this.state.minigameBag.tokens.filter(t => t === 'roulette').length;
+    const remainingMoving = this.state.minigameBag.tokens.filter(t => t === 'moving_targets').length;
 
     return {
       chosen,
@@ -1274,6 +1279,7 @@ class StateManager {
       cardUsesRemaining: this.state.minigameBag.cardUsesRemaining,
       remainingDiana,
       remainingRoulette,
+      remainingMoving,
       totalRemaining: this.state.minigameBag.tokens.length
     };
   }

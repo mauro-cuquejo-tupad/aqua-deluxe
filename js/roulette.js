@@ -11,6 +11,8 @@
 class MinigameEngine {
   constructor() {
     this.currentMode = 'diana'; // 'diana' | 'moving_targets' | 'roulette'
+    this.selectedFreeMode = 'random'; // 'roulette' | 'diana' | 'moving_targets' | 'random'
+    this.currentBet = 0; // 0 | 25 | 50
     this.fromVictory = false;
     this.isTrainingMode = true;
     this.finalizeTimer = null;
@@ -98,6 +100,7 @@ class MinigameEngine {
     this.trajectoryAimDot = document.getElementById('trajectory-aim-dot');
 
     this.setupModeTabs();
+    this.setupBetButtons();
     this.setupCardsDrawerUI();
     this.setupRouletteEvents();
     this.setupSlingshotEvents();
@@ -105,15 +108,91 @@ class MinigameEngine {
     this.initRound();
   }
 
+  // Configuración del recuadro de apuesta en modo libre (0, 25, 50 monedas)
+  setupBetButtons() {
+    const betButtons = document.querySelectorAll('.btn-minigame-bet');
+    betButtons.forEach(btn => {
+      btn.addEventListener('click', (e) => {
+        e.stopPropagation();
+        if (this.fromVictory) return;
+        const isMovingInProgress = (this.currentMode === 'moving_targets' && this.movingDartsLeft < 4 && !this.isRoundOver);
+        if (this.isSpinning || this.isDartFlying || isMovingInProgress) return;
+
+        const betVal = parseInt(btn.getAttribute('data-bet'), 10);
+        if (isNaN(betVal)) return;
+
+        const wallet = window.game ? window.game.getCoins() : 0;
+        if (betVal > wallet) return;
+
+        this.currentBet = betVal;
+        if (window.audio) window.audio.playSelect();
+        this.updateBetUI();
+        this.resetBonusScoreboardUI();
+      });
+    });
+  }
+
+  updateBetUI() {
+    const betBox = document.getElementById('minigame-bet-box');
+    if (!betBox) return;
+
+    const wallet = window.game ? window.game.getCoins() : 0;
+    if (this.currentBet > wallet) {
+      this.currentBet = 0;
+    }
+
+    const hintEl = document.getElementById('lbl-bet-mode-hint');
+    if (hintEl) {
+      if (this.currentBet === 0) {
+        hintEl.textContent = 'Diversión (Sin riesgo)';
+        hintEl.className = 'text-[10px] font-bold px-2 py-0.5 rounded-full bg-emerald-500/15 text-emerald-300 border border-emerald-500/30';
+      } else {
+        hintEl.textContent = `Apostando ${this.currentBet} 🪙`;
+        hintEl.className = 'text-[10px] font-black px-2 py-0.5 rounded-full bg-amber-500/20 text-amber-300 border border-amber-400/50 animate-pulse';
+      }
+    }
+
+    const isMovingInProgress = (this.currentMode === 'moving_targets' && this.movingDartsLeft < 4 && !this.isRoundOver);
+    const isBusy = this.isSpinning || this.isDartFlying || isMovingInProgress;
+
+    const betButtons = document.querySelectorAll('.btn-minigame-bet');
+    betButtons.forEach(btn => {
+      const val = parseInt(btn.getAttribute('data-bet'), 10);
+      const canAfford = (val === 0) || (wallet >= val);
+      const isSelected = (this.currentBet === val);
+
+      btn.disabled = !canAfford || isBusy;
+
+      if (isSelected) {
+        btn.className = 'btn-minigame-bet flex-1 py-2 px-3 rounded-xl text-xs font-black bg-gradient-to-r from-amber-500 to-orange-500 text-slate-950 border-2 border-amber-300 shadow-md shadow-amber-500/25 transition-all flex flex-col items-center justify-center gap-0.5 cursor-pointer scale-[1.02]';
+      } else if (!canAfford) {
+        btn.className = 'btn-minigame-bet flex-1 py-2 px-3 rounded-xl text-xs font-bold bg-slate-900/50 text-slate-600 border border-slate-800 transition-all flex flex-col items-center justify-center gap-0.5 opacity-45 cursor-not-allowed';
+      } else {
+        btn.className = 'btn-minigame-bet flex-1 py-2 px-3 rounded-xl text-xs font-bold bg-slate-800/90 hover:bg-slate-700 text-slate-200 border border-slate-700 transition-all flex flex-col items-center justify-center gap-0.5 cursor-pointer';
+      }
+    });
+  }
+
   // Inicializa o reinicia la ronda
   initRound() {
-    this.rollRandomMode();
+    if (this.fromVictory) {
+      this.rollRandomMode();
+    } else {
+      if (this.selectedFreeMode === 'random') {
+        const modes = ['roulette', 'diana', 'moving_targets'];
+        const nextMode = modes[Math.floor(Math.random() * modes.length)];
+        this.setMode(nextMode, false);
+      } else {
+        this.setMode(this.selectedFreeMode || 'roulette', false);
+      }
+    }
     this.shuffleSlices();
     this.generateNewWind();
     this.renderWheel();
     this.resetDianaTarget();
     this.resetMovingTargets();
     this.updateCardsUI();
+    this.updateBetUI();
     this.updateRulesText();
     this.updateTrainingModeUI();
     this.resetBonusScoreboardUI();
@@ -172,9 +251,9 @@ class MinigameEngine {
     } else if (mode === 'moving_targets') {
       if (tabMoving) tabMoving.className = activeMovingClass;
       if (this.movingContainer) this.movingContainer.classList.remove('hidden');
-      if (titleEl) titleEl.innerHTML = '<i data-lucide="crosshair" class="w-5 h-5 text-purple-400"></i> Dianas Alquímicas Móviles';
+      if (titleEl) titleEl.innerHTML = '<i data-lucide="crosshair" class="w-5 h-5 text-purple-400"></i> Tiro al Blanco Móvil';
       if (bannerEl && fromRandom) {
-        bannerEl.innerHTML = '🎲 ¡Extraído de la Bolsa: <strong>Dianas Móviles</strong>!';
+        bannerEl.innerHTML = '🎲 ¡Extraído de la Bolsa: <strong>Tiro al Blanco</strong>!';
       }
       this.startMovingTargetsAnim();
       if (window.audio && fromRandom) window.audio.playWindGust();
@@ -197,12 +276,17 @@ class MinigameEngine {
     if (!bag) return;
 
     const dianaCount = drawInfo ? drawInfo.remainingDiana : bag.tokens.filter(t => t === 'diana').length;
+    const movingCount = drawInfo && typeof drawInfo.remainingMoving === 'number'
+      ? drawInfo.remainingMoving
+      : bag.tokens.filter(t => t === 'moving_targets').length;
     const rouletteCount = drawInfo ? drawInfo.remainingRoulette : bag.tokens.filter(t => t === 'roulette').length;
 
     const elDiana = document.getElementById('bag-count-diana');
+    const elMoving = document.getElementById('bag-count-moving');
     const elRoulette = document.getElementById('bag-count-roulette');
-    if (elDiana) elDiana.textContent = `🎯 ${dianaCount} Diana`;
-    if (elRoulette) elRoulette.textContent = `🎡 ${rouletteCount} Ruleta`;
+    if (elDiana) elDiana.textContent = `🎯 ${dianaCount}`;
+    if (elMoving) elMoving.textContent = `🎪 ${movingCount}`;
+    if (elRoulette) elRoulette.textContent = `🎡 ${rouletteCount}`;
   }
 
   // --- ACORDEÓN / CAJÓN DE CARTAS ALQUÍMICAS ---
@@ -1428,8 +1512,33 @@ class MinigameEngine {
     this.isDartFlying = false;
     this.isRoundOver = false;
 
-    const container = document.getElementById('moving-target-container');
+    const container = document.getElementById('moving-targets-container');
     if (container) container.style.pointerEvents = 'auto';
+
+    const impactsGroup = document.getElementById('moving-impacts-group');
+    if (impactsGroup) impactsGroup.innerHTML = '';
+    const dartsGroup = document.getElementById('moving-darts-anim-group');
+    if (dartsGroup) dartsGroup.innerHTML = '';
+    const trajectoryEl = document.getElementById('moving-trajectory');
+    if (trajectoryEl) trajectoryEl.setAttribute('opacity', '0');
+    const trajectoryDot = document.getElementById('moving-trajectory-dot');
+    if (trajectoryDot) trajectoryDot.setAttribute('opacity', '0');
+
+    const dartEl = document.getElementById('moving-slingshot-dart');
+    const bandLeft = document.getElementById('moving-band-left');
+    const bandRight = document.getElementById('moving-band-right');
+    if (dartEl) {
+      dartEl.setAttribute('transform', 'translate(150, 315)');
+      dartEl.style.opacity = '1';
+    }
+    if (bandLeft) { bandLeft.setAttribute('x2', '150'); bandLeft.setAttribute('y2', '315'); }
+    if (bandRight) { bandRight.setAttribute('x2', '150'); bandRight.setAttribute('y2', '315'); }
+
+    const hintEl = document.getElementById('moving-gesture-hint');
+    if (hintEl) {
+      hintEl.textContent = '👇 Arrastra hacia abajo o arriba para apuntar a los blancos en movimiento';
+      hintEl.className = 'text-center text-[11px] font-bold text-slate-300 mt-1 mb-2';
+    }
 
     this.movingTargets = [
       { id: 0, x: 150, y: 65, r: 16, vx: 1.3, minX: 45, maxX: 255, hit: false, mult: 3.0, name: 'Oro', color: '#facc15' },
@@ -1498,14 +1607,17 @@ class MinigameEngine {
     if (!container) return;
 
     let isMovingDragging = false;
+    let hasStretchedEnough = false;
     let movingStartPos = { x: 0, y: 0 };
     let currentMovingDartPos = { x: 150, y: 315 };
     let currentMovingImpact = { x: 150, y: 125 };
+    let currentMovingCtrl = { x: 150, y: 205 };
 
     const dartEl = document.getElementById('moving-slingshot-dart');
     const bandLeft = document.getElementById('moving-band-left');
     const bandRight = document.getElementById('moving-band-right');
     const trajectoryEl = document.getElementById('moving-trajectory');
+    const trajectoryDot = document.getElementById('moving-trajectory-dot');
 
     const updateVisuals = (dx, dy, isStretched) => {
       const dX = 150 + dx;
@@ -1518,19 +1630,29 @@ class MinigameEngine {
 
       if (!isStretched) {
         if (trajectoryEl) trajectoryEl.setAttribute('opacity', '0');
+        if (trajectoryDot) trajectoryDot.setAttribute('opacity', '0');
         return;
       }
 
-      const aimX = 150 - (dx * 1.35);
+      const aimX = 150 - (dx * 1.45);
       const aimY = 125 - ((dy - 48) * 1.85);
-      currentMovingImpact = { x: Math.max(20, Math.min(280, aimX)), y: Math.max(30, Math.min(250, aimY)) };
+      currentMovingImpact = {
+        x: Math.max(25, Math.min(275, aimX)),
+        y: Math.max(35, Math.min(240, aimY))
+      };
 
       const ctrlX = (dX + currentMovingImpact.x) / 2;
-      const ctrlY = (dY + currentMovingImpact.y) / 2;
+      const ctrlY = ((dY + currentMovingImpact.y) / 2) - 18;
+      currentMovingCtrl = { x: ctrlX, y: ctrlY };
 
       if (trajectoryEl) {
         trajectoryEl.setAttribute('d', `M ${dX} ${dY} Q ${ctrlX} ${ctrlY} ${currentMovingImpact.x} ${currentMovingImpact.y}`);
-        trajectoryEl.setAttribute('opacity', '0.9');
+        trajectoryEl.setAttribute('opacity', '0.92');
+      }
+      if (trajectoryDot) {
+        trajectoryDot.setAttribute('cx', currentMovingImpact.x);
+        trajectoryDot.setAttribute('cy', currentMovingImpact.y);
+        trajectoryDot.setAttribute('opacity', '0.95');
       }
     };
 
@@ -1541,6 +1663,7 @@ class MinigameEngine {
       if (window.audio) window.audio.init();
 
       isMovingDragging = true;
+      hasStretchedEnough = false;
       movingStartPos = { x: e.clientX, y: e.clientY };
       container.setPointerCapture?.(e.pointerId);
     });
@@ -1551,11 +1674,22 @@ class MinigameEngine {
       const scaleX = 300 / rect.width;
       const scaleY = 360 / rect.height;
 
-      const dx = (e.clientX - movingStartPos.x) * scaleX;
-      const dy = (e.clientY - movingStartPos.y) * scaleY;
+      const rawDx = (e.clientX - movingStartPos.x) * scaleX;
+      const rawDy = (e.clientY - movingStartPos.y) * scaleY;
 
-      const clampedDx = Math.max(-70, Math.min(70, dx));
-      const clampedDy = Math.max(12, Math.min(85, dy));
+      if (Math.hypot(rawDx, rawDy) < 8) {
+        hasStretchedEnough = false;
+        updateVisuals(0, 0, false);
+        return;
+      }
+
+      hasStretchedEnough = true;
+      // Permitir arrastrar hacia abajo (clásico) o hacia arriba (inverso)
+      const effectiveDy = rawDy >= 0 ? rawDy : Math.abs(rawDy);
+      const effectiveDx = rawDy >= 0 ? rawDx : -rawDx;
+
+      const clampedDx = Math.max(-75, Math.min(75, effectiveDx));
+      const clampedDy = Math.max(12, Math.min(88, effectiveDy));
       updateVisuals(clampedDx, clampedDy, true);
     });
 
@@ -1566,62 +1700,59 @@ class MinigameEngine {
 
       if (this.isDartFlying || this.movingDartsLeft <= 0 || this.isMovingFinished || this.isRoundOver) return;
 
+      const shouldLaunch = hasStretchedEnough;
+      hasStretchedEnough = false;
+      const launchStart = { ...currentMovingDartPos };
+      const launchImpact = { ...currentMovingImpact };
+      const launchCtrl = { ...currentMovingCtrl };
+
       updateVisuals(0, 0, false);
-      this.launchMovingDart(currentMovingDartPos, currentMovingImpact);
+      if (shouldLaunch) {
+        this.launchMovingDart(launchStart, launchImpact, launchCtrl);
+      }
     };
 
     container.addEventListener('pointerup', onPointerUp);
     container.addEventListener('pointercancel', onPointerUp);
   }
 
-  launchMovingDart(startPos, hitPos) {
+  launchMovingDart(startPos, hitPos, ctrlPos = null) {
     if (this.isDartFlying || this.movingDartsLeft <= 0 || this.isMovingFinished || this.isRoundOver) return;
     this.isDartFlying = true;
     this.movingDartsLeft--;
     this.updateMovingTargetsHUD();
+    this.updateBetUI();
 
     // Si ya no quedan dardos, bloquear inmediatamente para evitar tiros dobles rápidos
     if (this.movingDartsLeft <= 0) {
       this.isMovingFinished = true;
-      const container = document.getElementById('moving-target-container');
+      const container = document.getElementById('moving-targets-container');
       if (container) container.style.pointerEvents = 'none';
     }
 
     if (window.audio) window.audio.playDartThrow();
 
+    const dartEl = document.getElementById('moving-slingshot-dart');
+    if (dartEl) dartEl.style.opacity = '0.25';
+
+    const cPos = ctrlPos || {
+      x: (startPos.x + hitPos.x) / 2,
+      y: ((startPos.y + hitPos.y) / 2) - 18
+    };
+
     const dartsGroup = document.getElementById('moving-darts-anim-group');
-    if (dartsGroup) {
-      dartsGroup.innerHTML = `
-        <circle id="flying-moving-dart" cx="${startPos.x}" cy="${startPos.y}" r="5" fill="#fde047" stroke="#ffffff" stroke-width="1.5"/>
-      `;
-      const flyingEl = document.getElementById('flying-moving-dart');
-      if (flyingEl && flyingEl.animate) {
-        flyingEl.animate([
-          { transform: `translate(0, 0) scale(1.3)`, opacity: 1 },
-          { transform: `translate(${hitPos.x - startPos.x}px, ${hitPos.y - startPos.y}px) scale(0.85)`, opacity: 1 }
-        ], {
-          duration: 320,
-          easing: 'ease-out',
-          fill: 'forwards'
-        });
-      }
-    }
+    const impactsGroup = document.getElementById('moving-impacts-group');
+    const duration = 290;
+    const startTime = performance.now();
 
-    setTimeout(() => {
+    const finishShot = (hitTarget, finalX, finalY) => {
       if (dartsGroup) dartsGroup.innerHTML = '';
-      this.isDartFlying = false;
-
-      // Evaluar impacto en alguna de las 3 dianas
-      let hitTarget = null;
-      for (const t of this.movingTargets) {
-        if (!t.hit) {
-          const dist = Math.hypot(hitPos.x - t.x, hitPos.y - t.y);
-          if (dist <= t.r + 7) {
-            hitTarget = t;
-            break;
-          }
-        }
+      if (dartEl) {
+        dartEl.setAttribute('transform', 'translate(150, 315)');
+        dartEl.style.opacity = this.movingDartsLeft > 0 ? '1' : '0.35';
       }
+      this.isDartFlying = false;
+      this.updateBetUI();
 
       const hintEl = document.getElementById('moving-gesture-hint');
 
@@ -1633,9 +1764,32 @@ class MinigameEngine {
           window.audio.playPop();
         }
 
+        // Mostrar diana impactada clavada en el lugar exacto del golpe
         const el = document.getElementById(`moving-target-${hitTarget.id}`);
         if (el) {
+          el.setAttribute('transform', `translate(${hitTarget.x}, ${hitTarget.y})`);
           el.classList.add('moving-target-hit');
+          el.innerHTML = `
+            <circle cx="0" cy="0" r="${hitTarget.r}" fill="${hitTarget.color}" stroke="#10b981" stroke-width="3" opacity="0.85"/>
+            <circle cx="0" cy="0" r="${hitTarget.r * 0.55}" fill="#10b981" stroke="#ffffff" stroke-width="1.5"/>
+            <circle cx="0" cy="0" r="5" fill="#fde047" stroke="#0f172a" stroke-width="1.5"/>
+            <path d="M -5 -5 L 5 5 M -5 5 L 5 -5" stroke="#0f172a" stroke-width="2" stroke-linecap="round"/>
+          `;
+        }
+
+        // Destello y onda expansiva de golpe real sobre el blanco móvil
+        if (impactsGroup) {
+          const burst = document.createElementNS('http://www.w3.org/2000/svg', 'g');
+          burst.setAttribute('transform', `translate(${hitTarget.x}, ${hitTarget.y})`);
+          burst.innerHTML = `
+            <circle cx="0" cy="0" r="${hitTarget.r + 6}" fill="none" stroke="#fde047" stroke-width="3" opacity="0.95"/>
+            <circle cx="0" cy="0" r="${hitTarget.r + 13}" fill="none" stroke="#34d399" stroke-width="1.5" stroke-dasharray="4 3" opacity="0.85"/>
+            <text x="0" y="${-hitTarget.r - 8}" fill="#fde047" font-size="11" font-weight="900" text-anchor="middle" filter="drop-shadow(0 2px 3px rgba(0,0,0,0.9))">¡IMPACTO!</text>
+          `;
+          impactsGroup.appendChild(burst);
+          setTimeout(() => {
+            try { burst.remove(); } catch (_) {}
+          }, 750);
         }
 
         if (hintEl) {
@@ -1652,8 +1806,21 @@ class MinigameEngine {
         }
       } else {
         if (window.audio) window.audio.playDartHit();
+        // Marca visual en el punto exacto donde cayó la pelota
+        if (impactsGroup) {
+          const missMark = document.createElementNS('http://www.w3.org/2000/svg', 'g');
+          missMark.setAttribute('transform', `translate(${finalX}, ${finalY})`);
+          missMark.innerHTML = `
+            <circle cx="0" cy="0" r="6" fill="none" stroke="#94a3b8" stroke-width="1.5" opacity="0.7"/>
+            <path d="M -3.5 -3.5 L 3.5 3.5 M -3.5 3.5 L 3.5 -3.5" stroke="#cbd5e1" stroke-width="1.8" stroke-linecap="round" opacity="0.8"/>
+          `;
+          impactsGroup.appendChild(missMark);
+          setTimeout(() => {
+            try { missMark.remove(); } catch (_) {}
+          }, 550);
+        }
         if (hintEl) {
-          hintEl.innerHTML = `💨 ¡Dardo esquivado! Quedan ${this.movingDartsLeft} dardos`;
+          hintEl.innerHTML = `💨 ¡Blanco esquivado! Quedan ${this.movingDartsLeft} dardos`;
           hintEl.className = 'text-center text-xs font-bold text-slate-400 mt-1 mb-2';
         }
       }
@@ -1662,7 +1829,60 @@ class MinigameEngine {
       if (this.movingDartsLeft <= 0) {
         this.evaluateMovingTargetsFinal(false);
       }
-    }, 330);
+    };
+
+    const animateFlight = (now) => {
+      const elapsed = now - startTime;
+      const t = Math.min(elapsed / duration, 1);
+
+      // Curva cuadrática de Bézier idéntica a la línea punteada de puntería
+      const invT = 1 - t;
+      const curX = (invT * invT * startPos.x) + (2 * invT * t * cPos.x) + (t * t * hitPos.x);
+      const curY = (invT * invT * startPos.y) + (2 * invT * t * cPos.y) + (t * t * hitPos.y);
+      const scale = 1.35 - (0.40 * t);
+
+      if (dartsGroup) {
+        dartsGroup.innerHTML = `
+          <g transform="translate(${curX}, ${curY}) scale(${scale})">
+            <circle cx="0" cy="0" r="8" fill="rgba(250, 204, 21, 0.3)"/>
+            <circle cx="0" cy="0" r="5.5" fill="#fde047" stroke="#ffffff" stroke-width="1.8"/>
+            <circle cx="-1.5" cy="-1.5" r="1.8" fill="#ffffff"/>
+          </g>
+        `;
+      }
+
+      // En el tramo final del vuelo (cuando la pelota llega al plano del objetivo), comprobar colisión real
+      if (t >= 0.82) {
+        for (const target of this.movingTargets) {
+          if (!target.hit) {
+            const distToTarget = Math.hypot(curX - target.x, curY - target.y);
+            const aimDistY = Math.abs(hitPos.y - target.y);
+            if (distToTarget <= target.r + 6 && aimDistY <= target.r + 14) {
+              finishShot(target, curX, curY);
+              return;
+            }
+          }
+        }
+      }
+
+      if (t < 1) {
+        requestAnimationFrame(animateFlight);
+      } else {
+        let hitTarget = null;
+        for (const target of this.movingTargets) {
+          if (!target.hit) {
+            const dist = Math.hypot(hitPos.x - target.x, hitPos.y - target.y);
+            if (dist <= target.r + 8) {
+              hitTarget = target;
+              break;
+            }
+          }
+        }
+        finishShot(hitTarget, hitPos.x, hitPos.y);
+      }
+    };
+
+    requestAnimationFrame(animateFlight);
   }
 
   updateMovingTargetsHUD() {
@@ -1678,7 +1898,7 @@ class MinigameEngine {
     this.isMovingFinished = true;
     this.isRoundOver = true;
 
-    const container = document.getElementById('moving-target-container');
+    const container = document.getElementById('moving-targets-container');
     if (container) container.style.pointerEvents = 'none';
 
     const modalBox = document.querySelector('#modal-roulette .modal-content');
@@ -1784,50 +2004,43 @@ class MinigameEngine {
   updateTrainingModeUI() {
     const btnCashout = document.getElementById('btn-cashout-roulette');
     const bannerEl = document.getElementById('minigame-assigned-banner');
-    const tabRoulette = document.getElementById('tab-game-roulette');
-    const tabDiana = document.getElementById('tab-game-diana');
-    const tabMoving = document.getElementById('tab-game-moving');
+    const tabSelector = document.getElementById('tab-minigame-selector');
+    const bagIndicator = document.getElementById('minigame-bag-indicator');
+    const cardsDrawer = document.getElementById('alchemy-cards-drawer');
+    const betBox = document.getElementById('minigame-bet-box');
+    const stakeTitle = document.getElementById('lbl-bonus-stake-title');
+
+    // Ocultar siempre el selector superior y el banner para ahorrar espacio vertical en celular
+    if (tabSelector) tabSelector.classList.add('hidden');
+    if (bannerEl) bannerEl.classList.add('hidden');
 
     if (this.fromVictory) {
-      // En Modo Historia: no se pueden elegir los minijuegos
-      [tabRoulette, tabDiana, tabMoving].forEach(t => {
-        if (t) {
-          t.style.cursor = 'not-allowed';
-          t.style.pointerEvents = 'none';
-          t.classList.add('opacity-60');
-          t.title = 'En Modo Historia el minijuego se asigna al azar desde la Bolsa Alquímica';
-        }
-      });
-      if (btnCashout) {
+      // En Modo Historia: mostrar bolsa y cartas, ocultar recuadro de apuesta
+      if (bagIndicator) bagIndicator.classList.remove('hidden');
+      if (cardsDrawer) cardsDrawer.classList.remove('hidden');
+      if (betBox) betBox.classList.add('hidden');
+      if (stakeTitle) stakeTitle.textContent = 'Ganado en el nivel:';
+
+      if (btnCashout && !this.roundCompleted) {
         btnCashout.innerHTML = `
-          <i data-lucide="shield-check" class="w-4 h-4 text-rose-200"></i>
-          <span>Cobrar Seguro y Siguiente Nivel</span>
+          <i data-lucide="fast-forward" class="w-4 h-4 text-slate-400"></i>
+          <span>Omitir Bonus y Continuar</span>
         `;
-      }
-      if (bannerEl) {
-        bannerEl.innerHTML = `🎲 ¡Minijuego Asignado desde la Bolsa! (Elección deshabilitada en Historia)`;
-        bannerEl.className = 'mb-1 py-1 px-3 rounded-xl text-[11px] font-black bg-slate-800 text-amber-300 border border-amber-500/30 flex items-center justify-center gap-1.5 shadow-sm';
       }
     } else {
-      // En Modo Bonus / Entrenamiento libre: se puede elegir libremente pero NO da monedas
-      [tabRoulette, tabDiana, tabMoving].forEach(t => {
-        if (t) {
-          t.style.cursor = 'pointer';
-          t.style.pointerEvents = 'auto';
-          t.classList.remove('opacity-60');
-          t.title = 'Elegir este minijuego';
-        }
-      });
+      // En Modo Minijuegos (Libre / Apuesta): ocultar cartas y bolsa, mostrar recuadro de apuesta (0, 25, 50)
+      if (bagIndicator) bagIndicator.classList.add('hidden');
+      if (cardsDrawer) cardsDrawer.classList.add('hidden');
+      if (betBox) betBox.classList.remove('hidden');
+      if (stakeTitle) stakeTitle.textContent = 'Apuesta en juego:';
+
       if (btnCashout) {
         btnCashout.innerHTML = `
-          <i data-lucide="door-open" class="w-4 h-4 text-rose-200"></i>
-          <span>Cobrar y Salir (Modo Bonus Libre)</span>
+          <i data-lucide="arrow-left" class="w-4 h-4 text-rose-200"></i>
+          <span>Volver al Menú de Minijuegos</span>
         `;
       }
-      if (bannerEl) {
-        bannerEl.innerHTML = `🎯 ¡Modo Bonus Libre! Puedes elegir el minijuego (Sin recompensa de monedas)`;
-        bannerEl.className = 'mb-1 py-1 px-3 rounded-xl text-[11px] font-black bg-gradient-to-r from-emerald-500/20 via-sky-500/20 to-indigo-500/20 text-emerald-300 border border-emerald-500/40 flex items-center justify-center gap-1.5 shadow-sm';
-      }
+      this.updateBetUI();
     }
     if (window.lucide && typeof window.lucide.createIcons === 'function') {
       window.lucide.createIcons();
@@ -1860,8 +2073,11 @@ class MinigameEngine {
       this.levelCoinsAtStake = earned;
       this.walletBeforeBonus = walletBefore;
     } else {
-      this.levelCoinsAtStake = 100;
-      this.walletBeforeBonus = window.game ? window.game.getCoins() : 0;
+      const walletTotal = window.game ? window.game.getCoins() : 0;
+      const validBet = (this.currentBet <= walletTotal) ? (this.currentBet || 0) : 0;
+      this.currentBet = validBet;
+      this.levelCoinsAtStake = validBet;
+      this.walletBeforeBonus = Math.max(0, walletTotal - validBet);
     }
 
     if (levelEl) {
@@ -1885,21 +2101,53 @@ class MinigameEngine {
     if (!this.isTrainingMode && window.game) {
       coinRes = window.game.multiplyCoins(effectiveMult);
     } else {
-      const base = this.levelCoinsAtStake || 100;
-      const finalLvl = effectiveMult >= 0
-        ? Math.round(base * effectiveMult)
-        : -Math.round(base * Math.abs(effectiveMult));
-      const delta = finalLvl - base;
-      const walletBefore = this.walletBeforeBonus || 0;
-      coinRes = {
-        baseLevelCoins: base,
-        finalLevelCoins: finalLvl,
-        delta: delta,
-        gained: finalLvl,
-        walletBefore: walletBefore,
-        total: Math.max(0, walletBefore + finalLvl),
-        multiplier: effectiveMult
-      };
+      const walletTotal = window.game ? window.game.getCoins() : 0;
+      const base = (this.currentBet <= walletTotal) ? (this.currentBet || 0) : 0;
+      const walletAfterStake = Math.max(0, walletTotal - base);
+
+      if (base <= 0) {
+        // Modo diversión / práctica sin apuesta (0 monedas)
+        coinRes = {
+          baseLevelCoins: 0,
+          finalLevelCoins: 0,
+          delta: 0,
+          gained: 0,
+          walletBefore: walletTotal,
+          total: walletTotal,
+          multiplier: effectiveMult
+        };
+      } else {
+        let finalLvl;
+        if (effectiveMult < 0) {
+          const lossRatio = Math.min(1, Math.abs(effectiveMult));
+          finalLvl = -Math.round(base * lossRatio);
+        } else {
+          finalLvl = Math.round(base * effectiveMult);
+        }
+
+        const delta = finalLvl - base;
+        const finalWalletTotal = Math.max(0, walletAfterStake + finalLvl);
+        const netWalletDiff = finalWalletTotal - walletTotal;
+
+        if (window.game) {
+          if (netWalletDiff > 0) {
+            window.game.addCoins(netWalletDiff);
+          } else if (netWalletDiff < 0) {
+            window.game.spendCoins(Math.abs(netWalletDiff));
+          }
+        }
+
+        coinRes = {
+          baseLevelCoins: base,
+          finalLevelCoins: finalLvl,
+          delta: delta,
+          gained: finalLvl,
+          walletBefore: walletAfterStake,
+          total: window.game ? window.game.getCoins() : finalWalletTotal,
+          multiplier: effectiveMult
+        };
+        this.updateBetUI();
+      }
     }
 
     this.animateBonusCoinResult(coinRes);
@@ -2085,13 +2333,19 @@ class MinigameEngine {
     // y solo avanzará al presionar el botón de Aceptar o Cancelar.
   }
 
-  openModal(coins = 75, fromVictory = false) {
+  openModal(coins = 75, fromVictory = false, selectedMode = null) {
     this.cancelFinalizeTimer();
     this.fromVictory = Boolean(fromVictory);
     this.isTrainingMode = !this.fromVictory;
+    if (!this.fromVictory) {
+      if (selectedMode) {
+        this.selectedFreeMode = selectedMode;
+      }
+      this.currentBet = 0; // Por defecto 0 (diversión sin riesgo) al abrir
+    }
     this.roundCompleted = false;
     this.openTimestamp = Date.now();
-    this.levelCoinsAtStake = coins > 0 ? coins : 50;
+    this.levelCoinsAtStake = this.fromVictory ? (coins > 0 ? coins : 50) : (this.currentBet || 0);
     if (!this.wheelGroup) this.initDOM();
 
     // Configurar estado inicial del botón de acción inferior
@@ -2104,10 +2358,10 @@ class MinigameEngine {
           <span>Omitir Bonus y Continuar</span>
         `;
       } else {
-        btnCashout.className = 'btn-interactive w-full py-2.5 bg-gradient-to-r from-rose-600 to-red-600 hover:from-rose-500 hover:to-red-500 active:scale-95 text-white font-bold rounded-2xl shadow-md text-xs sm:text-sm tracking-wide transition-all uppercase flex items-center justify-center gap-2 cursor-pointer';
+        btnCashout.className = 'btn-interactive w-full py-2.5 bg-gradient-to-r from-slate-800 to-slate-900 hover:from-slate-700 hover:to-slate-800 active:scale-95 text-slate-200 hover:text-white font-bold rounded-2xl border border-slate-700 shadow-md text-xs sm:text-sm tracking-wide transition-all flex items-center justify-center gap-2 cursor-pointer';
         btnCashout.innerHTML = `
-          <i data-lucide="x" class="w-4 h-4 text-rose-200"></i>
-          <span>Salir al Menú Principal</span>
+          <i data-lucide="arrow-left" class="w-4 h-4 text-amber-300"></i>
+          <span>Volver al Menú de Minijuegos</span>
         `;
       }
       if (window.lucide && typeof window.lucide.createIcons === 'function') {

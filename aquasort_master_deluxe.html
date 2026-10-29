@@ -46,10 +46,10 @@
   <link rel="icon" type="image/svg+xml" href="icons/icon.svg">
 
   <!-- Modular Stylesheets -->
-  <link rel="stylesheet" href="css/main.css?v=79">
-  <link rel="stylesheet" href="css/tubes.css?v=79">
-  <link rel="stylesheet" href="css/roulette.css?v=79">
-  <link rel="stylesheet" href="css/accessibility.css?v=79">
+  <link rel="stylesheet" href="css/main.css?v=80">
+  <link rel="stylesheet" href="css/tubes.css?v=80">
+  <link rel="stylesheet" href="css/roulette.css?v=80">
+  <link rel="stylesheet" href="css/accessibility.css?v=80">
 </head>
 <body class="min-h-screen flex flex-col justify-between select-none relative">
 
@@ -691,7 +691,7 @@
       <div class="flex flex-col gap-2">
         <button id="btn-vic-roulette" class="btn-interactive w-full py-3.5 bg-gradient-to-r from-amber-500 to-orange-500 hover:from-amber-400 hover:to-orange-400 text-slate-950 font-black rounded-2xl shadow-lg shadow-orange-500/30 flex items-center justify-center gap-2 transition-all">
           <i data-lucide="sparkles" class="w-5 h-5"></i>
-          <span>Jugar Minijuego de Bonus (🎯 / 🎡)</span>
+          <span>Jugar Minijuego de Bonus (🎯 / 🎡 / 🎪)</span>
         </button>
 
         <div class="grid grid-cols-2 gap-2">
@@ -709,38 +709,99 @@
   </div>
 
   <!-- ==========================================================================
-       MODAL 5: MINIJUEGO DE FORTUNA: DIANA ALQUÍMICA Y RULETA ALEATORIZADA
+       MODAL 4.b: MENÚ DE SELECCIÓN DE MINIJUEGOS (MODO PRÁCTICA Y APUESTA)
        ========================================================================== -->
-  <div id="modal-roulette" class="fixed inset-0 bg-slate-950/90 backdrop-blur-md z-50 hidden flex items-center justify-center p-3 sm:p-5 modal-overlay">
-    <div class="bg-slate-900 border border-slate-700 rounded-3xl max-w-md w-full p-4 sm:p-5 shadow-2xl text-center relative modal-content max-h-[94vh] overflow-y-auto">
-      <!-- Botón de Cerrar Modal en Modo Libre / Entrenamiento -->
-      <button id="btn-close-roulette" type="button" class="absolute top-3.5 right-3.5 p-1.5 text-slate-400 hover:text-white rounded-xl bg-slate-800/80 hover:bg-slate-700 transition-colors z-20" title="Cerrar Minijuego">
+  <div id="modal-minigames-menu" class="fixed inset-0 bg-slate-950/90 backdrop-blur-md z-50 hidden flex items-center justify-center p-3 sm:p-5 modal-overlay">
+    <div class="bg-slate-900 border border-amber-500/40 rounded-3xl max-w-md w-full p-5 sm:p-6 shadow-2xl relative flex flex-col text-center modal-content">
+      <button id="btn-close-minigames-menu" type="button" class="absolute top-4 right-4 p-1.5 text-slate-400 hover:text-white rounded-xl bg-slate-800/80 hover:bg-slate-700 transition-colors" title="Volver al Menú Principal">
         <i data-lucide="x" class="w-4 h-4"></i>
       </button>
 
-      <!-- Selector de Modo de Minijuego (3 Modos Alquímicos) -->
-      <div id="tab-minigame-selector" class="flex items-center gap-1.5 mb-2 p-1 rounded-2xl bg-slate-950/80 border border-slate-800">
-        <button id="tab-game-diana" type="button" class="flex-1 py-1.5 px-2 rounded-xl text-xs font-black bg-gradient-to-r from-sky-500 to-indigo-600 text-white shadow-md transition-all text-center">
-          🎯 Diana
+      <div class="w-14 h-14 rounded-2xl bg-gradient-to-tr from-amber-500 via-orange-500 to-rose-500 flex items-center justify-center text-white shadow-lg shadow-amber-500/25 mx-auto mb-2.5">
+        <i data-lucide="gamepad-2" class="w-7 h-7"></i>
+      </div>
+
+      <h3 class="text-xl font-black text-white mb-1">Minijuegos</h3>
+      <p class="text-xs text-slate-400 mb-4">Elige un desafío para practicar o apostar tus monedas</p>
+
+      <div class="grid grid-cols-2 gap-2.5 mb-4">
+        <button id="btn-menu-mg-roulette" type="button" class="btn-interactive p-3.5 rounded-2xl bg-gradient-to-br from-amber-500/20 to-orange-600/20 hover:from-amber-500/35 hover:to-orange-600/35 border border-amber-400/40 flex flex-col items-center justify-center gap-1.5 shadow-md transition-all">
+          <span class="text-2xl">🎡</span>
+          <span class="text-sm font-black text-amber-300">Ruleta</span>
+          <span class="text-[10px] text-slate-400 leading-tight">Aguja de precisión y multiplicadores</span>
         </button>
-        <button id="tab-game-moving" type="button" class="flex-1 py-1.5 px-2 rounded-xl text-xs font-bold bg-slate-800 text-slate-300 hover:text-white transition-all text-center">
-          🎪 Móviles
+
+        <button id="btn-menu-mg-diana" type="button" class="btn-interactive p-3.5 rounded-2xl bg-gradient-to-br from-sky-500/20 to-indigo-600/20 hover:from-sky-500/35 hover:to-indigo-600/35 border border-sky-400/40 flex flex-col items-center justify-center gap-1.5 shadow-md transition-all">
+          <span class="text-2xl">🎯</span>
+          <span class="text-sm font-black text-sky-300">Diana</span>
+          <span class="text-[10px] text-slate-400 leading-tight">Tiro con honda y desvío por viento</span>
         </button>
-        <button id="tab-game-roulette" type="button" class="flex-1 py-1.5 px-2 rounded-xl text-xs font-bold bg-slate-800 text-slate-300 hover:text-white transition-all text-center">
-          🎡 Ruleta
+
+        <button id="btn-menu-mg-moving" type="button" class="btn-interactive p-3.5 rounded-2xl bg-gradient-to-br from-purple-500/20 to-pink-600/20 hover:from-purple-500/35 hover:to-pink-600/35 border border-purple-400/40 flex flex-col items-center justify-center gap-1.5 shadow-md transition-all">
+          <span class="text-2xl">🎪</span>
+          <span class="text-sm font-black text-purple-300">Tiro al blanco</span>
+          <span class="text-[10px] text-slate-400 leading-tight">3 blancos móviles en movimiento</span>
+        </button>
+
+        <button id="btn-menu-mg-random" type="button" class="btn-interactive p-3.5 rounded-2xl bg-gradient-to-br from-emerald-500/20 to-teal-600/20 hover:from-emerald-500/35 hover:to-teal-600/35 border border-emerald-400/40 flex flex-col items-center justify-center gap-1.5 shadow-md transition-all">
+          <span class="text-2xl">🎲</span>
+          <span class="text-sm font-black text-emerald-300">Al azar</span>
+          <span class="text-[10px] text-slate-400 leading-tight">Rota entre los 3 juegos al azar</span>
         </button>
       </div>
 
-      <!-- Banner de Asignación y Bolsa Alquímica -->
-      <div id="minigame-assigned-banner" class="mb-1 py-1 px-3 rounded-xl text-[11px] font-black bg-slate-800 text-amber-300 border border-amber-500/30 flex items-center justify-center gap-1.5 shadow-sm">
-        🎲 ¡Minijuego Asignado desde la Bolsa Alquímica!
+      <button id="btn-back-minigames-menu" type="button" class="btn-interactive w-full py-2.5 bg-slate-800 hover:bg-slate-700 text-slate-300 font-bold rounded-xl border border-slate-700 text-xs transition-all">
+        Volver al Menú Principal
+      </button>
+    </div>
+  </div>
+
+  <!-- ==========================================================================
+       MODAL 5: MINIJUEGO DE FORTUNA: DIANA ALQUÍMICA Y RULETA ALEATORIZADA
+       ========================================================================== -->
+  <div id="modal-roulette" class="fixed inset-0 bg-slate-950/90 backdrop-blur-md z-50 hidden flex items-center justify-center p-3 sm:p-5 modal-overlay">
+    <div class="bg-slate-900 border border-slate-700 rounded-3xl max-w-md w-full p-3.5 sm:p-4 shadow-2xl text-center relative modal-content max-h-[95vh] overflow-y-auto">
+      <!-- Botón de Cerrar Modal en Modo Libre / Entrenamiento -->
+      <button id="btn-close-roulette" type="button" class="absolute top-3 right-3 p-1.5 text-slate-400 hover:text-white rounded-xl bg-slate-800/80 hover:bg-slate-700 transition-colors z-20" title="Cerrar Minijuego">
+        <i data-lucide="x" class="w-4 h-4"></i>
+      </button>
+
+      <!-- Selector de Modo (Oculto para ahorrar espacio vertical en ambos modos) -->
+      <div id="tab-minigame-selector" class="hidden">
+        <button id="tab-game-diana" type="button">🎯 Diana</button>
+        <button id="tab-game-moving" type="button">🎪 Tiro al blanco</button>
+        <button id="tab-game-roulette" type="button">🎡 Ruleta</button>
       </div>
 
-      <div id="minigame-bag-indicator" class="mb-2 flex items-center justify-center gap-2.5 text-[11px] font-bold text-slate-300 bg-slate-950/70 py-1 px-3 rounded-xl border border-slate-800 shadow-inner">
-        <span class="flex items-center gap-1 text-slate-400 font-semibold">🎒 En Bolsa:</span>
-        <span id="bag-count-diana" class="text-sky-300 font-mono font-bold">🎯 3 Diana</span>
+      <div id="minigame-assigned-banner" class="hidden"></div>
+
+      <!-- Indicador de Bolsa Alquímica (Solo en Modo Historia / Victoria) -->
+      <div id="minigame-bag-indicator" class="mb-1.5 flex items-center justify-center gap-2 text-[10px] sm:text-[11px] font-bold text-slate-300 bg-slate-950/70 py-1 px-2.5 rounded-xl border border-slate-800 shadow-inner">
+        <span class="flex items-center gap-1 text-slate-400 font-semibold">🎒 Bolsa:</span>
+        <span id="bag-count-diana" class="text-sky-300 font-mono font-bold">🎯 2</span>
         <span class="text-slate-600 font-bold">•</span>
-        <span id="bag-count-roulette" class="text-amber-300 font-mono font-bold">🎡 3 Ruleta</span>
+        <span id="bag-count-moving" class="text-purple-300 font-mono font-bold">🎪 2</span>
+        <span class="text-slate-600 font-bold">•</span>
+        <span id="bag-count-roulette" class="text-amber-300 font-mono font-bold">🎡 2</span>
+      </div>
+
+      <!-- SELECTOR DE APUESTA DE MONEDAS (SOLO EN MODO MINIJUEGOS LIBRE, REEMPLAZA A LAS CARTAS) -->
+      <div id="minigame-bet-box" class="hidden w-full mb-2 p-2 rounded-2xl bg-slate-950/90 border border-amber-500/40 shadow-inner">
+        <div class="flex items-center justify-between text-[11px] font-bold text-slate-300 mb-1.5 px-1">
+          <span class="flex items-center gap-1">🪙 <span>Apuesta de tu bolsa:</span></span>
+          <span id="lbl-bet-mode-hint" class="text-[10px] text-emerald-300 font-mono">Diversión (Sin riesgo)</span>
+        </div>
+        <div class="grid grid-cols-3 gap-1.5">
+          <button id="btn-bet-0" type="button" data-bet="0" class="btn-minigame-bet py-1.5 px-2 rounded-xl text-xs font-black bg-gradient-to-r from-amber-500 to-orange-500 text-slate-950 shadow-md transition-all">
+            0 🪙 (Libre)
+          </button>
+          <button id="btn-bet-25" type="button" data-bet="25" class="btn-minigame-bet py-1.5 px-2 rounded-xl text-xs font-bold bg-slate-800 text-slate-300 hover:text-white border border-slate-700 transition-all">
+            25 🪙
+          </button>
+          <button id="btn-bet-50" type="button" data-bet="50" class="btn-minigame-bet py-1.5 px-2 rounded-xl text-xs font-bold bg-slate-800 text-slate-300 hover:text-white border border-slate-700 transition-all">
+            50 🪙
+          </button>
+        </div>
       </div>
 
       <!-- CAJÓN COLAPSABLE DE CARTAS ALQUÍMICAS DE FORTUNA -->
@@ -919,8 +980,12 @@
             <!-- Grupo de dianas flotantes en movimiento -->
             <g id="moving-targets-group"></g>
 
-            <!-- Línea de trayectoria dinámica -->
-            <path id="moving-trajectory" d="M 150 315 L 150 125" fill="none" stroke="#fde047" stroke-width="3" stroke-dasharray="4,4" opacity="0"/>
+            <!-- Línea de trayectoria dinámica y retícula de impacto -->
+            <path id="moving-trajectory" d="M 150 315 L 150 125" fill="none" stroke="#fde047" stroke-width="3.5" stroke-dasharray="6,5" stroke-linecap="round" opacity="0"/>
+            <circle id="moving-trajectory-dot" cx="150" cy="125" r="5.5" fill="#fde047" stroke="#ffffff" stroke-width="1.5" opacity="0"/>
+
+            <!-- Grupo para impactos 'X' y estallidos sobre los blancos móviles -->
+            <g id="moving-impacts-group"></g>
 
             <!-- Marco del resorte / tirachinas -->
             <g id="moving-slingshot-frame">
@@ -1043,10 +1108,10 @@
       </div>
 
       <!-- MARCADOR ANIMADO DE MONEDAS DEL BONUS (VISIBLE EN LOS 3 MINIJUEGOS) -->
-      <div id="bonus-coins-scoreboard" class="w-full mb-3 p-2.5 sm:p-3 rounded-2xl bg-slate-950/90 border border-slate-700/80 shadow-inner flex flex-col gap-1.5 relative overflow-visible">
-        <!-- Fila 1: Monto Ganado en el Nivel (con animación de +ganado / -perdido) -->
-        <div class="flex items-center justify-between px-3 py-1.5 rounded-xl bg-slate-900/90 border border-slate-800/90 relative overflow-visible">
-          <span class="text-xs font-bold text-slate-300">Ganado en el nivel:</span>
+      <div id="bonus-coins-scoreboard" class="w-full mb-2.5 p-2 sm:p-2.5 rounded-2xl bg-slate-950/90 border border-slate-700/80 shadow-inner flex flex-col gap-1.5 relative overflow-visible">
+        <!-- Fila 1: Monto Ganado en el Nivel o Apostado (con animación de +ganado / -perdido) -->
+        <div class="flex items-center justify-between px-3 py-1 rounded-xl bg-slate-900/90 border border-slate-800/90 relative overflow-visible">
+          <span id="lbl-bonus-stake-title" class="text-xs font-bold text-slate-300">Ganado en el nivel:</span>
           <div class="relative flex items-center gap-1">
             <span id="bonus-level-coins-val" class="text-base sm:text-lg font-black text-amber-300 font-mono tabular-nums transition-all duration-200">0</span>
             <span class="text-sm">🪙</span>
@@ -1054,7 +1119,7 @@
           </div>
         </div>
         <!-- Fila 2: Total Acumulado del Usuario -->
-        <div class="flex items-center justify-between px-3 py-1.5 rounded-xl bg-slate-900/90 border border-slate-800/90">
+        <div class="flex items-center justify-between px-3 py-1 rounded-xl bg-slate-900/90 border border-slate-800/90">
           <span class="text-xs font-bold text-slate-400">Total de monedas:</span>
           <div class="flex items-center gap-1">
             <span id="bonus-total-coins-val" class="text-base sm:text-lg font-black text-white font-mono tabular-nums transition-all duration-200">0</span>
@@ -1151,10 +1216,10 @@
           <span>Modo Contrarreloj (Alquimia Viva) ⏳</span>
         </button>
 
-        <!-- 4. MINIJUEGOS DE FORTUNA -->
+        <!-- 4. MINIJUEGOS -->
         <button id="btn-home-minigame" class="btn-interactive w-full py-3 bg-gradient-to-r from-rose-500/25 via-amber-500/30 to-yellow-500/25 hover:from-rose-500/40 hover:to-yellow-500/40 border border-amber-400/40 text-amber-300 font-bold text-xs sm:text-sm rounded-2xl flex items-center justify-center gap-2 shadow-sm">
           <i data-lucide="target" class="w-4 h-4 text-rose-400"></i>
-          <span>Minijuegos de Fortuna (Diana / Ruleta) 🎯</span>
+          <span>Minijuegos</span>
         </button>
 
         <!-- 5. EXTRAS Y COLECCIONES -->
@@ -2977,19 +3042,19 @@
   <input type="file" id="input-save-file" accept=".json" class="hidden">
 
   <!-- Scripts modulares -->
-  <script src="js/firebase-config.js?v=79"></script>
-  <script src="js/cloud-sync.js?v=79"></script>
-  <script src="js/audio.js?v=79"></script>
-  <script src="js/palette.js?v=79"></script>
-  <script src="js/levels.js?v=79"></script>
-  <script src="js/challenges.js?v=79"></script>
-  <script src="js/honor.js?v=79"></script>
-  <script src="js/state.js?v=79"></script>
-  <script src="js/achievements.js?v=79"></script>
-  <script src="js/leaderboard.js?v=79"></script>
-  <script src="js/roulette.js?v=79"></script>
-  <script src="js/story.js?v=79"></script>
-  <script src="js/game.js?v=79"></script>
+  <script src="js/firebase-config.js?v=80"></script>
+  <script src="js/cloud-sync.js?v=80"></script>
+  <script src="js/audio.js?v=80"></script>
+  <script src="js/palette.js?v=80"></script>
+  <script src="js/levels.js?v=80"></script>
+  <script src="js/challenges.js?v=80"></script>
+  <script src="js/honor.js?v=80"></script>
+  <script src="js/state.js?v=80"></script>
+  <script src="js/achievements.js?v=80"></script>
+  <script src="js/leaderboard.js?v=80"></script>
+  <script src="js/roulette.js?v=80"></script>
+  <script src="js/story.js?v=80"></script>
+  <script src="js/game.js?v=80"></script>
 
   <!-- Registro de Service Worker PWA -->
   <script>
@@ -3002,7 +3067,7 @@
         }
       });
       window.addEventListener('load', () => {
-        navigator.serviceWorker.register('./sw.js?v=79', { updateViaCache: 'none' }).then((reg) => {
+        navigator.serviceWorker.register('./sw.js?v=80', { updateViaCache: 'none' }).then((reg) => {
           reg.update();
           console.log('AquaSort PWA ServiceWorker activo:', reg.scope);
         }).catch((err) => {
