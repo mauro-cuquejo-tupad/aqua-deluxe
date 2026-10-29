@@ -56,14 +56,39 @@
 /* Porción / Sector de la ruleta */
 .roulette-slice {
   cursor: pointer;
-  transition: filter 0.15s ease, stroke-width 0.15s ease, opacity 0.15s ease;
+  transition: filter 0.12s ease, stroke-width 0.12s ease, stroke 0.12s ease, opacity 0.15s ease;
 }
 
-/* Iluminación en tiempo real de la porción activa bajo el cursor */
+/* Iluminación en tiempo real de la porción que está tocando la flechita superior */
 .roulette-slice.active-slice {
-  filter: brightness(1.3) drop-shadow(0 0 16px rgba(255, 255, 255, 0.9));
+  filter: brightness(1.38) saturate(1.15) drop-shadow(0 0 14px rgba(255, 255, 255, 0.85));
+  stroke: #fef08a !important;
+  stroke-width: 3.8px !important;
+}
+
+.roulette-slice.slice-type-bankrupt.active-slice {
+  filter: brightness(1.85) drop-shadow(0 0 14px rgba(244, 63, 94, 0.9));
+  stroke: #fda4af !important;
+}
+
+.roulette-slice.slice-type-half_loss.active-slice {
+  filter: brightness(1.35) drop-shadow(0 0 16px rgba(248, 113, 113, 0.95));
+  stroke: #fecdd3 !important;
+}
+
+.roulette-slice.slice-type-keep.active-slice {
+  filter: brightness(1.35) drop-shadow(0 0 16px rgba(56, 189, 248, 0.95));
+  stroke: #bae6fd !important;
+}
+
+.roulette-slice.slice-type-double.active-slice {
+  filter: brightness(1.35) drop-shadow(0 0 16px rgba(74, 222, 128, 0.95));
+  stroke: #bbf7d0 !important;
+}
+
+.roulette-slice.slice-type-triple.active-slice {
+  filter: brightness(1.35) drop-shadow(0 0 18px rgba(250, 204, 21, 1));
   stroke: #ffffff !important;
-  stroke-width: 4px !important;
 }
 
 /* Sector ganador brillante */

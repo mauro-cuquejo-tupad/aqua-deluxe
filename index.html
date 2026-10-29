@@ -46,10 +46,10 @@
   <link rel="icon" type="image/svg+xml" href="icons/icon.svg">
 
   <!--Modular Stylesheets -->
-  <link rel="stylesheet" href="css/main.css?v=89">
-  <link rel="stylesheet" href="css/tubes.css?v=89">
-  <link rel="stylesheet" href="css/roulette.css?v=89">
-  <link rel="stylesheet" href="css/accessibility.css?v=89">
+  <link rel="stylesheet" href="css/main.css?v=90">
+  <link rel="stylesheet" href="css/tubes.css?v=90">
+  <link rel="stylesheet" href="css/roulette.css?v=90">
+  <link rel="stylesheet" href="css/accessibility.css?v=90">
 </head>
 <body class="min-h-screen flex flex-col justify-between select-none relative">
 
@@ -1093,7 +1093,7 @@
           </div>
 
           <!-- RUEDA SVG GIRATORIA -->
-          <svg id="roulette-svg" class="w-full h-full drop-shadow-[0_12px_24px_rgba(0,0,0,0.85)]" viewBox="0 0 300 300">
+          <svg id="roulette-svg" class="w-full h-full drop-shadow-[0_14px_28px_rgba(0,0,0,0.9)]" viewBox="0 0 300 300">
             <defs>
               <radialGradient id="gold-peg-grad" cx="35%" cy="35%" r="65%">
                 <stop offset="0%" stop-color="#ffffff"/>
@@ -1101,16 +1101,82 @@
                 <stop offset="80%" stop-color="#ca8a04"/>
                 <stop offset="100%" stop-color="#854d0e"/>
               </radialGradient>
+
+              <!-- Degradados radiales con volumen 3D centrados en el eje de la ruleta (150, 150) -->
+              <radialGradient id="slice-grad-bankrupt" gradientUnits="userSpaceOnUse" cx="150" cy="150" r="130">
+                <stop offset="0%" stop-color="#3f3f46"/>
+                <stop offset="45%" stop-color="#18181b"/>
+                <stop offset="85%" stop-color="#09090b"/>
+                <stop offset="100%" stop-color="#000000"/>
+              </radialGradient>
+              <radialGradient id="slice-grad-half_loss" gradientUnits="userSpaceOnUse" cx="150" cy="150" r="130">
+                <stop offset="0%" stop-color="#fb7185"/>
+                <stop offset="40%" stop-color="#ef4444"/>
+                <stop offset="82%" stop-color="#dc2626"/>
+                <stop offset="100%" stop-color="#7f1d1d"/>
+              </radialGradient>
+              <radialGradient id="slice-grad-keep" gradientUnits="userSpaceOnUse" cx="150" cy="150" r="130">
+                <stop offset="0%" stop-color="#7dd3fc"/>
+                <stop offset="38%" stop-color="#3b82f6"/>
+                <stop offset="82%" stop-color="#1d4ed8"/>
+                <stop offset="100%" stop-color="#1e3a8a"/>
+              </radialGradient>
+              <radialGradient id="slice-grad-double" gradientUnits="userSpaceOnUse" cx="150" cy="150" r="130">
+                <stop offset="0%" stop-color="#6ee7b7"/>
+                <stop offset="38%" stop-color="#22c55e"/>
+                <stop offset="82%" stop-color="#15803d"/>
+                <stop offset="100%" stop-color="#064e3b"/>
+              </radialGradient>
+              <radialGradient id="slice-grad-triple" gradientUnits="userSpaceOnUse" cx="150" cy="150" r="130">
+                <stop offset="0%" stop-color="#fef9c3"/>
+                <stop offset="35%" stop-color="#facc15"/>
+                <stop offset="80%" stop-color="#ca8a04"/>
+                <stop offset="100%" stop-color="#713f12"/>
+              </radialGradient>
+
+              <!-- Iluminación especular / cristal abovedado 3D (fija respecto a la luz superior) -->
+              <linearGradient id="wheel-3d-sheen" x1="0%" y1="0%" x2="0%" y2="100%">
+                <stop offset="0%" stop-color="#ffffff" stop-opacity="0.28"/>
+                <stop offset="38%" stop-color="#ffffff" stop-opacity="0.06"/>
+                <stop offset="60%" stop-color="#000000" stop-opacity="0.08"/>
+                <stop offset="100%" stop-color="#000000" stop-opacity="0.42"/>
+              </linearGradient>
+
+              <!-- Halo luminoso focalizado debajo de la flechita superior -->
+              <radialGradient id="needle-spotlight-grad" cx="50%" cy="10%" r="36%">
+                <stop offset="0%" stop-color="#ffffff" stop-opacity="0.48"/>
+                <stop offset="45%" stop-color="#fde047" stop-opacity="0.20"/>
+                <stop offset="100%" stop-color="#fde047" stop-opacity="0"/>
+              </radialGradient>
+
+              <!-- Bisel metálico exterior -->
+              <linearGradient id="wheel-outer-rim" x1="0%" y1="0%" x2="100%" y2="100%">
+                <stop offset="0%" stop-color="#fef08a"/>
+                <stop offset="30%" stop-color="#ca8a04"/>
+                <stop offset="50%" stop-color="#422006"/>
+                <stop offset="75%" stop-color="#eab308"/>
+                <stop offset="100%" stop-color="#713f12"/>
+              </linearGradient>
             </defs>
+
+            <!-- Aro exterior metálico biselado -->
+            <circle cx="150" cy="150" r="136" fill="#09090b" stroke="url(#wheel-outer-rim)" stroke-width="5"/>
 
             <!-- Grupo rotatorio con sectores y clavijas doradas -->
             <g id="wheel-group" class="transition-transform duration-75" style="transform-origin: 150px 150px;">
               <!-- Generado dinámicamente por MinigameEngine -->
             </g>
 
-            <!-- Centro metálico decorativo -->
-            <circle cx="150" cy="150" r="30" fill="#0f172a" stroke="#ca8a04" stroke-width="4"/>
-            <circle cx="150" cy="150" r="16" fill="url(#gold-peg-grad)"/>
+            <!-- Capa fija de volumen 3D e iluminación bajo la flechita (no rota con la rueda) -->
+            <g class="pointer-events-none">
+              <circle cx="150" cy="150" r="130" fill="url(#wheel-3d-sheen)"/>
+              <circle id="wheel-needle-spotlight" cx="150" cy="150" r="130" fill="url(#needle-spotlight-grad)"/>
+              <circle cx="150" cy="150" r="130" fill="none" stroke="rgba(255,255,255,0.22)" stroke-width="2"/>
+            </g>
+
+            <!-- Centro metálico decorativo con relieve -->
+            <circle cx="150" cy="150" r="31" fill="#09090b" stroke="url(#wheel-outer-rim)" stroke-width="4.5"/>
+            <circle cx="150" cy="150" r="17" fill="url(#gold-peg-grad)" stroke="#fef08a" stroke-width="1"/>
           </svg>
         </div>
 
@@ -3113,20 +3179,20 @@
   <input type="file" id="input-save-file" accept=".json" class="hidden">
 
   <!-- Scripts modulares -->
-  <script src="js/i18n.js?v=89"></script>
-  <script src="js/firebase-config.js?v=89"></script>
-  <script src="js/cloud-sync.js?v=89"></script>
-  <script src="js/audio.js?v=89"></script>
-  <script src="js/palette.js?v=89"></script>
-  <script src="js/levels.js?v=89"></script>
-  <script src="js/challenges.js?v=89"></script>
-  <script src="js/honor.js?v=89"></script>
-  <script src="js/state.js?v=89"></script>
-  <script src="js/achievements.js?v=89"></script>
-  <script src="js/leaderboard.js?v=89"></script>
-  <script src="js/roulette.js?v=89"></script>
-  <script src="js/story.js?v=89"></script>
-  <script src="js/game.js?v=89"></script>
+  <script src="js/i18n.js?v=90"></script>
+  <script src="js/firebase-config.js?v=90"></script>
+  <script src="js/cloud-sync.js?v=90"></script>
+  <script src="js/audio.js?v=90"></script>
+  <script src="js/palette.js?v=90"></script>
+  <script src="js/levels.js?v=90"></script>
+  <script src="js/challenges.js?v=90"></script>
+  <script src="js/honor.js?v=90"></script>
+  <script src="js/state.js?v=90"></script>
+  <script src="js/achievements.js?v=90"></script>
+  <script src="js/leaderboard.js?v=90"></script>
+  <script src="js/roulette.js?v=90"></script>
+  <script src="js/story.js?v=90"></script>
+  <script src="js/game.js?v=90"></script>
 
   <!-- Registro de Service Worker PWA -->
   <script>
@@ -3139,7 +3205,7 @@
         }
       });
       window.addEventListener('load', () => {
-        navigator.serviceWorker.register('./sw.js?v=89', { updateViaCache: 'none' }).then((reg) => {
+        navigator.serviceWorker.register('./sw.js?v=90', { updateViaCache: 'none' }).then((reg) => {
           reg.update();
           console.log('AlcheMix PWA ServiceWorker activo:', reg.scope);
         }).catch((err) => {
