@@ -39,7 +39,7 @@ class MinigameEngine {
     this.goldCenter = 0.50; // Jitter +-5% (0.45 a 0.55)
     this.goldWidth = 0.10;   // 10% en el centro (+2% sumado desde el azul)
     this.innerRedSpan = 0.05; // 5% de zona roja a izquierda y derecha del oro
-    this.blueSpan = 0.19;     // 19% de zona azul a cada lado (-1% cedido al oro)
+    this.blueSpan = 0.24;     // 24% de zona azul a cada lado (+5% sumado de cada lado)
 
     // --- DIANA DE DARDOS (SLINGSHOT / RESORTE TÁCTIL) ---
     this.windSpeed = 2.8; // m/s
@@ -481,33 +481,51 @@ class MinigameEngine {
     }
   }
 
-  // --- RULETA: SECTORES POR COLOR DISTRIBUIDOS ALEATORIAMENTE (11 PORCIONES) ---
-  // Mantiene exactamente las proporciones reales pero divididas en ~10% y sólo con color:
+  // --- RULETA: 20 PORCIONES IGUALES DE 5% (18° CADA UNA) DISTRIBUIDAS ALEATORIAMENTE ---
+  // Mantiene exactamente los porcentajes totales de cada color pero divididos en 20 gajos parejos de 5% (18°):
   // • Negro  (-100% -> 💰x 0):  5% total = 1 porción de 5% (18°)
-  // • Rojo   (-50%  -> 💰/ 2): 10% total = 1 porción de 10% (36°)
-  // • Azul   (0%    -> 💰x 1): 40% total = 4 porciones de 10% (36° c/u)
-  // • Verde  (2x    -> 💰x 2): 30% total = 3 porciones de 10% (36° c/u)
-  // • Dorado (3x    -> 💰x 3): 15% total = 2 porciones de 7.5% (27° c/u)
-  shuffleSlices() {
+  // • Rojo   (-50%  -> 💰/ 2): 10% total = 2 porciones de 5% (18° c/u)
+  // • Azul   (0%    -> 💰x 1): 40% total = 8 porciones de 5% (18° c/u)
+  // • Verde  (2x    -> 💰x 2): 30% total = 6 porciones de 5% (18° c/u)
+  // • Dorado (3x    -> 💰x 3): 15% total = 3 porciones de 5% (18° c/u)
+  buildEqual5PercentPool(counts) {
     const isDouble = (this.activeCard === 'doubleOrNothing');
-    const pool = [
-      // 1x Negro (5% = 18°) -> 💰x 0 (-100%)
-      { id: 'skull_1', type: 'skull', label: '💰x 0', value: -1.0, spanDeg: 18, hex: '#09090b', isWin: false, isNegative: true },
-      // 1x Rojo (10% = 36°) -> 💰/ 2 (-50%)
-      { id: 'half_1', type: 'half', label: '💰/ 2', value: -0.5, spanDeg: 36, hex: '#dc2626', isWin: false, isNegative: true },
-      // 4x Azul (4 x 10% = 40% = 144°) -> 💰x 1 (mantiene el monto)
-      { id: 'keep_1', type: 'keep', label: isDouble ? '💰x 2' : '💰x 1', value: isDouble ? 2.0 : 1.0, spanDeg: 36, hex: '#2563eb', isWin: true, isNegative: false },
-      { id: 'keep_2', type: 'keep', label: isDouble ? '💰x 2' : '💰x 1', value: isDouble ? 2.0 : 1.0, spanDeg: 36, hex: '#2563eb', isWin: true, isNegative: false },
-      { id: 'keep_3', type: 'keep', label: isDouble ? '💰x 2' : '💰x 1', value: isDouble ? 2.0 : 1.0, spanDeg: 36, hex: '#2563eb', isWin: true, isNegative: false },
-      { id: 'keep_4', type: 'keep', label: isDouble ? '💰x 2' : '💰x 1', value: isDouble ? 2.0 : 1.0, spanDeg: 36, hex: '#2563eb', isWin: true, isNegative: false },
-      // 3x Verde (3 x 10% = 30% = 108°) -> 💰x 2 (duplica)
-      { id: 'double_1', type: 'double', label: isDouble ? '💰x 4' : '💰x 2', value: isDouble ? 4.0 : 2.0, spanDeg: 36, hex: '#16a34a', isWin: true, isNegative: false },
-      { id: 'double_2', type: 'double', label: isDouble ? '💰x 4' : '💰x 2', value: isDouble ? 4.0 : 2.0, spanDeg: 36, hex: '#16a34a', isWin: true, isNegative: false },
-      { id: 'double_3', type: 'double', label: isDouble ? '💰x 4' : '💰x 2', value: isDouble ? 4.0 : 2.0, spanDeg: 36, hex: '#16a34a', isWin: true, isNegative: false },
-      // 2x Dorado (2 x 7.5% = 15% = 54°) -> 💰x 3 (triplica)
-      { id: 'triple_1', type: 'triple', label: isDouble ? '💰x 6' : '💰x 3', value: isDouble ? 6.0 : 3.0, spanDeg: 27, hex: '#eab308', isWin: true, isNegative: false },
-      { id: 'triple_2', type: 'triple', label: isDouble ? '💰x 6' : '💰x 3', value: isDouble ? 6.0 : 3.0, spanDeg: 27, hex: '#eab308', isWin: true, isNegative: false }
-    ];
+    const defs = {
+      bankrupt: { type: 'bankrupt', label: '💰x 0', value: -1.0, hex: '#09090b', isWin: false, isNegative: true },
+      half_loss: { type: 'half_loss', label: isDouble ? '💰x 0' : '💰/ 2', value: isDouble ? -1.0 : -0.5, hex: '#dc2626', isWin: false, isNegative: true },
+      keep: { type: 'keep', label: isDouble ? '💰x 2' : '💰x 1', value: isDouble ? 2.0 : 1.0, hex: '#2563eb', isWin: true, isNegative: false },
+      double: { type: 'double', label: isDouble ? '💰x 4' : '💰x 2', value: isDouble ? 4.0 : 2.0, hex: '#16a34a', isWin: true, isNegative: false },
+      triple: { type: 'triple', label: isDouble ? '💰x 6' : '💰x 3', value: isDouble ? 6.0 : 3.0, hex: '#eab308', isWin: true, isNegative: false }
+    };
+    const pool = [];
+    Object.keys(counts).forEach((key) => {
+      const count = counts[key] || 0;
+      const d = defs[key];
+      for (let i = 1; i <= count; i++) {
+        pool.push({
+          id: `${key}_${i}`,
+          type: d.type,
+          label: d.label,
+          value: d.value,
+          spanDeg: 18, // 5% de 360° = 18° exactos
+          hex: d.hex,
+          isWin: d.isWin,
+          isNegative: d.isNegative
+        });
+      }
+    });
+    return pool;
+  }
+
+  shuffleSlices() {
+    // Estado normal: 1 Negro (5%), 2 Rojo (10%), 8 Azul (40%), 6 Verde (30%), 3 Dorado (15%) = 20 gajos de 5%
+    const pool = this.buildEqual5PercentPool({
+      bankrupt: 1,
+      half_loss: 2,
+      keep: 8,
+      double: 6,
+      triple: 3
+    });
 
     const distributed = this.distributeSlicesAvoidingAdjacents(pool);
     this.assignSliceAngles(distributed);
@@ -695,10 +713,10 @@ class MinigameEngine {
       const peg = document.createElementNS('http://www.w3.org/2000/svg', 'circle');
       peg.setAttribute('cx', x1);
       peg.setAttribute('cy', y1);
-      peg.setAttribute('r', '5.5');
+      peg.setAttribute('r', '4.2');
       peg.setAttribute('fill', 'url(#gold-peg-grad)');
       peg.setAttribute('stroke', '#ffffff');
-      peg.setAttribute('stroke-width', '1.5');
+      peg.setAttribute('stroke-width', '1.2');
       peg.setAttribute('class', 'roulette-peg');
       peg.setAttribute('id', `peg-${i}`);
       this.wheelGroup.appendChild(peg);
@@ -708,7 +726,7 @@ class MinigameEngine {
     this.updateActiveSliceHighlight(this.currentAngle);
   }
 
-  // --- BARRA DE TIMING ACTIVO (ZONA DORADA 10% FLANQUEADA POR 5% ROJO INTERNO Y 19% AZUL) ---
+  // --- BARRA DE TIMING ACTIVO (ZONA DORADA 10% FLANQUEADA POR 5% ROJO INTERNO Y 24% AZUL) ---
   startTimingBar() {
     this.stopTimingBar();
     this.timingActive = true;
@@ -722,7 +740,7 @@ class MinigameEngine {
     const isEyeActive = (this.activeCard === 'goldenEye');
     this.goldWidth = isEyeActive ? 0.20 : 0.10;
     this.innerRedSpan = 0.05;
-    this.blueSpan = 0.19;
+    this.blueSpan = 0.24;
     this.timingSpeed = isEyeActive ? 0.55 : 0.95;
 
     // Actualizar ancho y posición de las 7 zonas en el medidor
@@ -763,7 +781,7 @@ class MinigameEngine {
 
   updateTimingMeterSegments() {
     const innerRedSpan = this.innerRedSpan || 0.05;
-    const blueSpan = this.blueSpan || 0.19;
+    const blueSpan = this.blueSpan || 0.24;
 
     const goldMin = Math.max(0.28, this.goldCenter - (this.goldWidth / 2));
     const goldMax = Math.min(0.72, this.goldCenter + (this.goldWidth / 2));
@@ -840,7 +858,7 @@ class MinigameEngine {
     const pos = this.timingPos;
 
     const innerRedSpan = this.innerRedSpan || 0.05;
-    const blueSpan = this.blueSpan || 0.19;
+    const blueSpan = this.blueSpan || 0.24;
 
     const goldMin = Math.max(0.28, this.goldCenter - (this.goldWidth / 2));
     const goldMax = Math.min(0.72, this.goldCenter + (this.goldWidth / 2));
@@ -868,26 +886,17 @@ class MinigameEngine {
       // Animación especial al acertar al centro ANTES de girar la ruleta
       this.triggerPerfectCelebration("¡TIRO PERFECTO! 🌟", "¡Eliminados 💰x 0 y 💰/ 2! Mayor probabilidad de 💰x 3");
 
-      // Al acertar en Zona Oro: se eliminan Negro y Rojo y se redistribuye en 10 porciones:
-      // • Azul   (💰x 1, 25% total = 90°) : 3 porciones de 30° c/u
-      // • Verde  (💰x 2, 30% total = 108°): 3 porciones de 36° c/u
-      // • Dorado (💰x 3, 45% total = 162°): 4 porciones de 40.5° c/u
-      const isDouble = (this.activeCard === 'doubleOrNothing');
-      const goldPool = [
-        // 3x Azul (25% total = 90°)
-        { id: 'keep_g1', type: 'keep', label: isDouble ? '💰x 2' : '💰x 1', value: isDouble ? 2.0 : 1.0, spanDeg: 30, hex: '#2563eb', isWin: true, isNegative: false },
-        { id: 'keep_g2', type: 'keep', label: isDouble ? '💰x 2' : '💰x 1', value: isDouble ? 2.0 : 1.0, spanDeg: 30, hex: '#2563eb', isWin: true, isNegative: false },
-        { id: 'keep_g3', type: 'keep', label: isDouble ? '💰x 2' : '💰x 1', value: isDouble ? 2.0 : 1.0, spanDeg: 30, hex: '#2563eb', isWin: true, isNegative: false },
-        // 3x Verde (30% total = 108°)
-        { id: 'double_g1', type: 'double', label: isDouble ? '💰x 4' : '💰x 2', value: isDouble ? 4.0 : 2.0, spanDeg: 36, hex: '#16a34a', isWin: true, isNegative: false },
-        { id: 'double_g2', type: 'double', label: isDouble ? '💰x 4' : '💰x 2', value: isDouble ? 4.0 : 2.0, spanDeg: 36, hex: '#16a34a', isWin: true, isNegative: false },
-        { id: 'double_g3', type: 'double', label: isDouble ? '💰x 4' : '💰x 2', value: isDouble ? 4.0 : 2.0, spanDeg: 36, hex: '#16a34a', isWin: true, isNegative: false },
-        // 4x Dorado (45% total = 162°)
-        { id: 'triple_g1', type: 'triple', label: isDouble ? '💰x 6' : '💰x 3', value: isDouble ? 6.0 : 3.0, spanDeg: 40.5, hex: '#eab308', isWin: true, isNegative: false },
-        { id: 'triple_g2', type: 'triple', label: isDouble ? '💰x 6' : '💰x 3', value: isDouble ? 6.0 : 3.0, spanDeg: 40.5, hex: '#eab308', isWin: true, isNegative: false },
-        { id: 'triple_g3', type: 'triple', label: isDouble ? '💰x 6' : '💰x 3', value: isDouble ? 6.0 : 3.0, spanDeg: 40.5, hex: '#eab308', isWin: true, isNegative: false },
-        { id: 'triple_g4', type: 'triple', label: isDouble ? '💰x 6' : '💰x 3', value: isDouble ? 6.0 : 3.0, spanDeg: 40.5, hex: '#eab308', isWin: true, isNegative: false }
-      ];
+      // Al acertar en Zona Oro: se eliminan Negro y Rojo y se redistribuye en 20 porciones iguales de 5% (18° c/u):
+      // • Azul   (💰x 1, 25% total = 90°) : 5 porciones de 5% (18° c/u)
+      // • Verde  (💰x 2, 30% total = 108°): 6 porciones de 5% (18° c/u)
+      // • Dorado (💰x 3, 45% total = 162°): 9 porciones de 5% (18° c/u)
+      const goldPool = this.buildEqual5PercentPool({
+        bankrupt: 0,
+        half_loss: 0,
+        keep: 5,
+        double: 6,
+        triple: 9
+      });
       const distributedGold = this.distributeSlicesAvoidingAdjacents(goldPool);
       this.assignSliceAngles(distributedGold);
       this.updateRouletteLegendUI(true);
@@ -901,32 +910,19 @@ class MinigameEngine {
       if (window.audio) window.audio.playFailSound();
 
       // Al caer en Zona Roja: cada sector negativo aumenta +5% (+10% en total),
-      // restándole -5% a 💰x 2 (Verde) y -5% a 💰x 3 (Dorado):
-      // • Negro  (💰x 0, 10% total = 36°) : 2 porciones de 18° c/u (5% c/u)
-      // • Rojo   (💰/ 2, 15% total = 54°) : 2 porciones de 27° c/u (7.5% c/u)
-      // • Azul   (💰x 1, 40% total = 144°): 4 porciones de 36° c/u (10% c/u)
-      // • Verde  (💰x 2, 25% total = 90°) : 3 porciones de 30° c/u (8.33% c/u)
-      // • Dorado (💰x 3, 10% total = 36°) : 1 porción de 36° (10%)
-      const isDouble = (this.activeCard === 'doubleOrNothing');
-      const failPool = [
-        // 2x Negro (10% total = 36°)
-        { id: 'bankrupt_f1', type: 'bankrupt', label: '💰x 0', value: -1.0, spanDeg: 18, hex: '#09090b', isWin: false, isNegative: true },
-        { id: 'bankrupt_f2', type: 'bankrupt', label: '💰x 0', value: -1.0, spanDeg: 18, hex: '#09090b', isWin: false, isNegative: true },
-        // 2x Rojo (15% total = 54°)
-        { id: 'half_loss_f1', type: 'half_loss', label: isDouble ? '💰x 0' : '💰/ 2', value: isDouble ? -1.0 : -0.5, spanDeg: 27, hex: '#dc2626', isWin: false, isNegative: true },
-        { id: 'half_loss_f2', type: 'half_loss', label: isDouble ? '💰x 0' : '💰/ 2', value: isDouble ? -1.0 : -0.5, spanDeg: 27, hex: '#dc2626', isWin: false, isNegative: true },
-        // 4x Azul (40% total = 144°)
-        { id: 'keep_f1', type: 'keep', label: isDouble ? '💰x 2' : '💰x 1', value: isDouble ? 2.0 : 1.0, spanDeg: 36, hex: '#2563eb', isWin: true, isNegative: false },
-        { id: 'keep_f2', type: 'keep', label: isDouble ? '💰x 2' : '💰x 1', value: isDouble ? 2.0 : 1.0, spanDeg: 36, hex: '#2563eb', isWin: true, isNegative: false },
-        { id: 'keep_f3', type: 'keep', label: isDouble ? '💰x 2' : '💰x 1', value: isDouble ? 2.0 : 1.0, spanDeg: 36, hex: '#2563eb', isWin: true, isNegative: false },
-        { id: 'keep_f4', type: 'keep', label: isDouble ? '💰x 2' : '💰x 1', value: isDouble ? 2.0 : 1.0, spanDeg: 36, hex: '#2563eb', isWin: true, isNegative: false },
-        // 3x Verde (25% total = 90°)
-        { id: 'double_f1', type: 'double', label: isDouble ? '💰x 4' : '💰x 2', value: isDouble ? 4.0 : 2.0, spanDeg: 30, hex: '#16a34a', isWin: true, isNegative: false },
-        { id: 'double_f2', type: 'double', label: isDouble ? '💰x 4' : '💰x 2', value: isDouble ? 4.0 : 2.0, spanDeg: 30, hex: '#16a34a', isWin: true, isNegative: false },
-        { id: 'double_f3', type: 'double', label: isDouble ? '💰x 4' : '💰x 2', value: isDouble ? 4.0 : 2.0, spanDeg: 30, hex: '#16a34a', isWin: true, isNegative: false },
-        // 1x Dorado (10% total = 36°)
-        { id: 'triple_f1', type: 'triple', label: isDouble ? '💰x 6' : '💰x 3', value: isDouble ? 6.0 : 3.0, spanDeg: 36, hex: '#eab308', isWin: true, isNegative: false }
-      ];
+      // restándole -5% a 💰x 2 (Verde) y -5% a 💰x 3 (Dorado), en 20 porciones iguales de 5% (18° c/u):
+      // • Negro  (💰x 0, 10% total = 36°) : 2 porciones de 5% (18° c/u)
+      // • Rojo   (💰/ 2, 15% total = 54°) : 3 porciones de 5% (18° c/u)
+      // • Azul   (💰x 1, 40% total = 144°): 8 porciones de 5% (18° c/u)
+      // • Verde  (💰x 2, 25% total = 90°) : 5 porciones de 5% (18° c/u)
+      // • Dorado (💰x 3, 10% total = 36°) : 2 porciones de 5% (18° c/u)
+      const failPool = this.buildEqual5PercentPool({
+        bankrupt: 2,
+        half_loss: 3,
+        keep: 8,
+        double: 5,
+        triple: 2
+      });
       const distributedFail = this.distributeSlicesAvoidingAdjacents(failPool);
       this.assignSliceAngles(distributedFail);
       this.renderWheel();
