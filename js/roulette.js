@@ -479,36 +479,105 @@ class MinigameEngine {
     }
   }
 
-  // --- RULETA: LÓGICA DE SECTORES CON VALORES DIRECTOS ---
+  // --- RULETA: LÓGICA DE SECTORES CON PORCENTAJES REALES ---
+  // Estado normal:
+  // • 💀     (5% -> 18°)  : pierde todo el monto en juego (-1.0)
+  // • 💰/ 2  (10% -> 36°) : divide el monto a la mitad (-0.5)
+  // • 💰     (40% -> 144°): mantiene el monto (1.0)
+  // • 💰x 2  (30% -> 108°): duplica el monto (2.0)
+  // • 💰🚀   (15% -> 54°) : triplica el monto (3.0)
   shuffleSlices() {
-    let pool = [];
-    if (this.activeCard === 'doubleOrNothing') {
-      pool = [
-        { id: 'mult2_4', label: 'x2.4', value: 2.4, hex: '#38bdf8', isWin: true },
-        { id: 'mult4_0', label: 'x4.0', value: 4.0, hex: '#f59e0b', isWin: true },
-        { id: 'mult_neg0_5', label: 'x -0.5 💀', value: -0.5, hex: '#be123c', isWin: false, isNegative: true },
-        { id: 'mult3_0', label: 'x3.0', value: 3.0, hex: '#10b981', isWin: true },
-        { id: 'mult6_0', label: 'x6.0 ★', value: 6.0, hex: '#c084fc', isWin: true },
-        { id: 'mult_neg1_0', label: 'x -1 💀', value: -1.0, hex: '#881337', isWin: false, isNegative: true }
-      ];
-    } else {
-      pool = [
-        { id: 'mult1_2', label: 'x1.2', value: 1.2, hex: '#38bdf8', isWin: true },
-        { id: 'mult2_0', label: 'x2.0', value: 2.0, hex: '#f59e0b', isWin: true },
-        { id: 'mult_neg0_5', label: 'x -0.5 💀', value: -0.5, hex: '#be123c', isWin: false, isNegative: true },
-        { id: 'mult1_5', label: 'x1.5', value: 1.5, hex: '#10b981', isWin: true },
-        { id: 'mult3_0', label: 'x3.0 ★', value: 3.0, hex: '#8b5cf6', isWin: true },
-        { id: 'mult_neg1_0', label: 'x -1 💀', value: -1.0, hex: '#881337', isWin: false, isNegative: true }
-      ];
-    }
+    const isDouble = (this.activeCard === 'doubleOrNothing');
+    const pool = [
+      {
+        id: 'skull',
+        label: '💀',
+        value: -1.0,
+        spanDeg: 18, // 5%
+        hex: '#881337',
+        isWin: false,
+        isNegative: true
+      },
+      {
+        id: 'half',
+        label: '💰/ 2',
+        value: -0.5,
+        spanDeg: 36, // 10%
+        hex: '#be123c',
+        isWin: false,
+        isNegative: true
+      },
+      {
+        id: 'keep',
+        label: isDouble ? '💰x 2' : '💰',
+        value: isDouble ? 2.0 : 1.0,
+        spanDeg: 144, // 40%
+        hex: '#0284c7',
+        isWin: true,
+        isNegative: false
+      },
+      {
+        id: 'double',
+        label: isDouble ? '💰x 4' : '💰x 2',
+        value: isDouble ? 4.0 : 2.0,
+        spanDeg: 108, // 30%
+        hex: '#f59e0b',
+        isWin: true,
+        isNegative: false
+      },
+      {
+        id: 'rocket',
+        label: isDouble ? '💰🚀x6' : '💰🚀',
+        value: isDouble ? 6.0 : 3.0,
+        spanDeg: 54, // 15%
+        hex: '#8b5cf6',
+        isWin: true,
+        isNegative: false
+      }
+    ];
 
-    // Mezclar determinísticamente los sectores
+    // Mezclar determinísticamente el orden de aparición alrededor de la rueda
     for (let i = pool.length - 1; i > 0; i--) {
       const j = Math.floor(Math.random() * (i + 1));
       [pool[i], pool[j]] = [pool[j], pool[i]];
     }
-    this.sliceValues = pool;
+
+    this.assignSliceAngles(pool);
+    this.updateRouletteLegendUI(false);
     this.currentAngle = Math.floor(Math.random() * 360);
+  }
+
+  assignSliceAngles(slices) {
+    let cumDeg = 0;
+    slices.forEach((s) => {
+      s.startDeg = cumDeg;
+      s.endDeg = cumDeg + s.spanDeg;
+      cumDeg = s.endDeg;
+    });
+    this.sliceValues = slices;
+    this.numSlices = slices.length;
+  }
+
+  updateRouletteLegendUI(isPerfectGold = false) {
+    const legendEl = document.getElementById('roulette-sectors-legend');
+    if (!legendEl) return;
+    if (isPerfectGold) {
+      legendEl.className = 'grid grid-cols-3 gap-1.5 text-center font-black text-[11px]';
+      legendEl.innerHTML = `
+        <span class="py-1 px-1.5 rounded-lg bg-sky-500/20 text-sky-300 border border-sky-500/30">💰 (25%)</span>
+        <span class="py-1 px-1.5 rounded-lg bg-amber-500/20 text-amber-300 border border-amber-500/30">💰x 2 (30%)</span>
+        <span class="py-1 px-1.5 rounded-lg bg-purple-500/25 text-purple-200 border border-purple-400/50 animate-pulse">💰🚀 (45%)</span>
+      `;
+    } else {
+      legendEl.className = 'grid grid-cols-5 gap-1 text-center font-black text-[10px] sm:text-[11px]';
+      legendEl.innerHTML = `
+        <span class="py-1 px-1 rounded-lg bg-rose-900/40 text-rose-300 border border-rose-500/40" title="Pierde todo el pozo (5%)">💀 5%</span>
+        <span class="py-1 px-1 rounded-lg bg-rose-600/30 text-rose-200 border border-rose-500/40" title="Divide el pozo a la mitad (10%)">💰/ 2 (10%)</span>
+        <span class="py-1 px-1 rounded-lg bg-sky-500/20 text-sky-300 border border-sky-500/30" title="Mantiene el monto (40%)">💰 (40%)</span>
+        <span class="py-1 px-1 rounded-lg bg-amber-500/20 text-amber-300 border border-amber-500/30" title="Duplica el monto (30%)">💰x 2 (30%)</span>
+        <span class="py-1 px-1 rounded-lg bg-purple-500/20 text-purple-300 border border-purple-500/30" title="Triplica el monto (15%)">💰🚀 (15%)</span>
+      `;
+    }
   }
 
   setupModeTabs() {
@@ -542,7 +611,7 @@ class MinigameEngine {
     if (!subLbl) return;
 
     if (this.currentMode === 'roulette') {
-      subLbl.innerHTML = `🎡 Clava la aguja en la <strong>Zona Oro</strong> para eliminar <strong>x -0.5</strong> y <strong>x -1</strong> • ¡Toca para girar!`;
+      subLbl.innerHTML = `🎡 Clava la aguja en la <strong>Zona Oro</strong> para eliminar <strong>💀</strong> y <strong>💰/ 2</strong> (45% 💰🚀) • ¡Toca para girar!`;
     } else if (this.currentMode === 'moving_targets') {
       subLbl.innerHTML = `🎪 <strong>Tiro al Blanco:</strong> Anticipa el movimiento • <strong>1🎯=x1</strong> • <strong>2🎯=x2</strong> • <strong>3🎯=x3</strong> (0🎯 pierde el pozo)`;
     } else {
@@ -573,9 +642,11 @@ class MinigameEngine {
     const cy = 150;
     const radius = 130;
 
-    for (let i = 0; i < this.numSlices; i++) {
-      const startDeg = i * this.sliceAngle;
-      const endDeg = (i + 1) * this.sliceAngle;
+    for (let i = 0; i < this.sliceValues.length; i++) {
+      const slice = this.sliceValues[i];
+      const startDeg = slice.startDeg;
+      const endDeg = slice.endDeg;
+      const spanDeg = slice.spanDeg || (endDeg - startDeg);
       const startRad = (startDeg * Math.PI) / 180;
       const endRad = (endDeg * Math.PI) / 180;
 
@@ -584,10 +655,11 @@ class MinigameEngine {
       const x2 = cx + radius * Math.cos(endRad);
       const y2 = cy + radius * Math.sin(endRad);
 
-      const pathData = `M ${cx} ${cy} L ${x1} ${y1} A ${radius} ${radius} 0 0 1 ${x2} ${y2} Z`;
+      const largeArcFlag = spanDeg > 180 ? 1 : 0;
+      const pathData = `M ${cx} ${cy} L ${x1} ${y1} A ${radius} ${radius} 0 ${largeArcFlag} 1 ${x2} ${y2} Z`;
       const path = document.createElementNS('http://www.w3.org/2000/svg', 'path');
       path.setAttribute('d', pathData);
-      path.setAttribute('fill', this.sliceValues[i].hex);
+      path.setAttribute('fill', slice.hex);
       path.setAttribute('stroke', '#0f172a');
       path.setAttribute('stroke-width', '2.5');
       path.setAttribute('class', 'roulette-slice');
@@ -596,26 +668,29 @@ class MinigameEngine {
       this.wheelGroup.appendChild(path);
 
       const midRad = ((startDeg + endDeg) / 2) * (Math.PI / 180);
-      const tx = cx + (radius * 0.65) * Math.cos(midRad);
-      const ty = cy + (radius * 0.65) * Math.sin(midRad);
+      // Para sectores angostos (como el 5% = 18°), ubicar la etiqueta un poco más hacia el borde exterior donde el arco es más ancho
+      const textDistRatio = spanDeg <= 22 ? 0.76 : (spanDeg <= 40 ? 0.70 : 0.63);
+      const fontSize = spanDeg <= 22 ? '12' : (spanDeg <= 40 ? '11.5' : '14');
+      const tx = cx + (radius * textDistRatio) * Math.cos(midRad);
+      const ty = cy + (radius * textDistRatio) * Math.sin(midRad);
 
       const text = document.createElementNS('http://www.w3.org/2000/svg', 'text');
       text.setAttribute('x', tx);
       text.setAttribute('y', ty);
       text.setAttribute('fill', '#ffffff');
-      text.setAttribute('font-size', '14');
+      text.setAttribute('font-size', fontSize);
       text.setAttribute('font-weight', '900');
       text.setAttribute('text-anchor', 'middle');
       text.setAttribute('dominant-baseline', 'central');
       text.setAttribute('pointer-events', 'none');
-      text.setAttribute('filter', 'drop-shadow(0 2px 4px rgba(0,0,0,0.8))');
-      text.textContent = this.sliceValues[i].label;
+      text.setAttribute('filter', 'drop-shadow(0 2px 4px rgba(0,0,0,0.85))');
+      text.textContent = slice.label;
       this.wheelGroup.appendChild(text);
 
       const peg = document.createElementNS('http://www.w3.org/2000/svg', 'circle');
       peg.setAttribute('cx', x1);
       peg.setAttribute('cy', y1);
-      peg.setAttribute('r', '6');
+      peg.setAttribute('r', '5.5');
       peg.setAttribute('fill', 'url(#gold-peg-grad)');
       peg.setAttribute('stroke', '#ffffff');
       peg.setAttribute('stroke-width', '1.5');
@@ -758,20 +833,47 @@ class MinigameEngine {
     if (timingResult === 'perfect') {
       if (this.timingNeedle) this.timingNeedle.classList.add('locked-gold');
       if (this.timingFeedbackLbl) {
-        this.timingFeedbackLbl.innerHTML = '⭐ <strong class="text-amber-300">¡TIRO PERFECTO!</strong> Se eliminaron los sectores x -0.5 y x -1 ⭐';
+        this.timingFeedbackLbl.innerHTML = '⭐ <strong class="text-amber-300">¡TIRO PERFECTO!</strong> Eliminados 💀 y 💰/ 2 • Redistribuido 25% / 30% / 45% ⭐';
         this.timingFeedbackLbl.className = 'text-center text-[11px] font-black text-amber-300 mt-1 min-h-[16px] animate-pulse';
       }
       
       // Animación especial al acertar al centro ANTES de girar la ruleta
-      this.triggerPerfectCelebration("¡TIRO PERFECTO! 🌟", "¡Centro Dorado! Eliminadas las pérdidas");
+      this.triggerPerfectCelebration("¡TIRO PERFECTO! 🌟", "¡Eliminados 💀 y 💰/ 2! 45% de probabilidad de 💰🚀");
 
-      // Ventaja inmediata: convertir ambos sectores negativos (x -0.5 y x -1) en sectores ganadores de x2.0
-      this.sliceValues = this.sliceValues.map(s => {
-        if (!s.isWin || s.isNegative) {
-          return { id: 'mult2_0_gold', label: 'x2.0 ★', value: 2.0, hex: '#f59e0b', isWin: true };
+      // Al acertar en Zona Oro: se eliminan las dos primeras opciones (💀 y 💰/ 2)
+      // y se redistribuye entre x1 (💰 25% = 90°), x2 (💰x 2 30% = 108°) y x3 (💰🚀 45% = 162°)
+      const isDouble = (this.activeCard === 'doubleOrNothing');
+      const goldPool = [
+        {
+          id: 'keep_gold',
+          label: isDouble ? '💰x 2' : '💰',
+          value: isDouble ? 2.0 : 1.0,
+          spanDeg: 90, // 25%
+          hex: '#0284c7',
+          isWin: true,
+          isNegative: false
+        },
+        {
+          id: 'double_gold',
+          label: isDouble ? '💰x 4' : '💰x 2',
+          value: isDouble ? 4.0 : 2.0,
+          spanDeg: 108, // 30%
+          hex: '#f59e0b',
+          isWin: true,
+          isNegative: false
+        },
+        {
+          id: 'rocket_gold',
+          label: isDouble ? '💰🚀x6' : '💰🚀',
+          value: isDouble ? 6.0 : 3.0,
+          spanDeg: 162, // 45%
+          hex: '#8b5cf6',
+          isWin: true,
+          isNegative: false
         }
-        return s;
-      });
+      ];
+      this.assignSliceAngles(goldPool);
+      this.updateRouletteLegendUI(true);
       this.renderWheel();
     } else if (timingResult === 'fail') {
       if (this.timingNeedle) this.timingNeedle.classList.add('locked-red');
@@ -791,43 +893,63 @@ class MinigameEngine {
     this.spinWheelWithTiming(timingResult);
   }
 
+  getSliceIndexAtWheelAngle(wheelAngle) {
+    const eff = ((270 - (wheelAngle % 360)) % 360 + 360) % 360;
+    for (let i = 0; i < this.sliceValues.length; i++) {
+      const s = this.sliceValues[i];
+      if (eff >= s.startDeg && eff < s.endDeg) {
+        return i;
+      }
+    }
+    return 0;
+  }
+
   spinWheelWithTiming(timingResult) {
     if (this.isSpinning) return;
     this.isSpinning = true;
     if (this.btnSpin) this.btnSpin.disabled = true;
 
-    // Determinar sector objetivo en base al timing
+    // Seleccionar el ángulo de parada (eff en [0, 360)) respetando las áreas proporcionales de cada sector
     let targetSector = 0;
-    if (timingResult === 'perfect') {
-      const topWins = [];
-      this.sliceValues.forEach((s, idx) => {
-        if (s.value >= 2.0) topWins.push(idx);
-      });
-      targetSector = topWins.length > 0 ? topWins[Math.floor(Math.random() * topWins.length)] : 0;
-    } else if (timingResult === 'fail') {
-      const loseIndices = [];
-      this.sliceValues.forEach((s, idx) => {
-        if (!s.isWin) loseIndices.push(idx);
-      });
-      if (loseIndices.length > 0 && Math.random() < 0.75) {
-        targetSector = loseIndices[Math.floor(Math.random() * loseIndices.length)];
-      } else {
-        targetSector = Math.floor(Math.random() * this.numSlices);
+    if (timingResult === 'fail' && Math.random() < 0.65) {
+      // En fallo de barra roja, mayor probabilidad de caer en los sectores negativos ponderados por su tamaño
+      const loseSlices = this.sliceValues.map((s, idx) => ({ s, idx })).filter(item => !item.s.isWin);
+      if (loseSlices.length > 0) {
+        const totalLoseDeg = loseSlices.reduce((acc, item) => acc + item.s.spanDeg, 0);
+        let r = Math.random() * totalLoseDeg;
+        for (const item of loseSlices) {
+          if (r <= item.s.spanDeg) {
+            targetSector = item.idx;
+            break;
+          }
+          r -= item.s.spanDeg;
+        }
       }
     } else {
-      targetSector = Math.floor(Math.random() * this.numSlices);
+      // En tiro estándar o perfecto: selección 100% proporcional a los porcentajes de la rueda (360°)
+      const randDeg = Math.random() * 360;
+      for (let i = 0; i < this.sliceValues.length; i++) {
+        if (randDeg >= this.sliceValues[i].startDeg && randDeg < this.sliceValues[i].endDeg) {
+          targetSector = i;
+          break;
+        }
+      }
     }
 
+    const chosenSlice = this.sliceValues[targetSector] || this.sliceValues[0];
+    const margin = Math.min(3.5, chosenSlice.spanDeg * 0.2);
+    const chosenEff = chosenSlice.startDeg + margin + (Math.random() * Math.max(1, chosenSlice.spanDeg - margin * 2));
+
     const baseSpins = 4;
-    const sectorCenterOffset = this.sliceAngle / 2;
-    const deadzone = 8;
-    const randomInSector = (Math.random() - 0.5) * (this.sliceAngle - deadzone * 2);
-    const targetAngle = 360 * baseSpins + (targetSector * this.sliceAngle) + sectorCenterOffset + randomInSector;
+    const currentMod = ((this.currentAngle % 360) + 360) % 360;
+    const desiredFinalMod = ((270 - chosenEff) % 360 + 360) % 360;
+    const deltaMod = ((desiredFinalMod - currentMod) % 360 + 360) % 360;
+    const totalRotation = (360 * baseSpins) + deltaMod;
+
     const duration = timingResult === 'perfect' ? 2400 : 3200;
     const startTime = performance.now();
     const startAngle = this.currentAngle;
-    const totalRotation = targetAngle;
-    let lastPegIndex = -1;
+    let lastSliceIndex = this.getSliceIndexAtWheelAngle(startAngle);
 
     const animateWheel = (now) => {
       const elapsed = now - startTime;
@@ -840,11 +962,9 @@ class MinigameEngine {
       }
 
       const activeIdx = this.updateActiveSliceHighlight(angleNow);
-      const eff = (270 - (angleNow % 360) + 360) % 360;
-      const currentPeg = Math.floor(eff / this.sliceAngle);
 
-      if (currentPeg !== lastPegIndex) {
-        lastPegIndex = currentPeg;
+      if (activeIdx !== lastSliceIndex) {
+        lastSliceIndex = activeIdx;
         if (window.audio) window.audio.playPegClack();
         if (this.needleWrapper) {
           this.needleWrapper.classList.add('deflected-right');
@@ -867,8 +987,7 @@ class MinigameEngine {
   }
 
   updateActiveSliceHighlight(angle) {
-    const eff = (270 - (angle % 360) + 360) % 360;
-    const activeIndex = Math.floor(eff / this.sliceAngle) % this.numSlices;
+    const activeIndex = this.getSliceIndexAtWheelAngle(angle);
 
     document.querySelectorAll('.roulette-slice').forEach((slice, idx) => {
       if (idx === activeIndex) {
@@ -890,20 +1009,25 @@ class MinigameEngine {
 
     const mult = landedSector.value;
 
-    if (isWinner && mult > 0) {
+    if (isWinner && mult >= 1.0) {
       if (window.audio) {
         window.audio.playWinFanfare();
-        window.audio.playCrowdCheer();
+        if (mult > 1.0) window.audio.playCrowdCheer();
       }
-      if (typeof confetti === 'function') {
+      if (mult > 1.0 && typeof confetti === 'function') {
         confetti({ particleCount: 90, spread: 75, origin: { y: 0.6 } });
       }
 
       this.applyAndAnimateBonusCoins(mult, false);
 
       if (this.timingFeedbackLbl) {
-        this.timingFeedbackLbl.innerHTML = `🎉 ¡PREMIO ${landedSector.label}!`;
-        this.timingFeedbackLbl.className = 'text-center text-sm font-black text-emerald-400 mt-1';
+        if (mult === 1.0) {
+          this.timingFeedbackLbl.innerHTML = `💰 ¡Mantienes tu pozo intacto (${landedSector.label})!`;
+          this.timingFeedbackLbl.className = 'text-center text-sm font-black text-sky-300 mt-1';
+        } else {
+          this.timingFeedbackLbl.innerHTML = `🎉 ¡PREMIO ${landedSector.label}!`;
+          this.timingFeedbackLbl.className = 'text-center text-sm font-black text-emerald-400 mt-1';
+        }
       }
     } else {
       if (modalBox) modalBox.classList.add('roulette-lose-glow');
@@ -1099,23 +1223,27 @@ class MinigameEngine {
       return;
     }
 
-    // Tensión ligeramente incrementada (+3.5%) para requerir un gesto levemente más largo y controlado
-    const tensionX = 1.35;
-    const tensionY = 1.85;
-    const nominalPullY = 48; // Pull nominal que apunta directamente a Y=140 (centro)
+    // Calibración de fuerza para la Diana reducida (r=58, borde superior Y=82, borde inferior Y=198):
+    // En condiciones sin viento:
+    // - Al extender al máximo (pullY=85) -> impactY ≈ 50 (sale fuera de la diana por encima)
+    // - Al tirar al mínimo (pullY=22) -> impactY ≈ 226 (sale fuera de la diana por debajo)
+    // - En estiramiento medio (pullY≈52) -> impactY = 140 (centro de oro)
+    const tensionX = 1.65;
+    const tensionY = 2.85;
+    const nominalPullY = 52; // Pull nominal que apunta directamente a Y=140 (centro)
 
     // Apuntado base (la fuerza y ángulo de tiro hacia adelante)
     const aimTargetX = 150 - (pullX * tensionX);
     const aimTargetY = 140 - ((pullY - nominalPullY) * tensionY);
 
-    // Desvío por viento en tiempo real (empuje real reforzado sobre el dardo)
+    // Desvío por viento en tiempo real (empuje real sobre el dardo en la dirección que sople)
     const windRad = (this.windAngle * Math.PI) / 180;
-    const windPushX = Math.cos(windRad) * (this.windSpeed * 14.0);
-    const windPushY = Math.sin(windRad) * (this.windSpeed * 9.5);
+    const windPushX = Math.cos(windRad) * (this.windSpeed * 11.5);
+    const windPushY = Math.sin(windRad) * (this.windSpeed * 9.0);
 
-    // El punto de impacto real sufre la desviación del viento (rango amplio para permitir salir fuera de la diana de r=115)
+    // El punto de impacto real sufre la desviación del viento (rango amplio para salir por encima o por debajo de la diana)
     const impactX = Math.round(Math.max(10, Math.min(290, aimTargetX + windPushX)));
-    const impactY = Math.round(Math.max(10, Math.min(275, aimTargetY + windPushY)));
+    const impactY = Math.round(Math.max(12, Math.min(275, aimTargetY + windPushY)));
     this.currentImpactPoint = { x: impactX, y: impactY };
 
     // Punto de control de la curva para que la trayectoria se combe visiblemente con el viento
@@ -1481,14 +1609,14 @@ class MinigameEngine {
     let multiplier = 0;
     let label = 'Fuera';
 
-    // Diana achicada ~10% (Centro: r=25, Plata: r=67, Bronce: r=115)
-    if (dist <= 25) {
+    // Diana con diámetro de bronce achicado un 50% (Centro: r=16, Plata: r=36, Bronce: r=58)
+    if (dist <= 16) {
       multiplier = 3.0;
       label = '⭐ ¡CENTRO DE ORO! (x3.0)';
-    } else if (dist <= 67) {
+    } else if (dist <= 36) {
       multiplier = 1.5;
       label = '✨ ¡ANILLO DE PLATA! (x1.5)';
-    } else if (dist <= 115) {
+    } else if (dist <= 58) {
       multiplier = 1.2;
       label = '🎯 ¡ANILLO DE BRONCE! (x1.2)';
     } else {
@@ -1518,7 +1646,7 @@ class MinigameEngine {
     if (dianaCont) dianaCont.style.pointerEvents = 'none';
 
     if (multiplier > 0) {
-      if (dist <= 25 || multiplier >= 3.0) {
+      if (dist <= 16 || multiplier >= 3.0) {
         this.triggerPerfectCelebration("¡DIANA DE ORO! 🎯", "¡Impacto Perfecto al Centro!");
       } else {
         if (window.audio) {

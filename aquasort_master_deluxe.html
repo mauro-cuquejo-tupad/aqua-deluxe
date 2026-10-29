@@ -46,10 +46,10 @@
   <link rel="icon" type="image/svg+xml" href="icons/icon.svg">
 
   <!--Modular Stylesheets -->
-  <link rel="stylesheet" href="css/main.css?v=85">
-  <link rel="stylesheet" href="css/tubes.css?v=85">
-  <link rel="stylesheet" href="css/roulette.css?v=85">
-  <link rel="stylesheet" href="css/accessibility.css?v=85">
+  <link rel="stylesheet" href="css/main.css?v=86">
+  <link rel="stylesheet" href="css/tubes.css?v=86">
+  <link rel="stylesheet" href="css/roulette.css?v=86">
+  <link rel="stylesheet" href="css/accessibility.css?v=86">
 </head>
 <body class="min-h-screen flex flex-col justify-between select-none relative">
 
@@ -941,19 +941,19 @@
               </radialGradient>
             </defs>
 
-            <!-- 1. TRES AROS SÓLIDOS Y CLARAMENTE DIFERENCIADOS (ACHICADOS ~10% PARA PERMITIR TIROS AFUERA) -->
-            <!-- Anillo Exterior: Bronce x1.2 (Radio 115) -->
-            <circle cx="150" cy="140" r="115" fill="url(#grad-bronze)" stroke="#d97706" stroke-width="3"/>
-            <!-- Anillo Medio: Plata x1.5 (Radio 67) -->
-            <circle cx="150" cy="140" r="67" fill="url(#grad-silver)" stroke="#ffffff" stroke-width="2.5"/>
-            <!-- Centro: Oro Brillante x3.0 (Radio 25) -->
-            <circle cx="150" cy="140" r="25" fill="url(#grad-gold)" stroke="#fef08a" stroke-width="3"/>
-            <circle cx="150" cy="140" r="7" fill="#ef4444" stroke="#ffffff" stroke-width="1.5"/>
+            <!-- 1. TRES AROS SÓLIDOS Y CLARAMENTE DIFERENCIADOS (DIÁMETRO DE BRONCE ACHICADO UN 50%: r=58) -->
+            <!-- Anillo Exterior: Bronce x1.2 (Radio 58) -->
+            <circle cx="150" cy="140" r="58" fill="url(#grad-bronze)" stroke="#d97706" stroke-width="3"/>
+            <!-- Anillo Medio: Plata x1.5 (Radio 36) -->
+            <circle cx="150" cy="140" r="36" fill="url(#grad-silver)" stroke="#ffffff" stroke-width="2.5"/>
+            <!-- Centro: Oro Brillante x3.0 (Radio 16) -->
+            <circle cx="150" cy="140" r="16" fill="url(#grad-gold)" stroke="#fef08a" stroke-width="2.5"/>
+            <circle cx="150" cy="140" r="5" fill="#ef4444" stroke="#ffffff" stroke-width="1.2"/>
 
-            <!-- Etiquetas Grandes y Legibles de Multiplicadores -->
-            <text x="150" y="54" text-anchor="middle" fill="#fde68a" font-size="11" font-weight="900" letter-spacing="1">BRONCE x1.2</text>
-            <text x="150" y="96" text-anchor="middle" fill="#ffffff" font-size="10.5" font-weight="900" letter-spacing="1">PLATA x1.5</text>
-            <text x="150" y="144" text-anchor="middle" fill="#000000" font-size="9.5" font-weight="900">x3.0</text>
+            <!-- Etiquetas de Multiplicadores -->
+            <text x="150" y="96" text-anchor="middle" fill="#fde68a" font-size="8.5" font-weight="900" letter-spacing="0.5">BRONCE x1.2</text>
+            <text x="150" y="117" text-anchor="middle" fill="#ffffff" font-size="8" font-weight="900" letter-spacing="0.5">PLATA x1.5</text>
+            <text x="150" y="143" text-anchor="middle" fill="#000000" font-size="7.5" font-weight="900">x3.0</text>
 
             <!-- 2. BRISA Y VIENTO ANIMADO VISUAL -->
             <g id="diana-breeze-group" class="pointer-events-none" opacity="0.8">
@@ -1108,15 +1108,14 @@
         <div class="w-full mb-2">
           <div class="text-[11px] text-slate-300 font-bold mb-1 flex items-center justify-between">
             <span>Sectores de la Ruleta:</span>
-            <span class="text-amber-300 text-[10px] font-mono">¡Multiplicador directo según clavijas!</span>
+            <span class="text-amber-300 text-[10px] font-mono">¡Proporciones reales en la rueda!</span>
           </div>
-          <div class="grid grid-cols-6 gap-1 text-center font-black text-[11px]">
-            <span class="py-1 px-1 rounded-lg bg-sky-500/20 text-sky-300 border border-sky-500/30">x1.2</span>
-            <span class="py-1 px-1 rounded-lg bg-amber-500/20 text-amber-300 border border-amber-500/30">x2.0</span>
-            <span class="py-1 px-1 rounded-lg bg-rose-600/30 text-rose-300 border border-rose-500/40">x-0.5💀</span>
-            <span class="py-1 px-1 rounded-lg bg-emerald-500/20 text-emerald-300 border border-emerald-500/30">x1.5</span>
-            <span class="py-1 px-1 rounded-lg bg-purple-500/20 text-purple-300 border border-purple-500/30">x3.0★</span>
-            <span class="py-1 px-1 rounded-lg bg-rose-900/40 text-rose-300 border border-rose-500/40">x-1 💀</span>
+          <div id="roulette-sectors-legend" class="grid grid-cols-5 gap-1 text-center font-black text-[10px] sm:text-[11px]">
+            <span class="py-1 px-1 rounded-lg bg-rose-900/40 text-rose-300 border border-rose-500/40" title="Pierde todo el pozo (5%)">💀 5%</span>
+            <span class="py-1 px-1 rounded-lg bg-rose-600/30 text-rose-200 border border-rose-500/40" title="Divide el pozo a la mitad (10%)">💰/ 2 (10%)</span>
+            <span class="py-1 px-1 rounded-lg bg-sky-500/20 text-sky-300 border border-sky-500/30" title="Mantiene el monto (40%)">💰 (40%)</span>
+            <span class="py-1 px-1 rounded-lg bg-amber-500/20 text-amber-300 border border-amber-500/30" title="Duplica el monto (30%)">💰x 2 (30%)</span>
+            <span class="py-1 px-1 rounded-lg bg-purple-500/20 text-purple-300 border border-purple-500/30" title="Triplica el monto (15%)">💰🚀 (15%)</span>
           </div>
         </div>
 
@@ -3098,20 +3097,20 @@
   <input type="file" id="input-save-file" accept=".json" class="hidden">
 
   <!-- Scripts modulares -->
-  <script src="js/i18n.js?v=85"></script>
-  <script src="js/firebase-config.js?v=85"></script>
-  <script src="js/cloud-sync.js?v=85"></script>
-  <script src="js/audio.js?v=85"></script>
-  <script src="js/palette.js?v=85"></script>
-  <script src="js/levels.js?v=85"></script>
-  <script src="js/challenges.js?v=85"></script>
-  <script src="js/honor.js?v=85"></script>
-  <script src="js/state.js?v=85"></script>
-  <script src="js/achievements.js?v=85"></script>
-  <script src="js/leaderboard.js?v=85"></script>
-  <script src="js/roulette.js?v=85"></script>
-  <script src="js/story.js?v=85"></script>
-  <script src="js/game.js?v=85"></script>
+  <script src="js/i18n.js?v=86"></script>
+  <script src="js/firebase-config.js?v=86"></script>
+  <script src="js/cloud-sync.js?v=86"></script>
+  <script src="js/audio.js?v=86"></script>
+  <script src="js/palette.js?v=86"></script>
+  <script src="js/levels.js?v=86"></script>
+  <script src="js/challenges.js?v=86"></script>
+  <script src="js/honor.js?v=86"></script>
+  <script src="js/state.js?v=86"></script>
+  <script src="js/achievements.js?v=86"></script>
+  <script src="js/leaderboard.js?v=86"></script>
+  <script src="js/roulette.js?v=86"></script>
+  <script src="js/story.js?v=86"></script>
+  <script src="js/game.js?v=86"></script>
 
   <!-- Registro de Service Worker PWA -->
   <script>
@@ -3124,7 +3123,7 @@
         }
       });
       window.addEventListener('load', () => {
-        navigator.serviceWorker.register('./sw.js?v=85', { updateViaCache: 'none' }).then((reg) => {
+        navigator.serviceWorker.register('./sw.js?v=86', { updateViaCache: 'none' }).then((reg) => {
           reg.update();
           console.log('AlcheMix PWA ServiceWorker activo:', reg.scope);
         }).catch((err) => {
