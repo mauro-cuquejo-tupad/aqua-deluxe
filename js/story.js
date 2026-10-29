@@ -181,7 +181,8 @@ class StoryManager {
           <rect x="27" y="130" width="52" height="14" rx="3" fill="#38bdf8" opacity="0.4"/>
 
           <!-- Bebé Alquimista (acogedoramente sentado DENTRO de la cuna) -->
-          <g class="story-anim-ch0-baby" transform="translate(36, 114)">
+          <g transform="translate(36, 114)">
+            <g class="story-anim-ch0-baby">
             <!-- Gorrito / pañuelo azul de bebé -->
             <ellipse cx="14" cy="11" rx="9.5" ry="10" fill="#fed7aa"/>
             <path d="M 6 7 Q 14 -3 22 7 Z" fill="#38bdf8"/>
@@ -198,6 +199,7 @@ class StoryManager {
             <circle cx="23" cy="16" r="3" fill="#fed7aa"/>
             <!-- Destellitos de chispa saliendo del dedito hacia el juguete -->
             <circle cx="26" cy="14" r="2" fill="#facc15"/>
+          </g>
           </g>
 
           <!-- Baranda frontal y barrotes de la cuna (delante del bebé para sensación de profundidad) -->
