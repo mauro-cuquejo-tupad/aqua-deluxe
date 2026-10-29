@@ -686,28 +686,17 @@ class MinigameEngine {
         double: 'url(#slice-grad-double)',
         triple: 'url(#slice-grad-triple)'
       };
-      path.setAttribute('fill', gradMap[slice.type] || slice.hex);
-      path.setAttribute('stroke', '#0f172a');
-      path.setAttribute('stroke-width', '2.5');
+      const fillVal = gradMap[slice.type] || slice.hex;
+      path.setAttribute('fill', fillVal);
+      // Sin líneas negras entre colores: el borde de cada gajo lleva el mismo color/degradado que le toca
+      path.setAttribute('stroke', fillVal);
+      path.setAttribute('stroke-width', '1.2');
+      path.setAttribute('stroke-linejoin', 'round');
       path.setAttribute('class', `roulette-slice slice-type-${slice.type}`);
       path.setAttribute('id', `slice-${i}`);
       path.dataset.index = i;
       path.dataset.type = slice.type;
       this.wheelGroup.appendChild(path);
-
-      // Arco de brillo interno en el borde exterior de cada porción para dar relieve
-      const innerR = radius - 3;
-      const ix1 = cx + innerR * Math.cos(startRad);
-      const iy1 = cy + innerR * Math.sin(startRad);
-      const ix2 = cx + innerR * Math.cos(endRad);
-      const iy2 = cy + innerR * Math.sin(endRad);
-      const rimArc = document.createElementNS('http://www.w3.org/2000/svg', 'path');
-      rimArc.setAttribute('d', `M ${ix1} ${iy1} A ${innerR} ${innerR} 0 ${largeArcFlag} 1 ${ix2} ${iy2}`);
-      rimArc.setAttribute('fill', 'none');
-      rimArc.setAttribute('stroke', 'rgba(255, 255, 255, 0.24)');
-      rimArc.setAttribute('stroke-width', '3');
-      rimArc.setAttribute('pointer-events', 'none');
-      this.wheelGroup.appendChild(rimArc);
 
       // En la rueda solo se dejan los colores con degradado (los multiplicadores se leen en las referencias inferiores)
       const peg = document.createElementNS('http://www.w3.org/2000/svg', 'circle');

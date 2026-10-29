@@ -59,36 +59,35 @@
   transition: filter 0.12s ease, stroke-width 0.12s ease, stroke 0.12s ease, opacity 0.15s ease;
 }
 
-/* Iluminación en tiempo real de la porción que está tocando la flechita superior */
+/* Iluminación sutil en tiempo real de la porción que está tocando la flechita superior */
 .roulette-slice.active-slice {
-  filter: brightness(1.38) saturate(1.15) drop-shadow(0 0 14px rgba(255, 255, 255, 0.85));
-  stroke: #fef08a !important;
-  stroke-width: 3.8px !important;
+  filter: brightness(1.16) saturate(1.08);
+  stroke-width: 2.2px !important;
 }
 
 .roulette-slice.slice-type-bankrupt.active-slice {
-  filter: brightness(1.85) drop-shadow(0 0 14px rgba(244, 63, 94, 0.9));
-  stroke: #fda4af !important;
+  filter: brightness(1.38);
+  stroke: #52525b !important;
 }
 
 .roulette-slice.slice-type-half_loss.active-slice {
-  filter: brightness(1.35) drop-shadow(0 0 16px rgba(248, 113, 113, 0.95));
-  stroke: #fecdd3 !important;
+  filter: brightness(1.16);
+  stroke: #f87171 !important;
 }
 
 .roulette-slice.slice-type-keep.active-slice {
-  filter: brightness(1.35) drop-shadow(0 0 16px rgba(56, 189, 248, 0.95));
-  stroke: #bae6fd !important;
+  filter: brightness(1.16);
+  stroke: #60a5fa !important;
 }
 
 .roulette-slice.slice-type-double.active-slice {
-  filter: brightness(1.35) drop-shadow(0 0 16px rgba(74, 222, 128, 0.95));
-  stroke: #bbf7d0 !important;
+  filter: brightness(1.16);
+  stroke: #4ade80 !important;
 }
 
 .roulette-slice.slice-type-triple.active-slice {
-  filter: brightness(1.35) drop-shadow(0 0 18px rgba(250, 204, 21, 1));
-  stroke: #ffffff !important;
+  filter: brightness(1.16);
+  stroke: #fde047 !important;
 }
 
 /* Sector ganador brillante */
