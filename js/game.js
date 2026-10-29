@@ -7399,6 +7399,113 @@ class GameController {
     }
   }
 
+  // Helper para generar el HTML de un tubo miniatura idéntico a los del juego
+  generateMiniTubeHtml({
+    capacity = 4,
+    liquids = [],
+    isNarrow = false,
+    isGlued = false,
+    isLocked = false,
+    keyColor = null,
+    keyShape = '🔑',
+    isFragile = false,
+    allowedColors = [],
+    extraTubeClasses = '',
+    animPourClass = ''
+  } = {}) {
+    let typeClass = '';
+    if (isNarrow) typeClass = 'tube-narrow';
+    else if (capacity === 6) typeClass = 'tube-giant';
+    else if (capacity === 8) typeClass = 'tube-super-giant';
+
+    const unitHeightPercent = 100 / capacity;
+    let segmentsHtml = '';
+
+    liquids.forEach((liq, idx) => {
+      const isTop = idx === liquids.length - 1;
+      let segmentClasses = `liquid-segment ${isTop ? 'top-liquid' : ''}`;
+      if (liq.animClass) segmentClasses += ` ${liq.animClass}`;
+      if (liq.isChameleon) segmentClasses += ' liquid-chameleon';
+      if (liq.isMystery && !isTop) segmentClasses += ' liquid-mystery';
+
+      const styleBg = (!liq.isMystery || isTop) && !liq.isChameleon && liq.color ? `background-color: ${liq.color};` : '';
+      const content = liq.isMystery && !isTop
+        ? `<span>?</span>`
+        : (liq.shape ? `<span class="shape-icon" style="color: ${liq.textHex || '#ffffff'}; text-shadow: 0 1px 2px #000;">${liq.shape}</span>` : '');
+
+      segmentsHtml += `
+        <div class="${segmentClasses}" style="height: ${unitHeightPercent}%; ${styleBg}">
+          ${content}
+        </div>
+      `;
+    });
+
+    let lockedOverlayHtml = '';
+    if (isLocked) {
+      lockedOverlayHtml = `
+        <div class="locked-overlay tut-anim-lock-shackle">
+          <div class="w-6 h-6 rounded-full bg-amber-500/20 border border-amber-400 flex items-center justify-center mb-0.5 text-amber-400">
+            <i data-lucide="lock" class="w-3 h-3"></i>
+          </div>
+          <div class="flex items-center gap-1 bg-black/60 px-1.5 py-0.2 rounded-full border border-white/20">
+            <span class="w-2 h-2 rounded-full" style="background-color: ${keyColor || '#f59e0b'};"></span>
+            <span class="text-[9px] text-white font-black">${keyShape}</span>
+          </div>
+        </div>
+      `;
+    }
+
+    let rockHtml = '';
+    if (isGlued) {
+      rockHtml = `
+        <div class="tube-stone-base">
+          <svg viewBox="93 182 70 35" class="w-full h-full" xmlns="http://www.w3.org/2000/svg">
+            <path d="M 104,187 L 116,184 L 128,193 L 140,184 L 152,190 L 160,208 L 144,215 L 111,215 L 95,208 Z" fill="#26364c"/>
+            <path d="M 104,190 L 116,187 L 123,199 L 111,211 L 97,207 Z" fill="#34465e"/>
+            <path d="M 128,193 L 140,187 L 151,194 L 144,211 L 128,215 L 123,199 Z" fill="#1b293d"/>
+            <path d="M 140,187 L 152,190 L 160,208 L 144,211 L 151,194 Z" fill="#2d3e55"/>
+            <path d="M 116,187 L 123,199 L 111,211 M 140,187 L 134,201 L 144,211" fill="none" stroke="#64758a" stroke-width="1.5" stroke-linejoin="round" stroke-linecap="round"/>
+          </svg>
+        </div>
+      `;
+    }
+
+    let narrowBubbleEmitter = '';
+    if (isNarrow) {
+      narrowBubbleEmitter = `
+        <div class="narrow-bubble-emitter">
+          <div class="narrow-bubble"></div>
+          <div class="narrow-bubble"></div>
+          <div class="narrow-bubble"></div>
+        </div>
+      `;
+    }
+
+    let affinityPillHtml = '';
+    if (isFragile && allowedColors && allowedColors.length > 0) {
+      let dots = allowedColors.map(c => `<span class="affinity-gem-dot" style="background-color: ${c}; color: ${c};"></span>`).join('');
+      affinityPillHtml = `
+        <div class="affinity-gems-pill">
+          <span class="text-[7.5px]">💎</span>
+          ${dots}
+        </div>
+      `;
+    }
+
+    return `
+      <div class="test-tube tutorial-mini-tube ${typeClass} ${extraTubeClasses} ${animPourClass}">
+        ${affinityPillHtml}
+        <div class="tube-lip"></div>
+        <div class="tube-glass">
+          ${lockedOverlayHtml}
+          ${narrowBubbleEmitter}
+          ${segmentsHtml}
+        </div>
+        ${rockHtml}
+      </div>
+    `;
+  }
+
   renderTutorialContent(mechanicId, isNewAnnouncement = false) {
     const tutorials = {
       basic: {
@@ -7406,23 +7513,25 @@ class GameController {
         desc: 'Toca un frasco para levantarlo y luego toca otro para verter su líquido. Solo puedes verter si el frasco de destino tiene espacio libre y el líquido superior coincide en color (¡o si el frasco está totalmente vacío!). Agrupa cada color en su propio frasco para ganar el nivel.',
         icon: 'droplets',
         svg: `
-          <svg viewBox="0 0 220 160" class="w-full h-full">
-            <!-- Tubo A (Izquierda, se inclina y vierte azul) -->
-            <g class="demo-basic-tubeA">
-              <rect x="42" y="25" width="36" height="110" rx="14" fill="rgba(255,255,255,0.06)" stroke="#38bdf8" stroke-width="2"/>
-              <rect x="45" y="102" width="30" height="28" rx="8" fill="#ef4444"/>
-              <rect x="45" y="72" width="30" height="28" rx="4" fill="#3b82f6" class="demo-basic-pour"/>
-            </g>
-            <!-- Tubo B (Derecha, recibe el líquido azul) -->
-            <g>
-              <rect x="142" y="25" width="36" height="110" rx="14" fill="rgba(255,255,255,0.06)" stroke="#38bdf8" stroke-width="2"/>
-              <rect x="145" y="102" width="30" height="28" rx="8" fill="#3b82f6"/>
-              <rect x="145" y="72" width="30" height="28" rx="4" fill="#3b82f6" class="demo-basic-fill"/>
-            </g>
-            <path d="M 80 50 Q 112 25 140 50" fill="none" stroke="#38bdf8" stroke-width="2" stroke-dasharray="4,3"/>
-            <text x="60" y="152" fill="#94a3b8" font-size="9" font-weight="bold" text-anchor="middle">1. Toca para verter</text>
-            <text x="160" y="152" fill="#38bdf8" font-size="9" font-weight="bold" text-anchor="middle">2. Mismo color o vacío</text>
-          </svg>
+          <div class="tutorial-mini-stage">
+            ${this.generateMiniTubeHtml({
+              capacity: 4,
+              liquids: [
+                { color: '#ef4444', shape: '●', textHex: '#ffffff' },
+                { color: '#ef4444', shape: '●', textHex: '#ffffff' },
+                { color: '#3b82f6', shape: '▲', textHex: '#ffffff', animClass: 'tut-anim-drain-unit' }
+              ],
+              animPourClass: 'tut-anim-tilt-pour'
+            })}
+            ${this.generateMiniTubeHtml({
+              capacity: 4,
+              liquids: [
+                { color: '#3b82f6', shape: '▲', textHex: '#ffffff' },
+                { color: '#3b82f6', shape: '▲', textHex: '#ffffff' },
+                { color: '#3b82f6', shape: '▲', textHex: '#ffffff', animClass: 'tut-anim-fill-unit' }
+              ]
+            })}
+          </div>
         `
       },
       glued: {
@@ -7430,40 +7539,26 @@ class GameController {
         desc: 'Este frasco está enterrado en la piedra como la espada de Excalibur. Solo puede RECIBIR fluidos (normales o camaleón), ¡nunca puede vaciarse! Si te equivocas vertiendo un color indebido, tendrás que reiniciar el nivel.',
         icon: 'mountain',
         svg: `
-          <svg viewBox="0 0 220 160" class="w-full h-full">
-            <!-- Tubo A (Izquierda: normal, se inclina y vierte fluido en B) -->
-            <g class="demo-glued-tubeA">
-              <rect x="35" y="25" width="34" height="105" rx="13" fill="rgba(255,255,255,0.06)" stroke="#38bdf8" stroke-width="2"/>
-              <rect x="38" y="97" width="28" height="28" rx="7" fill="#3b82f6"/>
-              <rect x="38" y="67" width="28" height="28" rx="4" fill="#3b82f6"/>
-            </g>
-
-            <!-- Tubo B (Derecha: incrustado en roca, solo recibe) -->
-            <g class="demo-glued-tube-rock" style="transform-origin: 155px 125px;">
-              <rect x="138" y="25" width="34" height="105" rx="13" fill="rgba(255,255,255,0.06)" stroke="#64748b" stroke-width="2"/>
-              <g class="demo-glued-fillB">
-                <rect x="141" y="97" width="28" height="28" rx="7" fill="#3b82f6"/>
-              </g>
-
-              <!-- Roca base Excalibur poligonal facetada ajustada a la base del tubo -->
-              <g transform="translate(155, 130) scale(0.607) translate(-128, -199)">
-                <path d="M 104,187 L 116,184 L 128,193 L 140,184 L 152,190 L 160,208 L 144,215 L 111,215 L 95,208 Z" fill="#26364c"/>
-                <path d="M 104,190 L 116,187 L 123,199 L 111,211 L 97,207 Z" fill="#34465e"/>
-                <path d="M 128,193 L 140,187 L 151,194 L 144,211 L 128,215 L 123,199 Z" fill="#1b293d"/>
-                <path d="M 140,187 L 152,190 L 160,208 L 144,211 L 151,194 Z" fill="#2d3e55"/>
-                <path d="M 116,187 L 123,199 L 111,211 M 140,187 L 134,201 L 144,211" fill="none" stroke="#64758a" stroke-width="1.5" stroke-linejoin="round" stroke-linecap="round"/>
-              </g>
-
-              <!-- Signo de prohibido cuando intenta salir -->
-              <g class="demo-no-sign" style="transform-origin: 155px 50px;">
-                <circle cx="155" cy="50" r="14" fill="#ef4444" stroke="#ffffff" stroke-width="1.5"/>
-                <line x1="145" y1="40" x2="165" y2="60" stroke="#ffffff" stroke-width="3" stroke-linecap="round"/>
-                <text x="155" y="80" fill="#f87171" font-size="10" font-weight="900" text-anchor="middle">INAMOVIBLE</text>
-              </g>
-            </g>
-            <text x="52" y="152" fill="#38bdf8" font-size="9" font-weight="bold" text-anchor="middle">Solo entrada ✓</text>
-            <text x="155" y="152" fill="#ef4444" font-size="9" font-weight="bold" text-anchor="middle">No puede vaciarse 🚫</text>
-          </svg>
+          <div class="tutorial-mini-stage">
+            ${this.generateMiniTubeHtml({
+              capacity: 4,
+              liquids: [
+                { color: '#3b82f6', shape: '▲', textHex: '#ffffff' },
+                { color: '#3b82f6', shape: '▲', textHex: '#ffffff' },
+                { color: '#3b82f6', shape: '▲', textHex: '#ffffff', animClass: 'tut-anim-drain-unit' }
+              ],
+              animPourClass: 'tut-anim-tilt-pour'
+            })}
+            ${this.generateMiniTubeHtml({
+              capacity: 4,
+              isGlued: true,
+              extraTubeClasses: 'tut-anim-glued-wobble',
+              liquids: [
+                { color: '#3b82f6', shape: '▲', textHex: '#ffffff' },
+                { color: '#3b82f6', shape: '▲', textHex: '#ffffff', animClass: 'tut-anim-fill-unit' }
+              ]
+            })}
+          </div>
         `
       },
       mystery: {
@@ -7471,27 +7566,23 @@ class GameController {
         desc: 'Los fluidos misteriosos ocultan su color bajo el signo ?. La superficie superior siempre está descubierta. ¡Al retirar el líquido que lo tapa, el bloque oculto revela su color y símbolo!',
         icon: 'help-circle',
         svg: `
-          <svg viewBox="0 0 220 160" class="w-full h-full">
-            <!-- Tubo A (Izquierda, se inclina y vierte) -->
-            <g class="demo-anim-mystery-tubeA">
-              <rect x="42" y="25" width="36" height="110" rx="14" fill="rgba(255,255,255,0.06)" stroke="#38bdf8" stroke-width="2"/>
-              <!-- Bloque inferior oculto que se revela -->
-              <rect x="45" y="102" width="30" height="28" rx="8" class="demo-anim-mystery-block"/>
-              <g class="demo-anim-mystery-mark">
-                <text x="60" y="121" fill="#94a3b8" font-size="14" font-weight="900" text-anchor="middle" class="demo-mystery-q">?</text>
-              </g>
-              <!-- Bloque azul superior que se vacía hacia Tubo B -->
-              <rect x="45" y="72" width="30" height="28" rx="4" fill="#3b82f6" class="demo-anim-mystery-blue"/>
-            </g>
-            
-            <!-- Tubo B (Derecha, recibe el líquido azul) -->
-            <g>
-              <rect x="142" y="25" width="36" height="110" rx="14" fill="rgba(255,255,255,0.06)" stroke="#38bdf8" stroke-width="2"/>
-              <rect x="145" y="102" width="30" height="28" rx="8" fill="#3b82f6" class="demo-anim-mystery-blue-dest"/>
-            </g>
-            <text x="60" y="152" fill="#94a3b8" font-size="10" font-weight="bold" text-anchor="middle">1. Quitar capa azul</text>
-            <text x="160" y="152" fill="#38bdf8" font-size="10" font-weight="bold" text-anchor="middle">2. ¡Se revela el color!</text>
-          </svg>
+          <div class="tutorial-mini-stage">
+            ${this.generateMiniTubeHtml({
+              capacity: 4,
+              liquids: [
+                { color: '#ef4444', shape: '●', textHex: '#ffffff', isMystery: true, animClass: 'tut-anim-reveal-unit' },
+                { color: '#3b82f6', shape: '▲', textHex: '#ffffff', animClass: 'tut-anim-drain-unit' }
+              ],
+              animPourClass: 'tut-anim-tilt-pour'
+            })}
+            ${this.generateMiniTubeHtml({
+              capacity: 4,
+              liquids: [
+                { color: '#3b82f6', shape: '▲', textHex: '#ffffff' },
+                { color: '#3b82f6', shape: '▲', textHex: '#ffffff', animClass: 'tut-anim-fill-unit' }
+              ]
+            })}
+          </div>
         `
       },
       giant: {
@@ -7499,20 +7590,33 @@ class GameController {
         desc: 'Un recipiente de gran tamaño capaz de contener hasta 6 unidades de líquido. Te brinda espacio adicional para maniobras complejas de trasvase.',
         icon: 'maximize-2',
         svg: `
-          <svg viewBox="0 0 220 160" class="w-full h-full">
-            <g>
-              <rect x="45" y="40" width="34" height="95" rx="12" fill="rgba(255,255,255,0.06)" stroke="#94a3b8" stroke-width="1.8"/>
-              <text x="62" y="32" fill="#94a3b8" font-size="9" font-weight="bold" text-anchor="middle">Normal: 4</text>
-            </g>
-            <g>
-              <rect x="135" y="15" width="40" height="125" rx="14" fill="rgba(255,255,255,0.06)" stroke="#38bdf8" stroke-width="2.2"/>
-              <rect x="138" y="112" width="34" height="24" rx="8" fill="#10b981"/>
-              <rect x="138" y="86" width="34" height="24" fill="#10b981"/>
-              <rect x="138" y="60" width="34" height="24" fill="#10b981"/>
-              <text x="155" y="12" fill="#38bdf8" font-size="10" font-weight="900" text-anchor="middle">GIGANTE: 6</text>
-            </g>
-            <text x="110" y="152" fill="#38bdf8" font-size="10" font-weight="bold" text-anchor="middle">Capacidad extendida de 6 unidades</text>
-          </svg>
+          <div class="tutorial-mini-stage" style="align-items: flex-end; gap: 28px;">
+            <div class="flex flex-col items-center">
+              <span class="text-[10px] text-slate-400 font-bold mb-1">Normal: 4</span>
+              ${this.generateMiniTubeHtml({
+                capacity: 4,
+                liquids: [
+                  { color: '#10b981', shape: '■', textHex: '#ffffff' },
+                  { color: '#10b981', shape: '■', textHex: '#ffffff' },
+                  { color: '#10b981', shape: '■', textHex: '#ffffff' },
+                  { color: '#10b981', shape: '■', textHex: '#ffffff' }
+                ]
+              })}
+            </div>
+            <div class="flex flex-col items-center">
+              <span class="text-[10px] text-sky-400 font-black mb-1">GIGANTE: 6</span>
+              ${this.generateMiniTubeHtml({
+                capacity: 6,
+                liquids: [
+                  { color: '#3b82f6', shape: '▲', textHex: '#ffffff' },
+                  { color: '#3b82f6', shape: '▲', textHex: '#ffffff' },
+                  { color: '#3b82f6', shape: '▲', textHex: '#ffffff' },
+                  { color: '#3b82f6', shape: '▲', textHex: '#ffffff' },
+                  { color: '#3b82f6', shape: '▲', textHex: '#ffffff' }
+                ]
+              })}
+            </div>
+          </div>
         `
       },
       lock: {
@@ -7520,39 +7624,40 @@ class GameController {
         desc: 'El frasco C está protegido por un cerrojo mágico. Si el color de la llave está cubierto por otro líquido en el tubo A, despeja primero ese líquido hacia el tubo B y luego vierte la llave para desbloquear.',
         icon: 'lock',
         svg: `
-          <svg viewBox="0 0 220 160" class="w-full h-full">
-            <!-- Tubo A (Izquierda: llave rosa tapada por bloque azul) -->
-            <g>
-              <rect x="20" y="25" width="34" height="108" rx="13" fill="rgba(255,255,255,0.06)" stroke="#38bdf8" stroke-width="1.8"/>
-              <!-- Llave rosa inferior que viaja a C -->
-              <g class="demo-lock-key-c">
-                <rect x="23" y="100" width="28" height="28" rx="7" fill="#ec4899"/>
-                <text x="37" y="119" fill="#ffffff" font-size="13" text-anchor="middle">🔑</text>
-              </g>
-              <!-- Bloque azul que estorba y viaja a B -->
-              <rect x="23" y="70" width="28" height="28" rx="4" fill="#3b82f6" class="demo-lock-block-b"/>
-              <text x="37" y="150" fill="#94a3b8" font-size="9" font-weight="bold" text-anchor="middle">A: Llave tapada</text>
-            </g>
-
-            <!-- Tubo B (Centro: receptor del bloque azul) -->
-            <g>
-              <rect x="93" y="25" width="34" height="108" rx="13" fill="rgba(255,255,255,0.06)" stroke="#38bdf8" stroke-width="1.8"/>
-              <text x="110" y="150" fill="#60a5fa" font-size="9" font-weight="bold" text-anchor="middle">B: Despejar</text>
-            </g>
-
-            <!-- Tubo C (Derecha: frasco con candado) -->
-            <g>
-              <rect x="166" y="25" width="34" height="108" rx="13" fill="rgba(255,255,255,0.06)" stroke="#f59e0b" stroke-width="2"/>
-              <!-- Candado mágico -->
-              <g class="demo-lock-shackle" style="transform-origin: 183px 75px;">
-                <circle cx="183" cy="70" r="16" fill="#0f172a" stroke="#f59e0b" stroke-width="2"/>
-                <path d="M 178 70 L 178 63 A 5 5 0 0 1 188 63 L 188 70" fill="none" stroke="#f59e0b" stroke-width="2.5"/>
-                <rect x="176" y="70" width="14" height="11" rx="2" fill="#f59e0b"/>
-                <text x="183" y="79" fill="#0f172a" font-size="8" font-weight="900" text-anchor="middle">✓</text>
-              </g>
-              <text x="183" y="150" fill="#f59e0b" font-size="9" font-weight="bold" text-anchor="middle">C: ¡Desbloqueo!</text>
-            </g>
-          </svg>
+          <div class="tutorial-mini-stage" style="gap: 14px;">
+            <div class="flex flex-col items-center">
+              <span class="text-[9px] text-slate-400 font-bold mb-0.5">A: Llave</span>
+              ${this.generateMiniTubeHtml({
+                capacity: 4,
+                liquids: [
+                  { color: '#ec4899', shape: '🔑', textHex: '#ffffff' },
+                  { color: '#3b82f6', shape: '▲', textHex: '#ffffff' }
+                ]
+              })}
+            </div>
+            <div class="flex flex-col items-center">
+              <span class="text-[9px] text-sky-400 font-bold mb-0.5">B: Aux</span>
+              ${this.generateMiniTubeHtml({
+                capacity: 4,
+                liquids: [
+                  { color: '#3b82f6', shape: '▲', textHex: '#ffffff' }
+                ]
+              })}
+            </div>
+            <div class="flex flex-col items-center">
+              <span class="text-[9px] text-amber-400 font-bold mb-0.5">C: Candado</span>
+              ${this.generateMiniTubeHtml({
+                capacity: 4,
+                isLocked: true,
+                keyColor: '#ec4899',
+                keyShape: '★',
+                liquids: [
+                  { color: '#10b981', shape: '■', textHex: '#ffffff' },
+                  { color: '#10b981', shape: '■', textHex: '#ffffff' }
+                ]
+              })}
+            </div>
+          </div>
         `
       },
       narrow: {
@@ -7560,21 +7665,28 @@ class GameController {
         desc: 'Tubo de precisión ultra delgado: solo permite ingresar 1 cuarto de fluido puro (aislado). Si intentas meter un líquido que ya combinó 2 o más cuartos juntos, ¡se produce una Reacción Química Inesperada!, vaciando el frasco origen y esparciendo sus fluidos en los demás tubos que no estén completos.',
         icon: 'minimize-2',
         svg: `
-          <svg viewBox="0 0 220 160" class="w-full h-full">
-            <g>
-              <rect x="45" y="25" width="36" height="110" rx="14" fill="rgba(255,255,255,0.06)" stroke="#38bdf8" stroke-width="2"/>
-              <rect x="48" y="103" width="30" height="28" rx="8" fill="#8b5cf6"/>
-              <rect x="48" y="73" width="30" height="28" fill="#8b5cf6"/>
-              <rect x="48" y="43" width="30" height="28" fill="#8b5cf6"/>
-            </g>
-            <g>
-              <rect x="140" y="35" width="22" height="100" rx="10" fill="rgba(255,255,255,0.06)" stroke="#a855f7" stroke-width="2"/>
-              <rect x="142" y="108" width="18" height="24" rx="6" fill="#8b5cf6"/>
-              <text x="151" y="26" fill="#c084fc" font-size="10" font-weight="900" text-anchor="middle">1x1</text>
-            </g>
-            <path d="M 85 55 Q 115 35 138 50" fill="none" stroke="#a855f7" stroke-width="3" stroke-dasharray="4,3"/>
-            <text x="110" y="152" fill="#c084fc" font-size="9" font-weight="bold" text-anchor="middle">Solo 1 cuarto puro (¡2+ causan sobrecarga!)</text>
-          </svg>
+          <div class="tutorial-mini-stage" style="gap: 22px;">
+            <div class="flex flex-col items-center">
+              <span class="text-[9px] text-slate-400 font-bold mb-0.5">Tubo Estándar</span>
+              ${this.generateMiniTubeHtml({
+                capacity: 4,
+                liquids: [
+                  { color: '#8b5cf6', shape: '✦', textHex: '#ffffff' },
+                  { color: '#8b5cf6', shape: '✦', textHex: '#ffffff' }
+                ]
+              })}
+            </div>
+            <div class="flex flex-col items-center">
+              <span class="text-[9px] text-purple-300 font-black mb-0.5">Tubo 1x1 ✨</span>
+              ${this.generateMiniTubeHtml({
+                capacity: 4,
+                isNarrow: true,
+                liquids: [
+                  { color: '#8b5cf6', shape: '✦', textHex: '#ffffff' }
+                ]
+              })}
+            </div>
+          </div>
         `
       },
       chameleon: {
@@ -7582,18 +7694,30 @@ class GameController {
         desc: '¡El comodín alquímico! Se transfiere de forma individual (1 sola unidad) sin arrastrar los líquidos de abajo. Al verterlo en otro frasco, adopta su color y forma para ayudarte a completarlo. ¡Si lo pasas a un frasco vacío, se conserva multicolor!',
         icon: 'disc',
         svg: `
-          <svg viewBox="0 0 220 160" class="w-full h-full">
-            <g>
-              <rect x="45" y="25" width="36" height="110" rx="14" fill="rgba(255,255,255,0.06)" stroke="#ec4899" stroke-width="2"/>
-              <rect x="48" y="103" width="30" height="28" rx="8" class="anim-chameleon-loop"/>
-            </g>
-            <g>
-              <rect x="140" y="25" width="36" height="110" rx="14" fill="rgba(255,255,255,0.06)" stroke="#a855f7" stroke-width="2"/>
-              <rect x="143" y="103" width="30" height="28" rx="8" fill="#a855f7"/>
-            </g>
-            <path d="M 85 60 Q 112 35 138 60" fill="none" stroke="#ec4899" stroke-width="3" stroke-dasharray="4,3"/>
-            <text x="110" y="152" fill="#ec4899" font-size="10" font-weight="bold" text-anchor="middle">Se mueve solo (1u) y adopta el color destino</text>
-          </svg>
+          <div class="tutorial-mini-stage">
+            <div class="flex flex-col items-center">
+              <span class="text-[9px] text-pink-300 font-bold mb-0.5">Camaleón</span>
+              ${this.generateMiniTubeHtml({
+                capacity: 4,
+                liquids: [
+                  { color: '#3b82f6', shape: '▲', textHex: '#ffffff' },
+                  { color: 'chameleon', shape: '★', textHex: '#ffffff', isChameleon: true, animClass: 'tut-anim-drain-unit' }
+                ],
+                animPourClass: 'tut-anim-tilt-pour'
+              })}
+            </div>
+            <div class="flex flex-col items-center">
+              <span class="text-[9px] text-purple-300 font-bold mb-0.5">Adopta Color</span>
+              ${this.generateMiniTubeHtml({
+                capacity: 4,
+                liquids: [
+                  { color: '#a855f7', shape: '◆', textHex: '#ffffff' },
+                  { color: '#a855f7', shape: '◆', textHex: '#ffffff' },
+                  { color: '#a855f7', shape: '◆', textHex: '#ffffff', animClass: 'tut-anim-fill-unit' }
+                ]
+              })}
+            </div>
+          </div>
         `
       },
       fragile: {
@@ -7601,21 +7725,31 @@ class GameController {
         desc: 'Frasco que inicia vacío y posee afinidad por colores específicos representados en sus gemas superiores. Permite almacenar temporalmente otros colores en emergencias, pero cada color no afín resquebraja el cristal. A la 3ª infracción (o a la 1ª en versiones volátiles ⚡) el frasco estalla y se destruye.',
         icon: 'shield-alert',
         svg: `
-          <svg viewBox="0 0 220 160" class="w-full h-full">
-            <g>
-              <rect x="92" y="32" width="36" height="105" rx="14" fill="rgba(255,255,255,0.06)" stroke="#c084fc" stroke-width="2"/>
-              <!-- Gemas de afinidad en corona superior -->
-              <circle cx="102" cy="22" r="5" fill="#ef4444" stroke="#ffffff" stroke-width="1.2"/>
-              <circle cx="118" cy="22" r="5" fill="#3b82f6" stroke="#ffffff" stroke-width="1.2"/>
-              <!-- Líquido incompatible -->
-              <rect x="95" y="103" width="30" height="30" rx="8" fill="#10b981"/>
-              <!-- Fisura -->
-              <path d="M 104 45 L 112 60 L 106 80 L 118 102" fill="none" stroke="#fca5a5" stroke-width="1.8" stroke-linecap="round"/>
-              <rect x="80" y="142" width="60" height="16" rx="8" fill="#7e22ce"/>
-              <text x="110" y="154" fill="#ffffff" font-size="9" font-weight="900" text-anchor="middle">AFINIDAD: 💎</text>
-            </g>
-            <text x="110" y="13" fill="#c084fc" font-size="10" font-weight="bold" text-anchor="middle">Solo tolera sus colores afines</text>
-          </svg>
+          <div class="tutorial-mini-stage" style="gap: 20px;">
+            <div class="flex flex-col items-center">
+              <span class="text-[9px] text-emerald-300 font-bold mb-0.5">Color Afín ✓</span>
+              ${this.generateMiniTubeHtml({
+                capacity: 4,
+                isFragile: true,
+                allowedColors: ['#ef4444', '#3b82f6'],
+                liquids: [
+                  { color: '#3b82f6', shape: '▲', textHex: '#ffffff' }
+                ]
+              })}
+            </div>
+            <div class="flex flex-col items-center">
+              <span class="text-[9px] text-rose-300 font-bold mb-0.5">No Afín (Fisura) ⚠️</span>
+              ${this.generateMiniTubeHtml({
+                capacity: 4,
+                isFragile: true,
+                allowedColors: ['#ef4444', '#3b82f6'],
+                extraTubeClasses: 'tube-affinity-incompatible',
+                liquids: [
+                  { color: '#10b981', shape: '■', textHex: '#ffffff' }
+                ]
+              })}
+            </div>
+          </div>
         `
       },
       hybrid: {
@@ -7623,12 +7757,32 @@ class GameController {
         desc: 'Combina múltiples mecánicas avanzadas en un solo nivel (candados, tubos pegados, estrechos y líquidos misteriosos). ¡Pon a prueba tu máxima maestría!',
         icon: 'sparkles',
         svg: `
-          <svg viewBox="0 0 220 160" class="w-full h-full">
-            <rect x="40" y="35" width="32" height="105" rx="12" fill="rgba(255,255,255,0.08)" stroke="#f97316" stroke-width="2"/>
-            <rect x="84" y="20" width="32" height="120" rx="12" fill="rgba(255,255,255,0.08)" stroke="#38bdf8" stroke-width="2"/>
-            <rect x="128" y="35" width="32" height="105" rx="12" fill="rgba(255,255,255,0.08)" stroke="#a855f7" stroke-width="2"/>
-            <text x="100" y="152" fill="#f97316" font-size="10" font-weight="bold" text-anchor="middle">¡Combina múltiples reglas mágicas!</text>
-          </svg>
+          <div class="tutorial-mini-stage" style="gap: 10px;">
+            ${this.generateMiniTubeHtml({
+              capacity: 4,
+              isGlued: true,
+              liquids: [{ color: '#f97316', shape: '★', textHex: '#ffffff' }]
+            })}
+            ${this.generateMiniTubeHtml({
+              capacity: 6,
+              liquids: [
+                { color: '#38bdf8', shape: '▲', textHex: '#ffffff' },
+                { color: '#38bdf8', shape: '▲', textHex: '#ffffff' }
+              ]
+            })}
+            ${this.generateMiniTubeHtml({
+              capacity: 4,
+              isNarrow: true,
+              liquids: [{ color: '#a855f7', shape: '✦', textHex: '#ffffff' }]
+            })}
+            ${this.generateMiniTubeHtml({
+              capacity: 4,
+              isLocked: true,
+              keyColor: '#38bdf8',
+              keyShape: '▲',
+              liquids: [{ color: '#ef4444', shape: '●', textHex: '#ffffff' }]
+            })}
+          </div>
         `
       },
       magna: {
@@ -7636,13 +7790,33 @@ class GameController {
         desc: 'El pináculo del arte alquímico en los niveles 91 al 100. Coordina simultáneamente fluidos camaleón, sellos de candado, tubos estrechos de precisión y cristales frágiles. ¡Solo los verdaderos Grandes Maestros logran consumar la Gran Obra!',
         icon: 'award',
         svg: `
-          <svg viewBox="0 0 220 160" class="w-full h-full">
-            <rect x="25" y="30" width="30" height="110" rx="12" fill="rgba(255,255,255,0.08)" stroke="#f59e0b" stroke-width="2"/>
-            <rect x="75" y="15" width="30" height="125" rx="12" fill="rgba(255,255,255,0.08)" stroke="#ec4899" stroke-width="2"/>
-            <rect x="125" y="30" width="30" height="110" rx="12" fill="rgba(255,255,255,0.08)" stroke="#10b981" stroke-width="2"/>
-            <rect x="175" y="45" width="20" height="95" rx="10" fill="rgba(255,255,255,0.08)" stroke="#a855f7" stroke-width="2"/>
-            <text x="110" y="152" fill="#fbbf24" font-size="10" font-weight="900" text-anchor="middle">🏅 Gran Obra Alquímica: Fusión Total</text>
-          </svg>
+          <div class="tutorial-mini-stage" style="gap: 10px;">
+            ${this.generateMiniTubeHtml({
+              capacity: 4,
+              isLocked: true,
+              keyColor: '#f59e0b',
+              keyShape: '★',
+              liquids: [{ color: '#ef4444', shape: '●', textHex: '#ffffff' }]
+            })}
+            ${this.generateMiniTubeHtml({
+              capacity: 8,
+              liquids: [
+                { color: 'chameleon', shape: '★', textHex: '#ffffff', isChameleon: true },
+                { color: '#38bdf8', shape: '▲', textHex: '#ffffff' }
+              ]
+            })}
+            ${this.generateMiniTubeHtml({
+              capacity: 4,
+              isNarrow: true,
+              liquids: [{ color: '#a855f7', shape: '✦', textHex: '#ffffff' }]
+            })}
+            ${this.generateMiniTubeHtml({
+              capacity: 4,
+              isFragile: true,
+              allowedColors: ['#10b981', '#ec4899'],
+              liquids: [{ color: '#10b981', shape: '■', textHex: '#ffffff' }]
+            })}
+          </div>
         `
       }
     };
