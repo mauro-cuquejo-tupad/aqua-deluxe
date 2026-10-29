@@ -273,7 +273,7 @@ class HonorManager {
 
   /**
    * Comprueba si la sección tiene desbloqueado el Desafío de Honor.
-   * Regla: Todos los niveles de la sección deben tener 3 estrellas Y todos sus desafíos completados.
+   * Regla actualizada: Solo necesita tener 3 estrellas en todos los niveles de la sección (10/10).
    */
   static checkSectionUnlockStatus(sectionId, bypass = false) {
     const sec = this.getSection(sectionId);
@@ -301,14 +301,15 @@ class HonorManager {
         missingStars.push(lvl);
       }
 
-      // 2. Verificar desafíos completados
+      // 2. Registro informativo de desafíos completados (ya no bloquea el desbloqueo)
       const chalRecord = window.stateManager ? window.stateManager.getLevelChallenges(lvl) : null;
       if (!chalRecord || chalRecord.completedCount < chalRecord.totalCount) {
         missingChallenges.push(lvl);
       }
     }
 
-    const isUnlocked = missingStars.length === 0 && missingChallenges.length === 0;
+    // Regla solicitada: solo requiere 3 estrellas en todos los niveles de la sección
+    const isUnlocked = missingStars.length === 0;
 
     return {
       unlocked: isUnlocked,

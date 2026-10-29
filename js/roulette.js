@@ -1339,7 +1339,8 @@ class MinigameEngine {
 
     const dartsGroup = document.getElementById('diana-darts-group');
     const startTime = performance.now();
-    const duration = 340; // ms de vuelo
+    // Velocidad unificada con las dianas móviles (650 ms) para consistencia de tiro
+    const duration = 650; // ms de vuelo
 
     const animateBall = (now) => {
       const elapsed = now - startTime;
@@ -2230,8 +2231,8 @@ class MinigameEngine {
     if (bannerEl) bannerEl.classList.add('hidden');
 
     if (this.fromVictory) {
-      // En Modo Historia: mostrar bolsa y cartas, ocultar recuadro de apuesta
-      if (bagIndicator) bagIndicator.classList.remove('hidden');
+      // En Modo Historia: la bolsa y cartas funcionan internamente (indicador de bolsa visual oculto)
+      if (bagIndicator) bagIndicator.classList.add('hidden');
       if (cardsDrawer) cardsDrawer.classList.remove('hidden');
       if (betBox) betBox.classList.add('hidden');
       if (stakeTitle) stakeTitle.textContent = 'Ganado en el nivel:';

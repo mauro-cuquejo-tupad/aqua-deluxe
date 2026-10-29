@@ -426,6 +426,7 @@ class GameController {
     this.undoCountInLevel = 0;
     this.touchedTubeIndices = new Set();
     this.rewardedNarrowTubeIds = new Set();
+    this.pivotTransmutedAtMove = null;
     this.isPouringAnimation = false;
     this.seedVariation = seedVariation;
 
@@ -511,18 +512,6 @@ class GameController {
           this.showTutorialModal(this.levelData.primaryMechanicId, true);
           window.stateManager.markTutorialSeen(this.levelData.primaryMechanicId);
         }, 400);
-      }
-    }
-
-    // Si inicia el Modo Historia por primera vez en el Nivel 1, mostrar la animación inicial una única vez (Prólogo)
-    if (!customLevelData && !this.isHonorMode && !this.isDailyChallenge && !this.isCasualSandbox && !this.isTimeAttack) {
-      if (this.currentLevel === 1 && window.stateManager && !window.stateManager.hasSeenStoryPrologue()) {
-        window.stateManager.markStoryPrologueSeen();
-        setTimeout(() => {
-          if (window.storyManager) {
-            window.storyManager.openStoryModal(0, false);
-          }
-        }, 450);
       }
     }
 
@@ -1378,7 +1367,8 @@ class GameController {
       { id: 'cb-sandbox-narrow', lbl: 'lbl-cb-narrow', slider: 'input-sandbox-count-narrow', valLbl: 'lbl-val-sandbox-narrow', lvl: 41 },
       { id: 'cb-sandbox-glued', lbl: 'lbl-cb-glued', slider: 'input-sandbox-count-glued', valLbl: 'lbl-val-sandbox-glued', lvl: 51 },
       { id: 'cb-sandbox-chameleon', lbl: 'lbl-cb-chameleon', slider: 'input-sandbox-count-chameleon', valLbl: 'lbl-val-sandbox-chameleon', lvl: 61 },
-      { id: 'cb-sandbox-fragile', lbl: 'lbl-cb-fragile', slider: 'input-sandbox-count-fragile', valLbl: 'lbl-val-sandbox-fragile', lvl: 71 }
+      { id: 'cb-sandbox-fragile', lbl: 'lbl-cb-fragile', slider: 'input-sandbox-count-fragile', valLbl: 'lbl-val-sandbox-fragile', lvl: 71 },
+      { id: 'cb-sandbox-pivot', lbl: 'lbl-cb-pivot', slider: 'input-sandbox-count-pivot', valLbl: 'lbl-val-sandbox-pivot', lvl: 71 }
     ];
 
     mechUnlocks.forEach(m => {
@@ -1459,7 +1449,8 @@ class GameController {
         narrow: (unlockedLvl >= 41) && !!document.getElementById('cb-sandbox-narrow')?.checked,
         glued: (unlockedLvl >= 51) && !!document.getElementById('cb-sandbox-glued')?.checked,
         chameleon: (unlockedLvl >= 61) && !!document.getElementById('cb-sandbox-chameleon')?.checked,
-        fragile: (unlockedLvl >= 71) && !!document.getElementById('cb-sandbox-fragile')?.checked
+        fragile: (unlockedLvl >= 71) && !!document.getElementById('cb-sandbox-fragile')?.checked,
+        pivot: (unlockedLvl >= 71) && !!document.getElementById('cb-sandbox-pivot')?.checked
       };
       const mechanicCounts = {
         mystery: parseInt(document.getElementById('input-sandbox-count-mystery')?.value, 10) || 0,
@@ -1468,7 +1459,8 @@ class GameController {
         narrow: parseInt(document.getElementById('input-sandbox-count-narrow')?.value, 10) || 0,
         glued: parseInt(document.getElementById('input-sandbox-count-glued')?.value, 10) || 0,
         chameleon: parseInt(document.getElementById('input-sandbox-count-chameleon')?.value, 10) || 0,
-        fragile: parseInt(document.getElementById('input-sandbox-count-fragile')?.value, 10) || 0
+        fragile: parseInt(document.getElementById('input-sandbox-count-fragile')?.value, 10) || 0,
+        pivot: parseInt(document.getElementById('input-sandbox-count-pivot')?.value, 10) || 0
       };
       config = { tubeCount, colorCount, mechanics, mechanicCounts, seed: Math.floor(Math.random() * 9999999) };
     } else if (config && config.mechanics) {
@@ -1479,6 +1471,7 @@ class GameController {
       if (unlockedLvl < 51) config.mechanics.glued = false;
       if (unlockedLvl < 61) config.mechanics.chameleon = false;
       if (unlockedLvl < 71) config.mechanics.fragile = false;
+      if (unlockedLvl < 71) config.mechanics.pivot = false;
     }
     this.casualSandboxConfig = config;
 
@@ -1993,8 +1986,14 @@ class GameController {
 
       tubeEl.appendChild(glassEl);
 
-      // Indicadores especiales (Tubo estrecho 1x1, Mini normal, Mini 1x1, Gigante, Pegado, Frágil)
-      if (tube.isNarrow) {
+      // Indicadores especiales (Tubo estrecho 1x1, Mini normal, Mini 1x1, Tubo Pivot, Gigante, Pegado, Frágil)
+      if (tube.isPivot) {
+        tubeEl.classList.add('tube-pivot', 'tube-mini');
+        const pivotTag = document.createElement('span');
+        pivotTag.className = 'absolute -bottom-5 left-1/2 -translate-x-1/2 text-[9.5px] text-amber-200 font-extrabold tracking-wider px-1.5 py-0.5 rounded-full bg-slate-900/95 border border-amber-400 shadow-md whitespace-nowrap flex items-center gap-0.5 z-30 pointer-events-none animate-pulse';
+        pivotTag.innerHTML = `<span>Pivot (1)</span><span class="text-[8px] text-amber-300">✦</span>`;
+        tubeEl.appendChild(pivotTag);
+      } else if (tube.isNarrow) {
         tubeEl.classList.add('tube-narrow');
         if (tube.isMini) tubeEl.classList.add('tube-mini');
         // Emisor de burbujitas mágicas continuas dentro del cristal
@@ -2685,8 +2684,8 @@ class GameController {
       }
     }
 
-    // Si algún tubo es estrecho o mini, sólo se mueve 1 unidad
-    if (fromTube.isNarrow || toTube.isNarrow || fromTube.isMini || toTube.isMini) {
+    // Si algún tubo es estrecho, mini o pivot, sólo se mueve 1 unidad
+    if (fromTube.isNarrow || toTube.isNarrow || fromTube.isMini || toTube.isMini || fromTube.isPivot || toTube.isPivot) {
       count = 1;
     }
 
@@ -2960,6 +2959,41 @@ class GameController {
                 this.renderTubes();
                 this.updateButtonsUI();
                 this.updateChallengesHUD();
+
+                // MECÁNICA ESPECIAL TUBO PIVOT (SECCIÓN 8+ / SANDBOX):
+                // Al llevar el líquido blanco (#ffffff) al mini tubo pivot de 1 elemento:
+                // Se transforma en un tubo normal vacío (capacidad 4) y otorga 200 monedas inmediatamente.
+                if (toTube.isPivot && toTube.liquids.length === 1 && toTube.liquids[0].color === '#ffffff') {
+                  toTube.isPivot = false;
+                  toTube.isMini = false;
+                  toTube.capacity = 4;
+                  toTube.liquids = []; // Se transmuta en tubo normal vacío
+                  toTube.isTransmuted = true;
+
+                  if (this.pivotTransmutedAtMove === null || this.pivotTransmutedAtMove === undefined) {
+                    this.pivotTransmutedAtMove = this.moves;
+                  }
+
+                  this.addCoins(200);
+                  if (window.audio) {
+                    if (typeof window.audio.playVictoryFanfare === 'function') {
+                      window.audio.playVictoryFanfare();
+                    } else if (typeof window.audio.playUnlockSuccess === 'function') {
+                      window.audio.playUnlockSuccess();
+                    }
+                  }
+
+                  this.triggerUnlockSuccess(toIdx, '✨ ¡TRANSMUTACIÓN PIVOT! +200 🪙');
+                  this.showToast('🌟 ¡Tubo Pivot activado! Ahora es un frasco normal de 4 espacios (+200 🪙)', 'success');
+
+                  // Re-renderizar tubos para reflejar la expansión del tubo a capacidad 4
+                  this.renderTubes();
+                  const targetTubeEl = this.tubesGrid.querySelectorAll('.test-tube')[toIdx];
+                  if (targetTubeEl) {
+                    targetTubeEl.classList.add('tube-transmuting');
+                    setTimeout(() => targetTubeEl.classList.remove('tube-transmuting'), 900);
+                  }
+                }
 
                 // Recompensa especial (+50 monedas) al llenar un tubo 1x1 (isNarrow)
                 if (toTube.isNarrow && this.isTubeComplete(toTube, { allowChameleon: true })) {
@@ -4422,7 +4456,8 @@ class GameController {
   saveStateForUndo() {
     this.moveHistory.push({
       tubes: JSON.parse(JSON.stringify(this.tubes)),
-      moves: this.moves
+      moves: this.moves,
+      pivotTransmutedAtMove: this.pivotTransmutedAtMove
     });
   }
 
@@ -4434,6 +4469,7 @@ class GameController {
     const prev = this.moveHistory.pop();
     this.tubes = prev.tubes;
     this.moves = prev.moves;
+    this.pivotTransmutedAtMove = prev.pivotTransmutedAtMove !== undefined ? prev.pivotTransmutedAtMove : null;
     this.selectedTubeIndex = null;
     this.clearHintHighlight();
 
@@ -8865,16 +8901,13 @@ class GameController {
     const sec = window.HonorManager.getSection(sectionId);
     if (!sec) return;
 
-    // 1. Verificar si está desbloqueado (3 estrellas y desafíos en toda la sección)
+    // 1. Verificar si está desbloqueado (3 estrellas en toda la sección)
     const unlockStatus = window.HonorManager.checkSectionUnlockStatus(sectionId, bypassUnlock);
     if (!unlockStatus.unlocked) {
       const missingStarsStr = unlockStatus.missingStars.length > 0
         ? `Niveles sin 3★: ${unlockStatus.missingStars.join(', ')}`
         : '';
-      const missingChalStr = unlockStatus.missingChallenges.length > 0
-        ? `Niveles con desafíos pendientes: ${unlockStatus.missingChallenges.join(', ')}`
-        : '';
-      alert(`⚔️ Este Desafío de Honor está bloqueado.\n\nPara desbloquearlo debes completar con 3 estrellas y todos los desafíos los Niveles ${sec.levelsRange[0]} a ${sec.levelsRange[1]}.\n\n${missingStarsStr}\n${missingChalStr}`);
+      alert(`⚔️ Este Desafío de Honor está bloqueado.\n\nPara desbloquearlo debes completar con 3 estrellas los Niveles ${sec.levelsRange[0]} a ${sec.levelsRange[1]}.\n\n${missingStarsStr}`);
       return;
     }
 
@@ -9393,15 +9426,14 @@ class GameController {
       } else {
         honorCard.className = 'honor-challenge-card state-locked';
         const missingStarsCount = unlockStatus.missingStars.length;
-        const missingChallengesCount = unlockStatus.missingChallenges.length;
         honorCard.innerHTML = `
           <div class="flex items-center gap-2.5 text-xs text-slate-400">
             <i data-lucide="lock" class="w-4 h-4 text-slate-500"></i>
             <div>
               <span class="font-bold text-slate-300">Desafío de Honor Bloqueado</span>
               <p class="text-[11px] text-slate-400">
-                Completa con 3★ y todos los desafíos los Niveles ${startLvl}-${endLvl}.
-                <span class="text-amber-400 font-medium">(Faltan: ${missingStarsCount > 0 ? `${missingStarsCount} con 3★` : ''}${missingStarsCount > 0 && missingChallengesCount > 0 ? ', ' : ''}${missingChallengesCount > 0 ? `${missingChallengesCount} desafíos` : ''})</span>
+                Consigue 3★ en todos los Niveles ${startLvl}-${endLvl}.
+                <span class="text-amber-400 font-medium">(Faltan: ${missingStarsCount} con 3★)</span>
               </p>
             </div>
           </div>
@@ -10013,16 +10045,7 @@ class GameController {
     this.dailyChestInterval = setInterval(() => this.updateDailyChestBarUI(), 1000);
     this.updateDailyChestBarUI();
 
-    // Recompensa al entrar cada día: si hoy no ha reclamado sus 50 monedas, presentar el cofre de bienvenida
-    if (window.stateManager && window.stateManager.canClaimDailyReward()) {
-      setTimeout(() => {
-        // Solo abrir si no hay otro modal crítico como victoria o epílogo
-        const isVictoryOpen = this.modalVictory && !this.modalVictory.classList.contains('hidden');
-        if (!isVictoryOpen) {
-          this.showDailyChestModal(true);
-        }
-      }, 700);
-    }
+    // Recompensa al entrar cada día: el cofre se visualiza abajo en la barra de inicio y el usuario decidirá cuándo abrirlo.
   }
 
   formatDailyCountdown(ms) {

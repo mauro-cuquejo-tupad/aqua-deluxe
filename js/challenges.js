@@ -210,7 +210,7 @@ class ChallengeManager {
     });
 
     // ------------------------------------------------------------------------
-    // TIPO 4E: Frasco de Reserva: Preservar el último tubo intacto
+    // TIPO 4E: Frasco de Reserva: Finalizar con el último tubo vacío
     // ------------------------------------------------------------------------
     // Solo en niveles con 2+ tubos vacíos iniciales y hasta 5 colores
     const emptyCount = tubes.filter(t => (t.liquids || []).length === 0).length;
@@ -221,19 +221,20 @@ class ChallengeManager {
         type: 'preserve_empty_tube',
         id: `preserve_empty_${targetReserveIdx}`,
         icon: 'flask-conical',
-        title: `Preservar el ${humanReservePos}º tubo vacío (sin tocar)`,
-        shortTitle: `Tubo ${humanReservePos} intacto`,
+        title: `Finalizar con el ${humanReservePos}º tubo completamente vacío`,
+        shortTitle: `Tubo ${humanReservePos} vacío al final`,
         coins: 80,
         targetTubeIdx: targetReserveIdx,
         check: (game) => {
-          if (!game.touchedTubeIndices) return true;
-          return !game.touchedTubeIndices.has(targetReserveIdx);
+          const t = game.tubes && game.tubes[targetReserveIdx];
+          return t ? t.liquids.length === 0 : true;
         },
         getCurrentText: (game) => {
-          const touched = game.touchedTubeIndices && game.touchedTubeIndices.has(targetReserveIdx);
-          return touched ? 'Usado ✕' : 'Intacto ✓';
+          const t = game.tubes && game.tubes[targetReserveIdx];
+          const isEmpty = t && t.liquids.length === 0;
+          return isEmpty ? 'Vacío ✓' : `${t ? t.liquids.length : 0} liq ✕`;
         },
-        isFailedLive: (game) => game.touchedTubeIndices && game.touchedTubeIndices.has(targetReserveIdx)
+        isFailedLive: () => false
       });
     }
 
@@ -310,6 +311,36 @@ class ChallengeManager {
     }
 
     // ------------------------------------------------------------------------
+    // TIPO 9: Transmutación Pivot Blanca: Llenar el tubo en menos de 30 movimientos
+    // ------------------------------------------------------------------------
+    if (tubes.some(t => t.isPivot || t.isTransmuted)) {
+      candidates.push({
+        type: 'fill_pivot_under_30',
+        id: 'fill_pivot_30',
+        icon: 'sparkles',
+        title: 'Transmutar el mini tubo pivot en ≤ 30 movimientos',
+        shortTitle: 'Pivot blanco ≤ 30 movs',
+        coins: 100,
+        check: (game) => {
+          // El tubo se considera llenado/transmutado si se logró en 30 movimientos o menos
+          return (game.pivotTransmutedAtMove !== null && game.pivotTransmutedAtMove !== undefined && game.pivotTransmutedAtMove <= 30);
+        },
+        getCurrentText: (game) => {
+          if (game.pivotTransmutedAtMove !== null && game.pivotTransmutedAtMove !== undefined) {
+            return game.pivotTransmutedAtMove <= 30 ? `Logrado en mov ${game.pivotTransmutedAtMove} ✓` : `Tarde (mov ${game.pivotTransmutedAtMove}) ✕`;
+          }
+          return `${game.moves || 0}/30 movs`;
+        },
+        isFailedLive: (game) => {
+          if (game.pivotTransmutedAtMove !== null && game.pivotTransmutedAtMove !== undefined) {
+            return game.pivotTransmutedAtMove > 30;
+          }
+          return (game.moves || 0) > 30;
+        }
+      });
+    }
+
+    // ------------------------------------------------------------------------
     // SELECCIÓN SEGÚN NIVEL
     // ------------------------------------------------------------------------
     // Nivel 1: Introducción suave con límite de movimientos
@@ -343,7 +374,13 @@ class ChallengeManager {
     const usedTypes = new Set();
 
     // Priorizar mecánicas temáticas activas si existen
-    if (tubes.some(t => t.isSuperFragile)) {
+    if (tubes.some(t => t.isPivot || t.isTransmuted)) {
+      const pvt = candidates.find(c => c.type === 'fill_pivot_under_30');
+      if (pvt) {
+        selected.push(pvt);
+        usedTypes.add(pvt.type);
+      }
+    } else if (tubes.some(t => t.isSuperFragile)) {
       const bsf = candidates.find(c => c.type === 'break_super_fragile');
       if (bsf) {
         selected.push(bsf);

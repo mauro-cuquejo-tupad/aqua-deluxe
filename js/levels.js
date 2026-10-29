@@ -27,6 +27,7 @@ class LevelGenerator {
     const rawHasChameleon = rawMechanics.rawHasChameleon;
     const rawHasFragile = rawMechanics.rawHasFragile;
     const rawIsSuperFragile = rawMechanics.rawIsSuperFragile;
+    const rawHasPivot = rawMechanics.rawHasPivot;
 
     // Filtro por configuración de dificultad personalizada del usuario
     const sm = window.stateManager;
@@ -39,8 +40,10 @@ class LevelGenerator {
     const hasChameleon = rawHasChameleon && !(sm && sm.isMechanicDisabled('chameleon'));
     const hasFragile = rawHasFragile && !(sm && sm.isMechanicDisabled('fragile'));
     const isSuperFragile = rawIsSuperFragile && !(sm && sm.isMechanicDisabled('fragile'));
+    const hasPivot = rawHasPivot && !(sm && sm.isMechanicDisabled('pivot'));
 
     const activeNames = [];
+    if (hasPivot) activeNames.push('Tubo Pivot (1)');
     if (hasSuperGiant) activeNames.push('Súper Tubo (Max 8)');
     else if (hasGiant) activeNames.push('Tubo Gigante (Max 6)');
     if (hasLock) activeNames.push('Candado');
@@ -177,6 +180,30 @@ class LevelGenerator {
       }
     }
 
+    // 3b. MECÁNICA TUBO PIVOT (SECCIÓN 8+):
+    // Frasco de 1 solo elemento de capacidad, inicialmente VACÍO.
+    if (hasPivot) {
+      tubes.push({
+        id: 0,
+        capacity: 1,
+        liquids: [],
+        isPivot: true,
+        isMini: true,
+        isLocked: false,
+        keyColor: null,
+        isNarrow: false,
+        isGlued: false,
+        isFragile: false,
+        isAffinity: false,
+        isSuperFragile: false,
+        cracks: 0,
+        maxCracks: null,
+        isBroken: false,
+        allowedColors: [],
+        allowedColorNames: []
+      });
+    }
+
     // Reasignar identificadores secuenciales 0..tubes.length-1
     tubes.forEach((t, idx) => {
       t.id = idx;
@@ -285,6 +312,36 @@ class LevelGenerator {
             }
           }
         });
+      }
+    }
+
+    // 4.5 Inserción del Líquido Blanco para el Tubo Pivot
+    // REGLA DEL USUARIO: "ese tubo debe venir vacio y debe generarse un líquido específico para ese tubo.
+    // Debe ser de dificil acceso el liquido. Debe tener altas probabilidades de estar debajo de al menos
+    // un liquido o dos y en lo posible, ser un liquido misterioso. Debe ser de color blanco."
+    if (hasPivot) {
+      const whiteLiquid = {
+        colorIndex: 'white_pivot',
+        color: '#ffffff',
+        name: 'Blanco',
+        shape: '✦',
+        letter: '✦',
+        pattern: null,
+        textHex: '#0f172a',
+        isMystery: true, // Alta probabilidad de ser misterioso
+        isChameleon: false,
+        isWhitePivot: true
+      };
+
+      // Buscar tubos con líquido (no candados, no bloqueados, con al menos 2 líquidos)
+      const candTubes = tubes.filter(t => !t.isPivot && !t.isLocked && !t.isGlued && t.liquids.length >= 2);
+      if (candTubes.length > 0) {
+        const targetTube = candTubes[Math.abs(effectiveSeed + 17) % candTubes.length];
+        // Colocarlo debajo de al menos 1 o 2 líquidos
+        const buryDepth = targetTube.liquids.length >= 3 ? 2 : 1;
+        const targetSlot = Math.max(0, targetTube.liquids.length - 1 - buryDepth);
+        // Reemplazar la unidad en targetSlot con el líquido blanco
+        targetTube.liquids[targetSlot] = whiteLiquid;
       }
     }
 
@@ -587,6 +644,7 @@ class LevelGenerator {
     const hasGlued = !!mechanics.glued;
     const hasChameleon = !!mechanics.chameleon;
     const hasFragile = !!mechanics.fragile;
+    const hasPivot = !!mechanics.pivot;
 
     // Resolver la cantidad de tubos de cada tipo:
     // - Si el slider está en 0 (Auto / Por defecto): puede no aparecer (0) o aparecer múltiples veces al azar,
@@ -613,6 +671,7 @@ class LevelGenerator {
     const mysteryCount = resolveCount(hasMystery, mechanicCounts.mystery, numColors, numColors);
     const maxChameleonPossible = Math.max(0, numColors - giantCount);
     const chameleonCount = resolveCount(hasChameleon, mechanicCounts.chameleon, maxChameleonPossible, Math.min(3, maxChameleonPossible));
+    const pivotCount = resolveCount(hasPivot, mechanicCounts.pivot, 2, 1);
 
     const tubes = [];
     const capacity = 4;
@@ -723,8 +782,57 @@ class LevelGenerator {
       });
     }
 
+    // 3b. Agregar tubos Pivot (1 elemento, vacíos) según pivotCount en Sandbox
+    if (pivotCount > 0) {
+      for (let p = 0; p < pivotCount; p++) {
+        tubes.push({
+          id: tubes.length,
+          capacity: 1,
+          liquids: [],
+          isPivot: true,
+          isMini: true,
+          isGlued: false,
+          isLocked: false,
+          keyColor: null,
+          keyColorName: null,
+          isNarrow: false,
+          isFragile: false,
+          isAffinity: false,
+          isSuperFragile: false,
+          cracks: 0,
+          maxCracks: null,
+          isBroken: false,
+          allowedColors: [],
+          allowedColorNames: []
+        });
+      }
+    }
+
     // 4. Distribuir y mezclar los líquidos entre los tubos con líquido
     this.distributeAndShuffle(tubes, actualSeed);
+
+    // 4b. Insertar líquido blanco para el tubo Pivot en Sandbox si corresponde
+    if (pivotCount > 0) {
+      const whiteLiquid = {
+        colorIndex: 'white_pivot',
+        color: '#ffffff',
+        name: 'Blanco',
+        shape: '✦',
+        letter: '✦',
+        pattern: null,
+        textHex: '#0f172a',
+        isMystery: true,
+        isChameleon: false,
+        isWhitePivot: true
+      };
+      const candTubes = tubes.filter(t => !t.isPivot && !t.isLocked && !t.isGlued && t.liquids.length >= 2);
+      if (candTubes.length > 0) {
+        const targetTube = candTubes[Math.floor(rnd() * candTubes.length)];
+        const buryDepth = targetTube.liquids.length >= 3 ? 2 : 1;
+        const targetSlot = Math.max(0, targetTube.liquids.length - 1 - buryDepth);
+        targetTube.liquids[targetSlot] = whiteLiquid;
+      }
+    }
 
     // 5. Aplicar candados con llave (lockCount) si corresponde
     if (lockCount > 0 && tubes.length > 0) {
@@ -814,6 +922,7 @@ class LevelGenerator {
     if (gluedCount > 0) activeMechanicNames.push(`En Piedra x${gluedCount}`);
     if (chameleonCount > 0) activeMechanicNames.push(`Camaleón x${chameleonCount}`);
     if (actualFragileEmpty > 0) activeMechanicNames.push(`Frágil x${actualFragileEmpty}`);
+    if (pivotCount > 0) activeMechanicNames.push(`Tubo Pivot x${pivotCount}`);
 
     return {
       level: 'casual_sandbox',
@@ -844,6 +953,7 @@ class LevelGenerator {
     let rawHasChameleon = false;
     let rawHasFragile = false;
     let rawIsSuperFragile = false;
+    let rawHasPivot = false;
 
     if (section === 1) {
       // 1-10: Fundamentos (Básico)
@@ -898,8 +1008,10 @@ class LevelGenerator {
         if (step === 8 || step === 10) rawHasGlued = true;
       }
     } else if (section === 8) {
-      // 71-80: Cristal de Afinidad / Frágil
+      // 71-80: Cristal de Afinidad / Frágil y Tubo Pivot (1 elemento blanco)
       rawHasFragile = true;
+      // Aparece en algunos niveles de la sección 8 (ej: 74, 76, 78, 80)
+      if (step === 4 || step === 6 || step === 8 || step === 10) rawHasPivot = true;
       if (step >= 4) {
         // Sumar mecánicas anteriores: Camaleón, Roca, Estrecho, Candado, Gigante, Misterio
         if (step === 4 || step === 9) rawHasMystery = true;
@@ -911,6 +1023,7 @@ class LevelGenerator {
       }
     } else if (section === 9) {
       // 81-90: Conjunción Híbrida / Súper Gigante (Max 8)
+      if (step === 3 || step === 6 || step === 9) rawHasPivot = true;
       if (step <= 3) {
         rawHasSuperGiant = true;
         if (step === 2) rawHasMystery = true;
@@ -926,6 +1039,7 @@ class LevelGenerator {
       }
     } else if (section === 10) {
       // 91-100: La Gran Obra Magna
+      if (step === 2 || step === 5 || step === 8 || step === 10) rawHasPivot = true;
       if (step === 1) { rawHasGiant = true; rawHasMystery = true; rawHasLock = true; }
       else if (step === 2) { rawHasNarrow = true; rawHasGlued = true; rawHasChameleon = true; }
       else if (step === 3) { rawHasSuperGiant = true; rawHasFragile = true; rawHasMystery = true; }
@@ -943,6 +1057,7 @@ class LevelGenerator {
         rawHasNarrow = true;
         rawHasGlued = true;
         rawHasMystery = true;
+        rawHasPivot = true;
       }
     }
 
@@ -955,7 +1070,8 @@ class LevelGenerator {
       rawHasGlued,
       rawHasChameleon,
       rawHasFragile,
-      rawIsSuperFragile
+      rawIsSuperFragile,
+      rawHasPivot
     };
   }
 }

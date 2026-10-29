@@ -976,6 +976,47 @@
 }
 
 /* ==========================================================================
+   MINI TUBO PIVOT (1 LÍQUIDO, INICIALMENTE VACÍO, BRICK BLANCO/DORADO)
+   ========================================================================== */
+.test-tube.tube-pivot {
+  border-radius: 0 0 1.2rem 1.2rem;
+  transition: transform 0.28s cubic-bezier(0.34, 1.56, 0.64, 1), filter 0.25s ease, border-color 0.3s ease;
+}
+
+.test-tube.tube-pivot .tube-lip {
+  border-color: rgba(255, 255, 255, 0.95);
+  background: linear-gradient(90deg, rgba(255, 255, 255, 0.9) 0%, rgba(226, 232, 240, 0.5) 50%, rgba(255, 255, 255, 0.9) 100%);
+  box-shadow: 0 0 14px rgba(255, 255, 255, 0.8), 0 0 20px rgba(251, 191, 36, 0.5);
+}
+
+.test-tube.tube-pivot .tube-glass {
+  border-color: rgba(255, 255, 255, 0.9);
+  border-width: 2.5px;
+  border-radius: 0 0 1.2rem 1.2rem;
+  box-shadow: 0 0 16px rgba(255, 255, 255, 0.6), inset 0 0 10px rgba(255, 255, 255, 0.35);
+  background: linear-gradient(135deg, rgba(255, 255, 255, 0.15) 0%, rgba(251, 191, 36, 0.08) 50%, rgba(255, 255, 255, 0.12) 100%);
+}
+
+.test-tube.tube-transmuting {
+  animation: tubeTransmuteFanfare 0.85s cubic-bezier(0.2, 0.9, 0.3, 1.2) forwards;
+}
+
+@keyframes tubeTransmuteFanfare {
+  0% {
+    transform: scale(1);
+    filter: brightness(1) drop-shadow(0 0 0 rgba(255, 255, 255, 0));
+  }
+  40% {
+    transform: scale(1.18);
+    filter: brightness(2) drop-shadow(0 0 25px rgba(255, 255, 255, 0.95)) drop-shadow(0 0 40px rgba(251, 191, 36, 0.8));
+  }
+  100% {
+    transform: scale(1);
+    filter: brightness(1) drop-shadow(0 0 10px rgba(251, 191, 36, 0.5));
+  }
+}
+
+/* ==========================================================================
    CONTRARRELOJ (TIME ATTACK) - VAPORIZACIÓN DE FLUIDO Y BONIFICACIONES
    ========================================================================== */
 .test-tube.tube-vaporize-complete {
