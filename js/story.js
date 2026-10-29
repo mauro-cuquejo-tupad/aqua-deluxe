@@ -29,12 +29,20 @@ class StoryManager {
     const isLove = this.isSecretBranchUnlocked();
     const commonChapters = [
       {
+        id: 0,
+        title: "Prólogo: La Chispa Infantil",
+        subtitle: "Los Inicios de una Mente Inquieta",
+        secretWord: null,
+        svg: this.getPrologueChildhoodSvg(),
+        text: "Desde sus primeros meses de vida, el pequeño alquimista ya no era un bebé convencional. En su cuna, mientras jugaba inocentemente con sonajeros y cubos de madera, una chispa mágica desprendió de sus deditos... ¡y su osito de trapo estalló en confeti y chispas de luz ante la sorpresa de sus padres! Años más tarde, sentado a la mesa, intentó condensar la salsa de su comida mezclando jugos misteriosos, provocando que el puré explotara cómicamente contra el techo entre humo dorado. Fue entonces cuando, admirando el horizonte desde la colina del pueblo, divisó las altas agujas y vidrieras relucientes del gran Colegio de Alquimia. Con el corazón latiendo a mil por hora, supo de inmediato cuál era su verdadero destino."
+      },
+      {
         id: 1,
         title: "Capítulo 1: El Desastre Escolar",
-        subtitle: "Laboratorio de Ciencias de la Secundaria",
+        subtitle: "Laboratorio de Ciencias del Colegio",
         secretWord: "mirko",
         svg: this.getSchoolExplosionSvg(),
-        text: "Todo comenzó en sus primeros años de colegio. Mientras los demás jugaban al fútbol en el recreo, el joven alquimista intentó sintetizar la fórmula de la inmortalidad en el aula de química. Mezcló reactivos volátiles y... ¡PUM! Hizo volar el techo del laboratorio escolar por los aires entre humo púrpura. Su fiel perrito mirko lo esperaba afuera del colegio moviendo la cola, completamente acostumbrado a sus desastres."
+        text: "Tras descubrir su vocación por la alquimia, ingresó finalmente al prestigioso colegio. Pero sus inicios fueron tan explosivos como prometedores: mientras los demás practicaban transmutaciones básicas de hojas secas, él intentó acelerar la fórmula suprema en el aula magna. Mezcló reactivos volátiles y... ¡PUM! Hizo encoger cómicamente todo el laboratorio escolar entre humo púrpura y chispas mágicas. Su fiel perrito mirko lo esperaba afuera moviendo la cola, completamente acostumbrado a sus brillantes pero caóticos desastres."
       },
       {
         id: 2,
@@ -147,6 +155,177 @@ class StoryManager {
   }
 
   // --- SVGS ILUSTRATIVOS DE LA HISTORIA (ESTILO MINIMALISTA Y ACOGEDOR CON ANIMACIÓN CINEMÁTICA ÚNICA) ---
+  getPrologueChildhoodSvg() {
+    return `
+      <svg viewBox="0 0 320 180" class="w-full h-full rounded-2xl bg-gradient-to-b from-slate-950 via-slate-900 to-indigo-950/70 p-2 story-svg-container select-none">
+        <!-- Suelo general -->
+        <line x1="10" y1="152" x2="310" y2="152" stroke="#334155" stroke-width="1.5" stroke-dasharray="3,3"/>
+
+        <!-- SEPARADORES DE VIÑETAS / PANELES CÓMICOS -->
+        <line x1="106" y1="15" x2="106" y2="155" stroke="#1e293b" stroke-width="2" stroke-linecap="round"/>
+        <line x1="214" y1="15" x2="214" y2="155" stroke="#1e293b" stroke-width="2" stroke-linecap="round"/>
+
+        <!-- ========================================== -->
+        <!-- VIÑETA 1: ALQUIMISTA BEBÉ Y JUGUETE EXPLOSIVO -->
+        <!-- ========================================== -->
+        <g class="story-anim-ch0-panel-1">
+          <!-- Etiqueta superior -->
+          <rect x="22" y="16" width="62" height="14" rx="7" fill="#0f172a" stroke="#38bdf8" stroke-width="1"/>
+          <text x="53" y="26" font-size="7" font-weight="900" fill="#38bdf8" text-anchor="middle">👶 1. EL BEBÉ</text>
+
+          <!-- Cuna / alfombra -->
+          <ellipse cx="53" cy="148" rx="35" ry="6" fill="#1e293b" opacity="0.6"/>
+          <rect x="25" y="118" width="56" height="28" rx="4" fill="#1e293b" stroke="#334155" stroke-width="1.5"/>
+          <!-- Barrotes cuna -->
+          <line x1="33" y1="118" x2="33" y2="146" stroke="#475569" stroke-width="1.5"/>
+          <line x1="43" y1="118" x2="43" y2="146" stroke="#475569" stroke-width="1.5"/>
+          <line x1="53" y1="118" x2="53" y2="146" stroke="#475569" stroke-width="1.5"/>
+          <line x1="63" y1="118" x2="63" y2="146" stroke="#475569" stroke-width="1.5"/>
+          <line x1="73" y1="118" x2="73" y2="146" stroke="#475569" stroke-width="1.5"/>
+
+          <!-- Bebé Alquimista -->
+          <g class="story-anim-ch0-baby" transform="translate(38, 92)">
+            <!-- Gorrito / pañuelo azul de bebé -->
+            <ellipse cx="14" cy="12" rx="10" ry="11" fill="#fed7aa"/>
+            <path d="M 6 8 Q 14 -2 22 8 Z" fill="#38bdf8"/>
+            <circle cx="14" cy="-2" r="2.5" fill="#facc15"/>
+            <!-- Ojos sonrientes pillos -->
+            <path d="M 10 11 Q 12 8 14 11" stroke="#0f172a" stroke-width="1.5" fill="none"/>
+            <path d="M 16 11 Q 18 8 20 11" stroke="#0f172a" stroke-width="1.5" fill="none"/>
+            <!-- Chupete / sonrisa -->
+            <circle cx="15" cy="17" r="3" fill="#f43f5e"/>
+            <!-- Manitas mágicas -->
+            <circle cx="6" cy="22" r="3.5" fill="#fed7aa"/>
+            <circle cx="24" cy="20" r="3.5" fill="#fed7aa"/>
+            <!-- Destellitos de chispa saliendo del dedito -->
+            <circle cx="27" cy="18" r="2" fill="#facc15"/>
+          </g>
+
+          <!-- Osito de peluche / Juguete explotando en confeti -->
+          <g transform="translate(70, 118)">
+            <!-- Restos del juguete chamuscado -->
+            <circle cx="6" cy="12" r="5" fill="#78350f" stroke="#0f172a" stroke-width="1"/>
+            <circle cx="2" cy="7" r="2.5" fill="#78350f"/>
+            <circle cx="10" cy="7" r="2.5" fill="#78350f"/>
+          </g>
+
+          <!-- Animación de Explosión del juguete -->
+          <g class="story-anim-ch0-toy-boom">
+            <circle cx="76" cy="122" r="14" fill="#f59e0b" opacity="0.9"/>
+            <circle cx="76" cy="122" r="8" fill="#fef08a"/>
+            <!-- Confeti y chispas -->
+            <rect x="68" y="108" width="3" height="3" fill="#ef4444" transform="rotate(25 68 108)"/>
+            <rect x="85" y="112" width="3" height="3" fill="#3b82f6" transform="rotate(-15 85 112)"/>
+            <rect x="74" y="136" width="3" height="3" fill="#10b981" transform="rotate(40 74 136)"/>
+            <rect x="86" y="130" width="3" height="3" fill="#a855f7" transform="rotate(10 86 130)"/>
+            <text x="76" y="104" font-size="8" font-weight="900" fill="#fde047" text-anchor="middle">¡PUM! 🧸💥</text>
+          </g>
+        </g>
+
+        <!-- ========================================== -->
+        <!-- VIÑETA 2: ALQUIMISTA NIÑO HACIENDO EXPLOTAR LA COMIDA -->
+        <!-- ========================================== -->
+        <g class="story-anim-ch0-panel-2">
+          <!-- Etiqueta superior -->
+          <rect x="130" y="16" width="62" height="14" rx="7" fill="#0f172a" stroke="#f59e0b" stroke-width="1"/>
+          <text x="161" y="26" font-size="7" font-weight="900" fill="#f59e0b" text-anchor="middle">👦 2. EL PURÉ</text>
+
+          <!-- Silla y mesa -->
+          <ellipse cx="160" cy="148" rx="35" ry="6" fill="#1e293b" opacity="0.6"/>
+          <!-- Mesa del comedor -->
+          <rect x="150" y="112" width="46" height="36" rx="2" fill="#334155" stroke="#475569" stroke-width="1.5"/>
+          <rect x="146" y="108" width="54" height="6" rx="2" fill="#1e293b"/>
+
+          <!-- Plato de comida en la mesa -->
+          <ellipse cx="172" cy="110" rx="10" ry="3.5" fill="#e2e8f0" stroke="#94a3b8" stroke-width="1"/>
+
+          <!-- Niño travieso sentado -->
+          <g transform="translate(125, 96)">
+            <!-- Cuerpo niño -->
+            <rect x="8" y="24" width="16" height="24" rx="3" fill="#0284c7"/>
+            <!-- Cabeza tiznada con sonrisa traviesa -->
+            <circle cx="16" cy="12" rx="9" ry="9.5" fill="#fed7aa"/>
+            <path d="M 8 10 Q 16 0 24 10 Z" fill="#64748b"/>
+            <!-- Cara con mancha de hollín -->
+            <circle cx="18" cy="11" r="3" fill="#1e293b" opacity="0.7"/>
+            <circle cx="13" cy="11" r="1.5" fill="#0f172a"/>
+            <circle cx="19" cy="11" r="1.5" fill="#0f172a"/>
+            <!-- Sonrisa de orgullo travieso -->
+            <path d="M 13 16 Q 16 20 20 16" stroke="#0f172a" stroke-width="1.5" fill="none"/>
+            <!-- Cuchara / matraz infantil en mano -->
+            <line x1="22" y1="20" x2="33" y2="12" stroke="#cbd5e1" stroke-width="2"/>
+            <circle cx="34" cy="11" r="3" fill="#facc15"/>
+          </g>
+
+          <!-- Explosión cómica del puré salpicando hacia arriba -->
+          <g class="story-anim-ch0-food-boom">
+            <!-- Nube de sopa / puré dorado volando -->
+            <circle cx="172" cy="98" r="12" fill="#facc15" opacity="0.95"/>
+            <circle cx="166" cy="90" r="8" fill="#fbbf24"/>
+            <circle cx="179" cy="92" r="7" fill="#fb923c"/>
+            <!-- Salpicaduras en el techo -->
+            <circle cx="172" cy="46" r="5" fill="#facc15"/>
+            <circle cx="164" cy="52" r="3.5" fill="#fbbf24"/>
+            <circle cx="180" cy="50" r="4" fill="#fb923c"/>
+            <path d="M 172 100 Q 170 65 172 48" stroke="#facc15" stroke-width="3" stroke-linecap="round" fill="none"/>
+            <text x="172" y="78" font-size="8" font-weight="900" fill="#fef08a" text-anchor="middle">¡CATAPLÚM! 🍲</text>
+          </g>
+        </g>
+
+        <!-- ========================================== -->
+        <!-- VIÑETA 3: DESCUBRIENDO EL COLEGIO DE ALQUIMIA -->
+        <!-- ========================================== -->
+        <g class="story-anim-ch0-panel-3">
+          <!-- Etiqueta superior -->
+          <rect x="234" y="16" width="70" height="14" rx="7" fill="#0f172a" stroke="#a855f7" stroke-width="1"/>
+          <text x="269" y="26" font-size="7" font-weight="900" fill="#c084fc" text-anchor="middle">🏰 3. LA VOCACIÓN</text>
+
+          <!-- Colina del mirador -->
+          <path d="M 214 152 Q 245 135 275 142 Q 300 148 316 152 Z" fill="#1e293b"/>
+
+          <!-- Niño admirando el colegio desde la colina con su mochila -->
+          <g transform="translate(226, 114)">
+            <!-- Mochila de aventuras -->
+            <rect x="0" y="14" width="7" height="12" rx="2" fill="#78350f"/>
+            <!-- Cuerpo de espaldas/perfil mirando al castillo -->
+            <rect x="5" y="12" width="10" height="18" rx="2" fill="#0284c7"/>
+            <circle cx="11" cy="6" r="6" fill="#fed7aa"/>
+            <path d="M 6 5 Q 11 0 15 5 Z" fill="#64748b"/>
+            <!-- Destello de emoción en sus ojos -->
+            <circle cx="15" cy="5" r="1.5" fill="#fde047"/>
+            <!-- Brazo señalando hacia el colegio -->
+            <line x1="12" y1="16" x2="22" y2="10" stroke="#fed7aa" stroke-width="2" stroke-linecap="round"/>
+          </g>
+
+          <!-- Gran Colegio de Alquimia al fondo en el horizonte iluminado -->
+          <g class="story-anim-ch0-school-glow" transform="translate(254, 55)">
+            <!-- Resplandor místico celestial -->
+            <circle cx="28" cy="40" r="32" fill="#a855f7" opacity="0.25" filter="blur(6px)"/>
+            <!-- Muros y torreones -->
+            <rect x="10" y="40" width="36" height="38" rx="2" fill="#334155" stroke="#94a3b8" stroke-width="1.5"/>
+            <!-- Torre central alta -->
+            <rect x="22" y="18" width="12" height="42" fill="#1e293b" stroke="#64748b" stroke-width="1.5"/>
+            <polygon points="20,18 28,0 36,18" fill="#facc15" stroke="#fef08a" stroke-width="1.5"/>
+            <circle cx="28" cy="26" r="3" fill="#38bdf8"/>
+            <!-- Torre izquierda -->
+            <rect x="6" y="28" width="10" height="26" fill="#1e293b" stroke="#64748b" stroke-width="1"/>
+            <polygon points="5,28 11,14 17,28" fill="#a855f7"/>
+            <!-- Torre derecha -->
+            <rect x="40" y="28" width="10" height="26" fill="#1e293b" stroke="#64748b" stroke-width="1"/>
+            <polygon points="39,28 45,14 51,28" fill="#a855f7"/>
+            <!-- Gran vidriera alquímica circular luminosa -->
+            <circle cx="28" cy="52" r="8" fill="#f59e0b" stroke="#fef08a" stroke-width="1.5"/>
+            <!-- Bandera ondeando en la cima -->
+            <polygon points="28,0 36,3 28,6" fill="#38bdf8"/>
+            <!-- Destello estelar en la aguja -->
+            <text x="28" y="-3" font-size="9" fill="#fde047" text-anchor="middle">✨</text>
+          </g>
+          <text x="282" y="132" font-size="7" font-weight="900" fill="#a7f3d0" text-anchor="middle">¡Mi destino!</text>
+        </g>
+      </svg>
+    `;
+  }
+
   getSchoolExplosionSvg() {
     return `
       <svg viewBox="0 0 320 180" class="w-full h-full rounded-2xl bg-gradient-to-b from-slate-950 via-slate-900 to-indigo-950/70 p-2 story-svg-container select-none">

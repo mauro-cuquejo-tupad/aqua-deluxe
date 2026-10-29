@@ -9143,10 +9143,12 @@ class GameController {
       if (coinsEl) coinsEl.textContent = `+${rewardCoins} 🪙`;
 
       // Desbloqueo de cinemática de historia por victoria de Desafío de Honor
+      // Sección 1 desbloquea Capítulo 1 (índice 1), Sección 2 desbloquea Capítulo 2 (índice 2), etc.
+      // El Capítulo 0 (Prólogo: La Infancia) viene desbloqueado desde el inicio.
       let isNewCinematic = false;
       let unlockedChapterIndex = null;
       if (this.honorSectionId >= 1 && this.honorSectionId <= 10) {
-        unlockedChapterIndex = this.honorSectionId - 1;
+        unlockedChapterIndex = this.honorSectionId; // Sección 1 desbloquea Capítulo 1
         if (window.stateManager) {
           isNewCinematic = window.stateManager.unlockStoryChapter(unlockedChapterIndex);
         }
@@ -9159,7 +9161,7 @@ class GameController {
       const cinematicTag = document.getElementById('honor-vic-cinematic-ch-tag');
       if (cinematicBox) {
         if (this.pendingHonorCinematicIndex !== null) {
-          if (cinematicTag) cinematicTag.textContent = `Capítulo ${this.pendingHonorCinematicIndex + 1}`;
+          if (cinematicTag) cinematicTag.textContent = `Capítulo ${this.pendingHonorCinematicIndex}`;
           cinematicBox.classList.remove('hidden');
         } else {
           cinematicBox.classList.add('hidden');
