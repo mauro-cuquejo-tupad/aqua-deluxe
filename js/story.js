@@ -613,36 +613,106 @@ class StoryManager {
 
   getGiantFlasksSvg() {
     return `
-      <svg viewBox="0 0 320 180" class="w-full h-full rounded-2xl bg-gradient-to-b from-slate-950 via-slate-900 to-indigo-950/70 p-2 story-svg-container">
-        <!-- Probetas gigantes de laboratorio -->
+      <svg viewBox="0 0 320 180" class="w-full h-full rounded-2xl bg-gradient-to-b from-slate-950 via-slate-900 to-indigo-950/70 p-2 story-svg-container select-none">
+        <line x1="10" y1="151" x2="310" y2="151" stroke="#334155" stroke-width="1.5" stroke-dasharray="3,3"/>
+
+        <!-- Frascos con el modelo real del juego -->
         <g class="story-anim-ch5-flasks">
-          <g transform="translate(60, 30)">
-            <rect x="10" y="10" width="35" height="110" rx="10" fill="rgba(56, 189, 248, 0.25)" stroke="#38bdf8" stroke-width="2.5"/>
-            <rect class="story-anim-ch5-liquid1" x="12" y="55" width="31" height="63" rx="8" fill="#0284c7"/>
-            <text x="27" y="135" font-size="9" font-weight="900" fill="#38bdf8" text-anchor="middle">Max 6</text>
-          </g>
-          <g transform="translate(125, 15)">
-            <rect x="10" y="10" width="42" height="130" rx="12" fill="rgba(245, 158, 11, 0.25)" stroke="#f59e0b" stroke-width="2.5"/>
-            <rect class="story-anim-ch5-liquid2" x="12" y="60" width="38" height="78" rx="10" fill="#d97706"/>
-            <text x="31" y="152" font-size="9" font-weight="900" fill="#f59e0b" text-anchor="middle">Titán 8</text>
-          </g>
-          <!-- Tubo fino 1x1 con burbujitas -->
-          <g transform="translate(195, 45)">
-            <rect x="10" y="10" width="18" height="90" rx="6" fill="rgba(168, 85, 247, 0.3)" stroke="#c084fc" stroke-width="2"/>
-            <rect class="story-anim-ch5-liquid3" x="11" y="60" width="16" height="38" rx="5" fill="#9333ea"/>
-            <circle class="story-anim-ch5-bubble1" cx="19" cy="45" r="2.5" fill="#f3e8ff"/>
-            <circle class="story-anim-ch5-bubble2" cx="19" cy="30" r="2" fill="#f3e8ff"/>
-            <text x="19" y="115" font-size="8" font-weight="900" fill="#d8b4fe" text-anchor="middle">1x1 ✨</text>
-          </g>
+            <g>
+            <clipPath id="ch5clipGig92"><path d="M 92 48 L 92 135.0 Q 92 150 107.0 150 Q 122 150 122 135.0 L 122 48 Z"/></clipPath>
+            <path d="M 92 48 L 92 135.0 Q 92 150 107.0 150 Q 122 150 122 135.0 L 122 48 Z" fill="rgba(148,163,184,0.10)"/>
+            <g clip-path="url(#ch5clipGig92)">
+            <rect x="92" y="133" width="30" height="17" fill="#ef4444" stroke="rgba(0,0,0,0.25)" stroke-width="0.6"/>
+            <text x="107.0" y="145.0" font-size="10" fill="#ffffff" text-anchor="middle" font-weight="900">●</text>
+            <rect x="92" y="116" width="30" height="17" fill="#ef4444" stroke="rgba(0,0,0,0.25)" stroke-width="0.6"/>
+            <text x="107.0" y="128.0" font-size="10" fill="#ffffff" text-anchor="middle" font-weight="900">●</text>
+            <rect x="92" y="99" width="30" height="17" fill="#ef4444" stroke="rgba(0,0,0,0.25)" stroke-width="0.6"/>
+            <text x="107.0" y="111.0" font-size="10" fill="#ffffff" text-anchor="middle" font-weight="900">●</text>
+            <rect x="92" y="82" width="30" height="17" fill="#ef4444" stroke="rgba(0,0,0,0.25)" stroke-width="0.6"/>
+            <text x="107.0" y="94.0" font-size="10" fill="#ffffff" text-anchor="middle" font-weight="900">●</text>
+            <rect x="92" y="65" width="30" height="17" fill="#ef4444" stroke="rgba(0,0,0,0.25)" stroke-width="0.6"/>
+            <text x="107.0" y="77.0" font-size="10" fill="#ffffff" text-anchor="middle" font-weight="900">●</text>
+            </g>
+            <path d="M 92 48 L 92 135.0 Q 92 150 107.0 150 Q 122 150 122 135.0 L 122 48" fill="none" stroke="#38bdf8" stroke-width="2.2" stroke-linejoin="round"/>
+            <rect x="89" y="43" width="36" height="6" rx="3" fill="#0f172a" stroke="#38bdf8" stroke-width="2"/>
+            <rect x="95" y="52" width="3" height="81.0" rx="1.5" fill="rgba(255,255,255,0.18)"/>
+            
+            <text x="107.0" y="162" font-size="8" font-weight="900" fill="#38bdf8" text-anchor="middle">Gigante 6</text>
+            </g>
+            <g>
+            <clipPath id="ch5clipTit138"><path d="M 138 30 L 138 132.0 Q 138 150 156.0 150 Q 174 150 174 132.0 L 174 30 Z"/></clipPath>
+            <path d="M 138 30 L 138 132.0 Q 138 150 156.0 150 Q 174 150 174 132.0 L 174 30 Z" fill="rgba(148,163,184,0.10)"/>
+            <g clip-path="url(#ch5clipTit138)">
+            <rect x="138" y="135" width="36" height="15" fill="#f59e0b" stroke="rgba(0,0,0,0.25)" stroke-width="0.6"/>
+            <text x="156.0" y="146.0" font-size="10" fill="#ffffff" text-anchor="middle" font-weight="900">◆</text>
+            <rect x="138" y="120" width="36" height="15" fill="#f59e0b" stroke="rgba(0,0,0,0.25)" stroke-width="0.6"/>
+            <text x="156.0" y="131.0" font-size="10" fill="#ffffff" text-anchor="middle" font-weight="900">◆</text>
+            <rect x="138" y="105" width="36" height="15" fill="#f59e0b" stroke="rgba(0,0,0,0.25)" stroke-width="0.6"/>
+            <text x="156.0" y="116.0" font-size="10" fill="#ffffff" text-anchor="middle" font-weight="900">◆</text>
+            <rect x="138" y="90" width="36" height="15" fill="#f59e0b" stroke="rgba(0,0,0,0.25)" stroke-width="0.6"/>
+            <text x="156.0" y="101.0" font-size="10" fill="#ffffff" text-anchor="middle" font-weight="900">◆</text>
+            <rect x="138" y="75" width="36" height="15" fill="#3b82f6" stroke="rgba(0,0,0,0.25)" stroke-width="0.6"/>
+            <text x="156.0" y="86.0" font-size="10" fill="#ffffff" text-anchor="middle" font-weight="900">▲</text>
+            <rect x="138" y="60" width="36" height="15" fill="#3b82f6" stroke="rgba(0,0,0,0.25)" stroke-width="0.6"/>
+            <text x="156.0" y="71.0" font-size="10" fill="#ffffff" text-anchor="middle" font-weight="900">▲</text>
+            <rect x="138" y="45" width="36" height="15" fill="#3b82f6" stroke="rgba(0,0,0,0.25)" stroke-width="0.6"/>
+            <text x="156.0" y="56.0" font-size="10" fill="#ffffff" text-anchor="middle" font-weight="900">▲</text>
+            </g>
+            <path d="M 138 30 L 138 132.0 Q 138 150 156.0 150 Q 174 150 174 132.0 L 174 30" fill="none" stroke="#f59e0b" stroke-width="2.2" stroke-linejoin="round"/>
+            <rect x="135" y="25" width="42" height="6" rx="3" fill="#0f172a" stroke="#f59e0b" stroke-width="2"/>
+            <rect x="141" y="34" width="3" height="96.0" rx="1.5" fill="rgba(255,255,255,0.18)"/>
+            
+            <text x="156.0" y="162" font-size="8" font-weight="900" fill="#fbbf24" text-anchor="middle">Titán 8</text>
+            </g>
+            <g>
+            <clipPath id="ch5clip1x1190"><path d="M 190 82 L 190 142.0 Q 190 150 198.0 150 Q 206 150 206 142.0 L 206 82 Z"/></clipPath>
+            <path d="M 190 82 L 190 142.0 Q 190 150 198.0 150 Q 206 150 206 142.0 L 206 82 Z" fill="rgba(148,163,184,0.10)"/>
+            <g clip-path="url(#ch5clip1x1190)">
+            <rect x="190" y="133" width="16" height="17" fill="#8b5cf6" stroke="rgba(0,0,0,0.25)" stroke-width="0.6"/>
+            <text x="198.0" y="145.0" font-size="10" fill="#ffffff" text-anchor="middle" font-weight="900">✦</text>
+            </g>
+            <path d="M 190 82 L 190 142.0 Q 190 150 198.0 150 Q 206 150 206 142.0 L 206 82" fill="none" stroke="#c084fc" stroke-width="2.2" stroke-linejoin="round"/>
+            <rect x="187" y="77" width="22" height="6" rx="3" fill="#0f172a" stroke="#c084fc" stroke-width="2"/>
+            <rect x="193" y="86" width="3" height="54.0" rx="1.5" fill="rgba(255,255,255,0.18)"/>
+            <circle class="story-anim-ch5-bubble1" cx="198" cy="100" r="2" fill="#f3e8ff"/><circle class="story-anim-ch5-bubble2" cx="198" cy="88" r="1.5" fill="#f3e8ff"/>
+            <text x="198.0" y="162" font-size="8" font-weight="900" fill="#d8b4fe" text-anchor="middle">1x1</text>
+            </g>
         </g>
-        <!-- Bianca supervisando -->
-        <g transform="translate(245, 75)">
+
+        <!-- Alquimista (izquierda) preguntando si explotan -->
+        <g transform="translate(24, 84)">
+          <circle cx="16" cy="16" r="11" fill="#fed7aa"/>
+          <path d="M 6 12 Q 16 0 26 12 Z" fill="#64748b"/>
+          <circle cx="12" cy="16" r="1.6" fill="#0f172a"/>
+          <circle cx="20" cy="16" r="1.6" fill="#0f172a"/>
+          <path d="M 12 22 Q 16 20 20 22" stroke="#0f172a" stroke-width="1.3" fill="none"/>
+          <path d="M 6 28 L 26 28 L 30 66 L 2 66 Z" fill="#e2e8f0"/>
+          <text x="16" y="78" font-size="8" font-weight="900" fill="#cbd5e1" text-anchor="middle">Alquimista</text>
+        </g>
+        <g class="story-anim-ch5-ask">
+          <rect x="8" y="34" width="66" height="28" rx="12" fill="rgba(15,23,42,0.95)" stroke="#f59e0b" stroke-width="1.6"/>
+          <polygon points="34,62 44,62 40,72" fill="rgba(15,23,42,0.95)" stroke="#f59e0b" stroke-width="1.6"/>
+          <rect x="35" y="59" width="10" height="4" fill="rgba(15,23,42,0.95)"/>
+          <text x="41" y="53" font-size="14" text-anchor="middle">🤔💥❓</text>
+        </g>
+
+        <!-- Bianca (derecha) asegurando que son seguros -->
+        <g transform="translate(250, 80)">
           <g class="story-anim-ch5-bianca">
           <circle cx="18" cy="18" r="11" fill="#fed7aa"/>
-          <path d="M 8 30 L 28 30 L 32 70 L 4 70 Z" fill="#10b981"/>
-          <text x="18" y="12" font-size="12" text-anchor="middle">👓</text>
-          <text x="18" y="82" font-size="9" font-weight="900" fill="#34d399" text-anchor="middle">Bianca 📐</text>
+          <path d="M 7 14 Q 18 2 29 14 L 30 26 Q 18 18 6 26 Z" fill="#78350f"/>
+          <circle cx="14" cy="18" r="1.6" fill="#0f172a"/>
+          <circle cx="22" cy="18" r="1.6" fill="#0f172a"/>
+          <path d="M 13 23 Q 18 27 23 23" stroke="#0f172a" stroke-width="1.3" fill="none"/>
+          <path d="M 8 30 L 28 30 L 32 66 L 4 66 Z" fill="#10b981"/>
+          <text x="18" y="78" font-size="8" font-weight="900" fill="#34d399" text-anchor="middle">Bianca</text>
+          </g>
         </g>
+        <g class="story-anim-ch5-answer">
+          <rect x="230" y="30" width="78" height="28" rx="12" fill="rgba(15,23,42,0.95)" stroke="#10b981" stroke-width="1.6"/>
+          <polygon points="262,58 272,58 268,70" fill="rgba(15,23,42,0.95)" stroke="#10b981" stroke-width="1.6"/>
+          <rect x="263" y="55" width="10" height="4" fill="rgba(15,23,42,0.95)"/>
+          <text x="269" y="49" font-size="14" text-anchor="middle">✅👍😊</text>
         </g>
       </svg>
     `;
