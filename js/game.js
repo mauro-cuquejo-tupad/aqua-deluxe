@@ -7463,10 +7463,15 @@ class GameController {
       let segmentClasses = `liquid-segment ${isTop ? 'top-liquid' : ''}`;
       if (liq.animClass) segmentClasses += ` ${liq.animClass}`;
       if (liq.isChameleon) segmentClasses += ' liquid-chameleon';
-      if (liq.isMystery && !isTop) segmentClasses += ' liquid-mystery';
+      const isRevealing = liq.isMystery && !isTop && liq.revealOnUncover;
+      if (liq.isMystery && !isTop && !isRevealing) segmentClasses += ' liquid-mystery';
+      if (isRevealing) segmentClasses += ' tut-mystery-revealing';
 
-      const styleBg = (!liq.isMystery || isTop) && !liq.isChameleon && liq.color ? `background-color: ${liq.color};` : '';
-      const content = liq.isMystery && !isTop
+      const styleBg = (!liq.isMystery || isTop || isRevealing) && !liq.isChameleon && liq.color ? `background-color: ${liq.color};` : '';
+      const shapeSpan = liq.shape ? `<span class="shape-icon" style="color: ${liq.textHex || '#ffffff'}; text-shadow: 0 1px 2px #000;">${liq.shape}</span>` : '';
+      const content = isRevealing
+        ? `<div class="tut-mystery-cover"><span>?</span></div><span class="tut-mystery-shape">${shapeSpan}</span>`
+        : liq.isMystery && !isTop
         ? `<span>?</span>`
         : (liq.shape ? `<span class="shape-icon" style="color: ${liq.textHex || '#ffffff'}; text-shadow: 0 1px 2px #000;">${liq.shape}</span>` : '');
 
@@ -7607,7 +7612,7 @@ class GameController {
             ${this.generateMiniTubeHtml({
               capacity: 4,
               liquids: [
-                { color: '#ef4444', shape: '●', textHex: '#ffffff', isMystery: true, animClass: 'tut-anim-reveal-unit' },
+                { color: '#ef4444', shape: '●', textHex: '#ffffff', isMystery: true, revealOnUncover: true },
                 { color: '#3b82f6', shape: '▲', textHex: '#ffffff', animClass: 'tut-anim-drain-unit' }
               ],
               animPourClass: 'tut-anim-tilt-pour'
@@ -7645,11 +7650,11 @@ class GameController {
               ${this.generateMiniTubeHtml({
                 capacity: 6,
                 liquids: [
-                  { color: '#3b82f6', shape: '▲', textHex: '#ffffff' },
-                  { color: '#3b82f6', shape: '▲', textHex: '#ffffff' },
-                  { color: '#3b82f6', shape: '▲', textHex: '#ffffff' },
-                  { color: '#3b82f6', shape: '▲', textHex: '#ffffff' },
-                  { color: '#3b82f6', shape: '▲', textHex: '#ffffff' }
+                  { color: '#ef4444', shape: '●', textHex: '#ffffff' },
+                  { color: '#ef4444', shape: '●', textHex: '#ffffff' },
+                  { color: '#ef4444', shape: '●', textHex: '#ffffff' },
+                  { color: '#ef4444', shape: '●', textHex: '#ffffff' },
+                  { color: '#ef4444', shape: '●', textHex: '#ffffff' }
                 ]
               })}
             </div>
@@ -7667,7 +7672,7 @@ class GameController {
               ${this.generateMiniTubeHtml({
                 capacity: 4,
                 liquids: [
-                  { color: '#ec4899', shape: '🔑', textHex: '#ffffff', animClass: 'tut-lock-key-drain' },
+                  { color: '#ec4899', shape: '🔑', textHex: '#ffffff' },
                   { color: '#3b82f6', shape: '▲', textHex: '#ffffff', animClass: 'tut-lock-blue-drain' }
                 ],
                 extraTubeClasses: 'tut-lock-tubeA'

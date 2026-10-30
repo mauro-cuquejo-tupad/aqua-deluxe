@@ -1669,3 +1669,28 @@
 .tut-lock-blue-fill  { transform-origin: bottom center; animation: tutLockBlueFill 7s ease-in-out infinite; }
 .tut-lock-key-drain  { transform-origin: top center; animation: tutLockKeyDrain 7s ease-in-out infinite; }
 .tut-lock-overlay-open { animation: tutLockOverlayOpen 7s ease-in-out infinite; }
+
+/* ===== Tutorial Misterio: al destapar, el '?' se convierte en rojo común ===== */
+.tut-mystery-revealing { position: relative; overflow: hidden; }
+.tut-mystery-cover {
+  position: absolute; inset: 0;
+  display: flex; align-items: center; justify-content: center;
+  background: linear-gradient(135deg, #334155, #1e293b);
+  border: 1px dashed rgba(255, 255, 255, 0.35);
+  border-radius: inherit;
+  animation: tutMysteryCoverFade 3.8s ease-in-out infinite;
+}
+.tut-mystery-cover span { color: #94a3b8; font-weight: 900; font-size: 1.1rem; }
+.tut-mystery-shape { display: contents; }
+.tut-mystery-revealing .shape-icon { animation: tutMysteryShapeIn 3.8s ease-in-out infinite; }
+@keyframes tutMysteryCoverFade {
+  0%, 44%  { opacity: 1; filter: none; }
+  50%      { opacity: 0.6; filter: brightness(2.2) drop-shadow(0 0 8px #fff); }
+  58%, 88% { opacity: 0; }
+  95%, 100% { opacity: 1; }
+}
+@keyframes tutMysteryShapeIn {
+  0%, 48%  { opacity: 0; transform: scale(0.4); }
+  58%, 88% { opacity: 1; transform: scale(1); }
+  95%, 100% { opacity: 0; transform: scale(0.4); }
+}
